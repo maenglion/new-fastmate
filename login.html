@@ -84,13 +84,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function socialLogin(provider) {
-    // 여기에 구글, 카카오 등 소셜 로그인을 처리하는 코드가 들어갑니다.
-    console.log(`${provider} (으)로 소셜 로그인 시도`);
-}
-
-
+<!-- login 성공 직후 한 번 테스트 -->
+  const db = firebase.firestore();
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) return;
+    try {
+      // users/{uid}/smokeTest 에 쓰기
+      await db.collection('users').doc(user.uid)
+        .collection('smokeTest')
+        .add({ ok: true, at: firebase.firestore.FieldValue.serverTimestamp() });
+      console.log('write ok');
+    } catch (e) {
+      console.error('write fail', e); // 여기에 권한/규칙 에러 메시지 찍힘
+    }
+  });
 </script>
+
+
 
 </body>
 </html>

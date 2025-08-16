@@ -617,6 +617,29 @@ auth.onAuthStateChanged((user) => {
                 });
             }
 
+const db = firebase.firestore();
+
+  async function saveFastingRecordToFirestore(record) {
+    const user = firebase.auth().currentUser;
+    if (!user) return; // 미로그인 시 건너뜀 (fastmate는 인증가드 있으면 항상 로그인 상태임)
+    await db.collection('users')
+      .doc(user.uid)
+      .collection('fastingHistory')
+      .add({
+        startTime: new Date(record.startTime),
+        endTime: new Date(record.endTime),
+        targetHours: record.targetHours,
+        actualDurationHours: record.actualDurationHours,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+  }
+
+  // 네 기존 stopFasting() 끝부분에 한 줄만 추가함
+  // ...
+  // const fastingRecord = { ... }  // 이미 만듦
+  // localStorage 저장 로직 유지해도 되고 점진 전환 가능함
+  saveFastingRecordToFirestore(fastingRecord);
+
             function initializeTime() {
                 selectedStartTime = new Date();
                 updateTimeDisplays();

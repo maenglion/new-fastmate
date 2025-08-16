@@ -484,6 +484,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dateRangeSelector.addEventListener('change', updateChart);
 
+            const db = firebase.firestore();
+
+  async function fetchFastingHistoryFromFirestore(limitCount = 50) {
+    const user = firebase.auth().currentUser;
+    if (!user) return [];
+    const snap = await db.collection('users')
+      .doc(user.uid)
+      .collection('fastingHistory')
+      .orderBy('endTime', 'desc')
+      .limit(limitCount)
+      .get();
+
+    return snap.docs.map(d => {
+      const x = d.data();
+      return {
+        startTime: x.startTime?.toDate?.() ?? new Date(x.startTime),
+        endTime: x.endTime?.toDate?.() ?? new Date(x.endTime),
+        targetHours: x.targetHours,
+        actualDurationHours: x.actualDurationHours
+      };
+    });
+  }
+
+  // 기존 renderFastingHistory() 호출 전에 Firestore에서 로드해
+  // 로컬스토리지와 병행 중이면, Firestore 우선 → 비어 있으면 localStorage fallback 사용 권장함
+  async function loadAndRenderFasting() {
+    const fromCloud = await fetchFastingHistoryFromFirestore(200);
+    const data = fromCloud.length ? fromCloud : getFastingHistory(); // 기존 함수 재사용
+    // 이후 기존 renderFastingHistory() 로직 호출
+  }
+
+  async function saveBloodSugar(value) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  await db.collection('users').doc(user.uid)
+    .collection('measurements').doc('bloodSugar')
+    .collection('items').add({
+      date: new Date(),
+      value,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+async function saveWeight(value) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  await db.collection('users').doc(user.uid)
+    .collection('measurements').doc('weight')
+    .collection('items').add({
+      date: new Date(),
+      value,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// 케톤 기록
+async function saveKetone(value) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  await db.collection('users').doc(user.uid)
+    .collection('measurements').doc('ketone')
+    .collection('items').add({
+      date: new Date(),
+      value,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// 운동 기록 (운동은 타입/시간/칼로리 등 필드 추가 가능)
+async function saveExercise(type, duration, calories) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  await db.collection('users').doc(user.uid)
+    .collection('exercises').add({
+      date: new Date(),
+      type,
+      duration,
+      calories,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
             // --- Initial Load ---
             renderFastingHistory();
             renderExerciseHistory();
