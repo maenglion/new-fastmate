@@ -183,7 +183,7 @@
         </button>
 
         <p class="signup-link">
-            계정이 없으신가요? <a href="./signup.html">회원가입하기</a>
+            계정이 없으신가요? <a href="./signup.html" id="signupLink">회원가입하기</a>
         </p>
     </div>
 
@@ -212,6 +212,7 @@
             const forgotPasswordLink = document.getElementById('forgotPasswordLink');
             const forgotPasswordModal = document.getElementById('forgotPasswordModal');
             const sendTempPasswordBtn = document.getElementById('sendTempPasswordBtn');
+            const signupLink = document.getElementById('signupLink');
             
             loginBtn.addEventListener('click', () => {
                 alert('준비중입니다.');
@@ -240,6 +241,14 @@
                 console.log(`Recovery Email: ${recoveryEmail}`);
                 alert(`${recoveryEmail}으로 임시 비밀번호가 발송되었습니다.`);
                 forgotPasswordModal.style.display = 'none';
+            });
+
+            // 회원가입 페이지로 이동하는 이벤트 리스너 추가
+            signupLink.addEventListener('click', (e) => {
+                e.preventDefault(); // 기본 링크 동작을 막습니다.
+                // 실제 앱에서는 아래 코드로 페이지를 이동합니다.
+                // window.location.href = './signup.html';
+                alert('회원가입 페이지로 이동합니다.');
             });
 
             // 모달 닫기
