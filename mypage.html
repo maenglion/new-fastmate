@@ -359,18 +359,28 @@
                 });
             }
 
-            function renderFastingHistory() {
-                renderHistory(fastingHistoryList, fastingPaginationControls, getFastingHistory(), fastingCurrentPage, (item) => {
-                    const li = document.createElement('li');
-                    li.className = 'history-item';
-                    const hours = Math.floor(item.actualDurationHours);
-                    const minutes = Math.round((item.actualDurationHours - hours) * 60);
-                    const percentage = Math.round((item.actualDurationHours / item.targetHours) * 100);
-                    const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-                    li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분</div><div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div></div><div class="history-percentage">${percentage}%</div>`;
-                    return li;
-                });
-            }
+      function renderFastingHistory() {
+    renderHistory(fastingHistoryList, fastingPaginationControls, getFastingHistory(), fastingCurrentPage, (item) => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        const hours = Math.floor(item.actualDurationHours);
+        const minutes = Math.round((item.actualDurationHours - hours) * 60);
+        const percentage = Math.round((item.actualDurationHours / item.targetHours) * 100);
+        const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+        // ✅ 조건부 색상
+        const percentageColor = (percentage <= 60) ? "#F95C19" : "var(--primary-color)";
+
+        li.innerHTML = `
+            <div class="history-info">
+                <div class="duration">${hours}시간 ${minutes}분</div>
+                <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
+            </div>
+            <div class="history-percentage" style="color:${percentageColor};">${percentage}%</div>
+        `;
+        return li;
+    });
+}
 
             function renderExerciseHistory() {
                 renderHistory(exerciseHistoryList, exercisePaginationControls, getExerciseHistory(), exerciseCurrentPage, (item) => {
