@@ -30,41 +30,60 @@
 
   
   // 5) 헬퍼: 구글 로그인 (팝업 우선, 실패 시 리다이렉트 폴백)
-window.signInWithGoogle = async () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  // 선택창 항상 띄우고 싶으면:
-  provider.setCustomParameters({ prompt: 'select_account' });
-  // (선택) 한국어 UI
-  auth.languageCode = 'ko';
+window.__authPopupInFlight = null;  // 전역 가드
 
-  // 리다이렉트 복귀 시 결과 먼저 확인
+window.signInWithGoogle = async () => {
+  // 이미 로그인 상태면 바로 리턴
+  if (auth.currentUser) return auth.currentUser;
+
+  // 리다이렉트 복귀 결과 1회 회수
   try {
     const redirectRes = await auth.getRedirectResult();
     if (redirectRes && redirectRes.user) return redirectRes.user;
   } catch (e) {
-    console.warn('[redirectResult]', e);
+    console.warn('[getRedirectResult]', e?.code || e?.message || e);
   }
 
-  try {
-    // 1) 팝업 시도
-    const cred = await auth.signInWithPopup(provider);
-    return cred.user;
-  } catch (e) {
-    // 2) 팝업이 막히면 리다이렉트로 폴백
-    const fallback = [
-      'auth/popup-blocked',
-      'auth/popup-closed-by-user',
-      'auth/cookie-policy-restricted',
-      'auth/internal-error'
-    ];
-    if (fallback.includes(e.code)) {
-      await auth.signInWithRedirect(provider);
-      return; // 여기서 페이지가 이동함
+  // 이미 진행 중인 팝업 요청이 있으면 그걸 그대로 기다림(중복 방지)
+  if (window.__authPopupInFlight) return window.__authPopupInFlight;
+
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  // 하나의 팝업 요청만 떠 있도록 가드 설정
+  window.__authPopupInFlight = (async () => {
+    try {
+      const cred = await auth.signInWithPopup(provider);
+      return cred.user;
+    } catch (e) {
+      // 사용자가 팝업을 닫았거나 충돌 난 경우는 조용히 종료
+      if (e?.code === 'auth/popup-closed-by-user' ||
+          e?.code === 'auth/cancelled-popup-request') {
+        return null;
+      }
+
+      // 쿠키/팝업 정책 등으로 막힌 경우 → 리다이렉트 폴백
+      const fallbackCodes = [
+        'auth/popup-blocked',
+        'auth/cookie-policy-restricted',
+        'auth/internal-error'
+      ];
+      if (fallbackCodes.includes(e?.code)) {
+        // 가드 해제 후 리다이렉트로 넘김
+        window.__authPopupInFlight = null;
+        await auth.signInWithRedirect(provider);
+        return null; // 여기서 페이지 떠남
+      }
+
+      console.error(e);
+      alert(e.message || 'Google 로그인 실패');
+      return null;
+    } finally {
+      // 팝업 플로우가 끝났으면 가드 해제
+      window.__authPopupInFlight = null;
     }
-    console.error(e);
-    alert(e.message || 'Google 로그인 실패');
-    throw e;
-  }
+  })();
+
+  return window.__authPopupInFlight;
 };
 
 document.addEventListener('DOMContentLoaded', () => {

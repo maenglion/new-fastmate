@@ -396,6 +396,8 @@ document.addEventListener('DOMContentLoaded', () => {
   //    - signInWithGoogle, ensureUserProfile는 firebase-init.js 제공
   // -----------------------------
   async function handleGoogleSignup() {
+      if (!googleBtn) return;
+  // 더블 클릭 방지
     try {
       const user = await signInWithGoogle();   // 팝업 우선, 실패 시 redirect
       if (!user) return;                       // redirect 케이스
@@ -403,11 +405,14 @@ document.addEventListener('DOMContentLoaded', () => {
       await ensureUserProfile();               // users/{uid} 기본 문서 보장
       if (emailInput && user.email) emailInput.value = user.email;
 
-      navigateTo(2); // 닉네임 단계로 이동
-    } catch (e) {
-      console.error(e); // signInWithGoogle 내부에서 alert 처리됨
-    }
+  navigateTo(2); // 닉네임 단계로
+  } catch (e) {
+    console.error(e);
+  } finally {
+    // 성공/실패 관계없이 버튼 다시 활성화 (리다이렉트 폴백이면 어차피 페이지 이동)
+    googleBtn.disabled = false;
   }
+}
 
   // -----------------------------
   // 4) UI 이벤트 바인딩
