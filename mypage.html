@@ -2,84 +2,431 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>마이페이지</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
-    <link rel="stylesheet" href="./mypage.css">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.com/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fastmate - 마이페이지</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --text-light: #777;
+            --border-color: #e0e0e0;
+            --primary-color: #1c8e3e;
+            --primary-hover: #156a2f;
+            --chart-line-color: #7FE89B;
+            --chart-bubble-bg: #C8F5D4;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        .main-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        
+        /* 단식 기록 리스트 스타일 */
+        .history-section {
+            margin-bottom: 40px;
+        }
+        .history-section h2 {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-info .duration {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+        .history-info .period {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        .history-percentage {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+        .pagination button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination span {
+            font-weight: 500;
+        }
+
+
+        .chart-section {
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 5px;
+        }
+        
+        .chart-info {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .chart-header select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            max-height: 400px;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+    </style>
 </head>
 <body>
-    
-    <!-- 사이드바 메뉴 -->
-    <nav id="sidebar" class="sidebar">
-        <a href="./fastmate.html" class="sidebar-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-            <span>메인</span>
-        </a>
-        <a href="./mypage.html" class="sidebar-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            <span>마이페이지</span>
-        </a>
-        <a href="./login.html" class="sidebar-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-in"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-            <span>로그인 / 회원가입</span>
-        </a>
-    </nav>
-    
-    <div id="main-wrapper" class="main-wrapper">
-        <header class="main-header">
-            <button id="menu-button" class="menu-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <h1 class="main-title">fastmate <span class="subtitle">간헐적 단식 도우미</span></h1>
-        </header>
 
-        <div class="card" id="userRecordsCard">
-            <h2>나의 기록</h2>
-            <p>닉네임: <b id="userNickname">Guest</b></p>
-            <p>총 단식 시간: <b id="totalFastingTime">0시간</b></p>
-            <h3>단식 성공 기록 리스트</h3>
-            <ul id="fastingSuccessList">
-                <li>아직 기록이 없어요!</li>
-            </ul>
-        </div>
-
-        <div class="card">
-            <h2>체중 기록</h2>
-            <div class="input-group">
-                <input type="date" id="weightDate">
-            </div>
-            <div class="input-group">
-                <input type="number" id="weight" placeholder="체중(kg)">
-            </div>
-            <button onclick="saveWeight()">저장</button>
-            <p id="weightHistory"></p>
-        </div>
+    <div class="container">
+        <h1 class="main-title">나의 건강 데이터</h1>
         
-        <div class="card">
-            <h2>그래프 통계</h2>
-            <p class="chart-description">단식 시간과 체중 변화를 그래프로 확인해보세요!</p>
-            <canvas id="fastingChart"></canvas>
-            <canvas id="weightChart" style="margin-top:20px;"></canvas>
-        </div>
+        <section class="history-section">
+            <h2>나의 단식 기록</h2>
+            <ul class="history-list" id="fastingHistoryList"></ul>
+            <div class="pagination" id="paginationControls"></div>
+        </section>
 
-        <div class="card">
-            <h2>단식 달력</h2>
-            <p class="calendar-description">단식 성공은 ✅, 실패는 ❌로 표시돼요.</p>
-            <div id="calendar"></div>
-        </div>
-        
+        <section class="chart-section">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="weight">체중</button>
+                <button class="tab-button" data-tab="bloodSugar">혈당</button>
+                <button class="tab-button" data-tab="ketone">케톤</button>
+            </div>
+
+            <div class="chart-header">
+                <p class="chart-info">💡 손가락으로 확대/축소, 좌우로 밀어보세요.</p>
+                <select id="dateRangeSelector">
+                    <option value="30">최근 1개월</option>
+                    <option value="90">최근 3개월</option>
+                    <option value="180">최근 6개월</option>
+                    <option value="365">최근 1년</option>
+                    <option value="all">전체</option>
+                </select>
+            </div>
+
+            <div id="weightContent" class="tab-content active">
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+            <div id="bloodSugarContent" class="tab-content">
+                <div class="chart-container">
+                    <canvas id="bloodSugarChart"></canvas>
+                </div>
+            </div>
+            <div id="ketoneContent" class="tab-content">
+                <div class="chart-container">
+                    <canvas id="ketoneChart"></canvas>
+                </div>
+            </div>
+        </section>
     </div>
-    
-    <!-- Custom Alert Modal -->
-    <div id="alertModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <p id="alertMessage"></p>
-            <button onclick="document.getElementById('alertModal').style.display='none'">확인</button>
-        </div>
-    </div>
-    
-    <script src="./mypage.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Mock Data ---
+            if (!localStorage.getItem('fastingHistoryData')) {
+                const mockHistory = [];
+                for (let i = 1; i <= 25; i++) {
+                    const target = 16;
+                    const actual = 14 + Math.random() * 4; // 14~18시간 사이 랜덤
+                    const end = new Date(new Date().setDate(new Date().getDate() - i));
+                    const start = new Date(end.getTime() - actual * 3600 * 1000);
+                    mockHistory.push({
+                        startTime: start.toISOString(),
+                        endTime: end.toISOString(),
+                        targetHours: target,
+                        actualDurationHours: actual
+                    });
+                }
+                localStorage.setItem('fastingHistoryData', JSON.stringify(mockHistory));
+            }
+            // (기존 목업 데이터 생성 코드 생략)
+
+            // --- DOM Elements ---
+            const fastingHistoryList = document.getElementById('fastingHistoryList');
+            const paginationControls = document.getElementById('paginationControls');
+            const tabs = document.querySelectorAll('.tab-button');
+            const dateRangeSelector = document.getElementById('dateRangeSelector');
+            
+            let weightChart, bloodSugarChart, ketoneChart;
+            let currentActiveTab = 'weight';
+            let currentPage = 1;
+            const itemsPerPage = 10;
+
+            const getData = (key) => JSON.parse(localStorage.getItem(key) || '[]').map(d => ({...d, date: new Date(d.date)}));
+            const getFastingHistory = () => JSON.parse(localStorage.getItem('fastingHistoryData') || '[]').map(d => ({...d, startTime: new Date(d.startTime), endTime: new Date(d.endTime)}));
+
+            // --- Fasting History & Pagination ---
+            function renderFastingHistory() {
+                const historyData = getFastingHistory();
+                fastingHistoryList.innerHTML = ''; // 리스트 초기화
+
+                const totalPages = Math.ceil(historyData.length / itemsPerPage);
+                if (historyData.length === 0) {
+                    fastingHistoryList.innerHTML = '<li>기록이 없습니다.</li>';
+                    paginationControls.innerHTML = '';
+                    return;
+                }
+                
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const pageItems = historyData.slice(startIndex, endIndex);
+
+                pageItems.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'history-item';
+
+                    const hours = Math.floor(item.actualDurationHours);
+                    const minutes = Math.round((item.actualDurationHours - hours) * 60);
+                    const percentage = Math.round((item.actualDurationHours / item.targetHours) * 100);
+                    
+                    const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+                    li.innerHTML = `
+                        <div class="history-info">
+                            <div class="duration">${hours}시간 ${minutes}분</div>
+                            <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
+                        </div>
+                        <div class="history-percentage">${percentage}%</div>
+                    `;
+                    fastingHistoryList.appendChild(li);
+                });
+                
+                renderPagination(totalPages);
+            }
+
+            function renderPagination(totalPages) {
+                paginationControls.innerHTML = `
+                    <button id="prevPage" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button>
+                    <span>${currentPage} / ${totalPages}</span>
+                    <button id="nextPage" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>
+                `;
+                document.getElementById('prevPage')?.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderFastingHistory();
+                    }
+                });
+                document.getElementById('nextPage')?.addEventListener('click', () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        renderFastingHistory();
+                    }
+                });
+            }
+
+            // --- Charting Functions ---
+            const createChart = (ctx, label, data) => {
+                const chartLineColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-line-color').trim();
+                const chartBubbleBgColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-bubble-bg').trim();
+                const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+
+                return new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                            label: label,
+                            data: data,
+                            borderColor: chartLineColor,
+                            borderWidth: 2.5,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 4,
+                            pointBackgroundColor: chartLineColor,
+                            pointHoverRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        parsing: { xAxisKey: 'date', yAxisKey: 'value' },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { day: 'MM/dd' } },
+                                grid: { display: false }
+                            },
+                            y: { beginAtZero: false, grid: { color: '#e0e0e0' } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: chartBubbleBgColor,
+                                titleColor: textColor,
+                                bodyColor: textColor,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                padding: 10,
+                                cornerRadius: 4,
+                                displayColors: false,
+                                borderColor: chartLineColor,
+                                borderWidth: 1,
+                                callbacks: {
+                                    title: (context) => new Date(context[0].raw.date).toLocaleString('ko-KR'),
+                                    label: (context) => `${context.dataset.label}: ${context.formattedValue}`
+                                }
+                            },
+                            zoom: {
+                                pan: { enabled: true, mode: 'x', threshold: 5 },
+                                zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const filterDataByRange = (data, days) => {
+                if (days === 'all') return data;
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
+                return data.filter(d => d.date >= cutoffDate);
+            };
+
+            const updateChart = () => {
+                const range = dateRangeSelector.value;
+                
+                const chartConfigs = {
+                    weight: { chart: weightChart, creator: () => weightChart = createChart(document.getElementById('weightChart').getContext('2d'), '체중 (kg)', filterDataByRange(getData('weightData'), range)), data: filterDataByRange(getData('weightData'), range) },
+                    bloodSugar: { chart: bloodSugarChart, creator: () => bloodSugarChart = createChart(document.getElementById('bloodSugarChart').getContext('2d'), '혈당 (mg/dL)', filterDataByRange(getData('bloodSugarData'), range)), data: filterDataByRange(getData('bloodSugarData'), range) },
+                    ketone: { chart: ketoneChart, creator: () => ketoneChart = createChart(document.getElementById('ketoneChart').getContext('2d'), '케톤 (mmol/L)', filterDataByRange(getData('ketoneData'), range)), data: filterDataByRange(getData('ketoneData'), range) }
+                };
+
+                const config = chartConfigs[currentActiveTab];
+                if (!config.chart) {
+                    config.creator();
+                } else {
+                    config.chart.data.datasets[0].data = config.data;
+                    config.chart.update();
+                }
+            };
+
+            // --- Event Listeners ---
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentActiveTab = tab.dataset.tab;
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(currentActiveTab + 'Content').classList.add('active');
+                    updateChart();
+                });
+            });
+
+            dateRangeSelector.addEventListener('change', updateChart);
+
+            // --- Initial Load ---
+            renderFastingHistory();
+            updateChart();
+        });
+    </script>
 </body>
 </html>
