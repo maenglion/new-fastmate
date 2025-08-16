@@ -67,6 +67,32 @@ window.signInWithGoogle = async () => {
   }
 };
 
+document.addEventListener('DOMContentLoaded', () => {
+  // 1) Google 버튼이 실제로 로그인 호출하도록
+  document.getElementById('googleLoginBtn')?.addEventListener('click', async () => {
+    try { await signInWithGoogle(); } catch (_) {}
+  });
+  document.getElementById('googleSignupBtn')?.addEventListener('click', async () => {
+    try { await signInWithGoogle(); } catch (_) {}
+  });
+
+  // 2) 리다이렉트로 돌아온 경우 처리
+  auth.getRedirectResult().then(async (res) => {
+    if (res.user) {
+      await ensureUserProfile();
+      window.location.replace('./fastmate.html');
+    }
+  }).catch(console.error);
+
+  // 3) 팝업/리다이렉트 모두 공통: 유저가 생기면 보내기
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      await ensureUserProfile();
+      window.location.replace('./fastmate.html');
+    }
+  });
+});
+
   
   // 6) 헬퍼: 로그아웃
   window.appSignOut = async () => {
