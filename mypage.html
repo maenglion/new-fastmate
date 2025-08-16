@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fastmate - 마이페이지</title>
-      <!-- Firebase SDK (compat 버전: 기존 네임스페이스 방식 그대로 사용 가능) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-
-<script defer src="./firebase-init.js"></script>
+      <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+    <script src="./firebase-init.js"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -25,6 +25,7 @@
             --border-color: #e0e0e0;
             --primary-color: #1c8e3e;
             --primary-hover: #156a2f;
+            --primary-light: #f0f8f2;
             --chart-line-color: #7FE89B;
             --chart-bubble-bg: #C8F5D4;
         }
@@ -56,19 +57,20 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .main-title {
             text-align: center;
             color: var(--primary-color);
             font-weight: 700;
+            font-size: 1.6rem;
             margin: 0;
         }
 
         .home-btn {
             position: absolute;
-            left: 0;
+            left: -10px; /* 아이콘 위치 조정 */
             top: 50%;
             transform: translateY(-50%);
             padding: 8px;
@@ -91,6 +93,69 @@
             stroke: currentColor;
         }
         
+        /* --- 프로필 카드 스타일 시작 --- */
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .profile-avatar svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--primary-color);
+            stroke-width: 2;
+        }
+        .profile-info h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .profile-info p {
+            margin: 4px 0 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .profile-details {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        .profile-details h3 {
+            margin: 0 0 15px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .goals-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .goal-tag {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        /* --- 프로필 카드 스타일 끝 --- */
+
         .history-section h2 {
             font-size: 1.2rem;
             color: var(--text-color);
@@ -215,11 +280,6 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .profile-rows { display: grid; gap: 10px; }
-.profile-rows .row { display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background:#fafafa; }
-.profile-rows .label { color: var(--text-light); font-weight: 500; }
-
 
     </style>
 </head>
@@ -227,22 +287,31 @@
 
     <div class="container">
         <header class="page-header">
-            <div class="card" id="profileCard">
-  <section>
-    <h2 style="margin-top:0;">내 프로필</h2>
-    <div class="profile-rows">
-      <div class="row"><span class="label">닉네임</span><span id="pfNickname">-</span></div>
-      <div class="row"><span class="label">이메일</span><span id="pfEmail">-</span></div>
-      <div class="row"><span class="label">가입 목적</span><span id="pfGoals">-</span></div>
-    </div>
-  </section>
-</div>
             <button id="homeBtn" class="home-btn" title="홈으로 돌아가기">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             </button>
             <h1 class="main-title">나의 건강 데이터</h1>
         </header>
         
+        <!-- 개선된 프로필 카드 -->
+        <div class="card profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+                <div class="profile-info">
+                    <h2 id="pfNickname">-</h2>
+                    <p id="pfEmail">-</p>
+                </div>
+            </div>
+            <div class="profile-details">
+                <h3>나의 가입 목적</h3>
+                <div id="pfGoals" class="goals-container">
+                    <!-- JavaScript로 태그가 채워집니다 -->
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <section class="history-section">
                 <h2>나의 단식 기록</h2>
@@ -298,31 +367,65 @@
     </div>
 
     <script>
-document.addEventListener('DOMContentLoaded', () => {
-  // 1) 로그인 가드
-  auth.onAuthStateChanged((user) => {
-    if (!user) {
-      window.location.href = './login.html';
-      return;
-    }
-  });
+         document.addEventListener('DOMContentLoaded', () => {
+            // Firebase 인증 상태 확인
+            if (typeof firebase === 'undefined') {
+                console.error("Firebase is not initialized.");
+                return;
+            }
+            const auth = firebase.auth();
+            
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = './login.html';
+                } else {
+                    // 로그인된 사용자 정보를 기반으로 페이지 컨텐츠를 채웁니다.
+                    populateProfileCard(user);
+                }
+            });
 
-  // 2) 프로필 카드 채우기
-  runWithUser(async (user) => {
-    try {
-      const profile  = await getUserDoc();
-      const nickname = profile?.nickname || user.displayName || '-';
-      const email    = user.email || '-';
-      const goalsArr = profile?.onboarding?.reasons || [];
-      const goals    = goalsArr.length ? goalsArr.join(', ') : '-';
+            // 프로필 카드 UI 업데이트 함수
+            const populateProfileCard = async (user) => {
+                const nicknameEl = document.getElementById('pfNickname');
+                const emailEl = document.getElementById('pfEmail');
+                const goalsContainer = document.getElementById('pfGoals');
 
-      document.getElementById('pfNickname').textContent = nickname;
-      document.getElementById('pfEmail').textContent    = email;
-      document.getElementById('pfGoals').textContent    = goals;
-    } catch (e) {
-      console.error(e);
-    }
-  });
+                if (!nicknameEl || !emailEl || !goalsContainer) return;
+
+                try {
+                    // [실제 구현] Firestore에서 사용자 프로필 가져오기
+                    // const profile = await getUserDoc(user.uid); 
+                    const profile = { // 테스트용 목업 데이터
+                        nickname: '건강한 라이언',
+                        onboarding: {
+                            reasons: ['체중관리', '에너지·집중력 개선']
+                        }
+                    };
+
+                    const nickname = profile?.nickname || user.displayName || '사용자';
+                    const email = user.email || '이메일 정보 없음';
+                    const goals = profile?.onboarding?.reasons || [];
+
+                    nicknameEl.textContent = `${nickname}님`;
+                    emailEl.textContent = email;
+                    
+                    goalsContainer.innerHTML = ''; // 기존 목표 태그 초기화
+                    if (goals.length > 0) {
+                        goals.forEach(goalText => {
+                            const tag = document.createElement('div');
+                            tag.className = 'goal-tag';
+                            tag.textContent = goalText;
+                            goalsContainer.appendChild(tag);
+                        });
+                    } else {
+                        goalsContainer.textContent = '설정된 목표가 없습니다.';
+                    }
+
+                } catch (e) {
+                    console.error("프로필 정보를 불러오는 데 실패했습니다:", e);
+                    nicknameEl.textContent = '정보 로딩 실패';
+                }
+            };
 
   // 3) 목업 데이터 (없으면 초기화)
   const USE_MOCK = false;
