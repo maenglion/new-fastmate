@@ -28,19 +28,46 @@
   // 4) 로그인 상태 유지 (로컬)
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
 
-  // 5) 헬퍼: 구글 로그인
-  window.signInWithGoogle = async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-      const credential = await auth.signInWithPopup(provider);
-      return credential.user; // 필요 시 후처리
-    } catch (e) {
-      console.error(e);
-      alert(e.message);
-      throw e;
-    }
-  };
+  
+  // 5) 헬퍼: 구글 로그인 (팝업 우선, 실패 시 리다이렉트 폴백)
+window.signInWithGoogle = async () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  // 선택창 항상 띄우고 싶으면:
+  provider.setCustomParameters({ prompt: 'select_account' });
+  // (선택) 한국어 UI
+  auth.languageCode = 'ko';
 
+  // 리다이렉트 복귀 시 결과 먼저 확인
+  try {
+    const redirectRes = await auth.getRedirectResult();
+    if (redirectRes && redirectRes.user) return redirectRes.user;
+  } catch (e) {
+    console.warn('[redirectResult]', e);
+  }
+
+  try {
+    // 1) 팝업 시도
+    const cred = await auth.signInWithPopup(provider);
+    return cred.user;
+  } catch (e) {
+    // 2) 팝업이 막히면 리다이렉트로 폴백
+    const fallback = [
+      'auth/popup-blocked',
+      'auth/popup-closed-by-user',
+      'auth/cookie-policy-restricted',
+      'auth/internal-error'
+    ];
+    if (fallback.includes(e.code)) {
+      await auth.signInWithRedirect(provider);
+      return; // 여기서 페이지가 이동함
+    }
+    console.error(e);
+    alert(e.message || 'Google 로그인 실패');
+    throw e;
+  }
+};
+
+  
   // 6) 헬퍼: 로그아웃
   window.appSignOut = async () => {
     try {
