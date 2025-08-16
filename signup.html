@@ -277,6 +277,27 @@
                     forgotPasswordModal.style.display = 'none';
                 }
             });
+
+            async function signupWithEmail() {
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPassword').value;
+
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    // Firestore에 기본 프로필 문서 생성 (선택)
+    await db.collection('users').doc(user.uid).set({
+      email: user.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert("회원가입 성공!");
+    window.location.href = './fastmate.html';
+  } catch (error) {
+    alert(error.message);
+  }
+}
         });
     </script>
 
