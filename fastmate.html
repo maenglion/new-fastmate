@@ -20,6 +20,7 @@
             --gauge-track-color: #f6f3e7;
             --dark-gray-color: #6c757d;
             --dark-gray-hover: #5a6268;
+            --feedback-color: #C8F5D4;
         }
 
         body {
@@ -81,21 +82,47 @@
             min-height: 25px;
         }
         
+        /* 시간 정보 UI 수정 */
         .time-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: stretch;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
             margin-bottom: 20px;
         }
-        .time-info div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 50%; }
-        .time-info span { font-size: 0.9rem; color: var(--text-light); }
-        #startTimeDisplay, #endTimeDisplay { font-size: 1rem; font-weight: 700; color: var(--text-color); background: transparent; padding: 8px 12px; border-radius: 6px; transition: background-color 0.2s; text-align: center; white-space: nowrap; }
-        #startTimeDisplay { cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        #startTimeDisplay:hover { background-color: #e9ecef; }
-        #startTimeDisplay svg { stroke: #adb5bd; }
+        .time-box {
+            background-color: #f8f9fa;
+            border-radius: 12px; /* radius 강화 */
+            padding: 12px;
+            text-align: center;
+            position: relative;
+        }
+        #startTimeBox {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #startTimeBox:hover {
+            background-color: #e9ecef;
+        }
+        .time-box .label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            display: block;
+            margin-bottom: 5px;
+        }
+        .time-box .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .edit-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            stroke: #adb5bd;
+            width: 16px;
+            height: 16px;
+        }
+
 
         .salt-tip { background-color: #fffbe6; border: 1px solid #ffe58f; color: #d46b08; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin: 0 auto 20px auto; max-width: 90%; text-align: center; display: none; }
 
@@ -109,7 +136,7 @@
         .stop-btn:hover { background-color: var(--dark-gray-hover); }
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 350px; border-radius: 16px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 16px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-content h3 { margin-top: 0; }
         .modal-content p { font-size: 1.1rem; margin-bottom: 20px; line-height: 1.5; }
         .modal-content .modal-buttons { display: flex; gap: 10px; }
@@ -125,13 +152,45 @@
         .time-selector span { font-size: 1.5rem; font-weight: 700; }
         #saveTimeBtn { width: 100%; background-color: var(--gauge-end-color); }
         
-        .bottom-nav { border-top: 1px solid var(--border-color); margin-top: 25px; padding-top: 15px; display: flex; justify-content: space-around; }
-        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text-light); cursor: pointer; }
-        .nav-btn svg { width: 24px; height: 24px; stroke: var(--text-light); }
+        /* 하단 네비게이션 UI 수정 */
+        .bottom-nav { 
+            border-top: 1px solid var(--border-color); 
+            margin-top: 25px; 
+            padding-top: 15px; 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .nav-btn { 
+            background: #f8f9fa; 
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 10px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 0.9rem; 
+            font-weight: 500;
+            color: var(--text-color); 
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .nav-btn:active {
+            background-color: var(--feedback-color);
+        }
+        .nav-btn svg { 
+            width: 28px; 
+            height: 28px; 
+            stroke: var(--primary-color); 
+        }
         
-        .charts-container { margin-top: 20px; display: none; flex-direction: column; gap: 20px; }
-        .chart-box { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .chart-box h3 { margin-top: 0; text-align: center; font-size: 1rem; color: var(--text-color); }
+        .tag-cloud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .tag { background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 15px; font-size: 0.9rem; font-weight: 500; color: #495057; cursor: pointer; transition: all 0.2s ease-in-out; }
+        .tag.active { background-color: var(--gauge-end-color); color: white; border-color: var(--gauge-end-color); }
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-group label { flex-shrink: 0; padding: 10px 0; }
+        .input-group input { flex-grow: 1; }
 
     </style>
 </head>
@@ -161,16 +220,14 @@
         <div id="status-message" class="status-message">단식 계획을 선택하고 시작하세요.</div>
 
         <div class="time-info">
-            <div>
-                <span>시작 시간</span>
-                <div id="startTimeDisplay" title="클릭하여 시간 변경">
-                    <span>-</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                </div>
+            <div id="startTimeBox" class="time-box" title="클릭하여 시간 변경">
+                <span class="label">시작 시간</span>
+                <span id="startTimeValue" class="value">-</span>
+                <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             </div>
-            <div>
-                <span>종료 예정</span>
-                <span id="endTimeDisplay">-</span>
+            <div class="time-box">
+                <span class="label">종료 예정</span>
+                <span id="endTimeValue" class="value">-</span>
             </div>
         </div>
         
@@ -204,17 +261,10 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-3.5-6A3.5 3.5 0 0 0 9 3.5c0 2-1.5 4.9-3.5 6.5a7 7 0 0 0 6.5 12z"></path></svg>
                 <span>케톤 기록</span>
             </button>
-        </div>
-        
-        <div class="charts-container" id="chartsContainer">
-            <div class="chart-box" id="bloodSugarChartBox" style="display: none;">
-                <h3>혈당 수치 (mg/dL)</h3>
-                <canvas id="bloodSugarChart"></canvas>
-            </div>
-            <div class="chart-box" id="ketoneChartBox" style="display: none;">
-                <h3>케톤 수치 (mmol/L)</h3>
-                <canvas id="ketoneChart"></canvas>
-            </div>
+            <button class="nav-btn" id="exerciseBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1.5a.75.75 0 0 1 .75.75V6h.25a3.25 3.25 0 0 1 3.25 3.25v7.5a3.25 3.25 0 0 1-3.25 3.25H8a3.25 3.25 0 0 1-3.25-3.25v-7.5A3.25 3.25 0 0 1 8 6h.25V2.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 .75.75zM12 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
+                <span>운동 기록</span>
+            </button>
         </div>
     </div>
     
@@ -222,22 +272,30 @@
     <div id="alertModal" class="modal"><div class="modal-content"><p id="alertMessage"></p><button id="alertCloseBtn" class="start-btn">확인</button></div></div>
     <div id="timePickerModal" class="modal"><div class="modal-content"><h3>시작 시간 설정</h3><div class="date-selector"><button id="dayBeforeBtn">어제</button><button id="todayBtn" class="active">오늘</button></div><div class="time-selector"><select id="hourSelect"></select><span>:</span><select id="minuteSelect"></select><select id="ampmSelect"><option>AM</option><option>PM</option></select></div><button id="saveTimeBtn" class="start-btn">저장</button></div></div>
     <div id="confirmChangeModal" class="modal"><div class="modal-content"><p id="confirmMessage"></p><div class="modal-buttons"><button id="confirmYesBtn" class="start-btn">예</button><button id="confirmNoBtn" class="stop-btn">아니오</button></div></div></div>
+    <div id="bloodSugarModal" class="modal"><div class="modal-content"><h3>혈당 수치 기록</h3><input type="number" id="bloodSugarInput" placeholder="혈당 (mg/dL)"><button id="saveBloodSugarBtn" class="start-btn">저장</button></div></div>
+    <div id="ketoneModal" class="modal"><div class="modal-content"><h3>케톤 수치 기록</h3><input type="number" id="ketoneInput" placeholder="케톤 (mmol/L)"><button id="saveKetoneBtn" class="start-btn">저장</button></div></div>
     
-    <div id="bloodSugarModal" class="modal">
+    <div id="exerciseModal" class="modal">
         <div class="modal-content">
-            <h3>혈당 수치 기록</h3>
-            <input type="number" id="bloodSugarInput" placeholder="혈당 (mg/dL)">
-            <button id="saveBloodSugarBtn" class="start-btn">저장</button>
+            <h3>운동 기록</h3>
+            <div class="tag-cloud" id="exerciseType">
+                <button class="tag" data-value="걷기">걷기</button>
+                <button class="tag" data-value="달리기">달리기</button>
+                <button class="tag" data-value="요가">요가</button>
+                <button class="tag" data-value="근력운동">근력운동</button>
+                <button class="tag" data-value="기타">기타</button>
+            </div>
+            <div class="input-group">
+                <label for="exerciseDuration">운동 시간(분)</label>
+                <input type="number" id="exerciseDuration" placeholder="예: 30">
+            </div>
+            <div class="input-group">
+                <label for="exerciseCalories">소모 칼로리(kcal)</label>
+                <input type="number" id="exerciseCalories" placeholder="예: 150">
+            </div>
+            <button id="saveExerciseBtn" class="start-btn">저장</button>
         </div>
     </div>
-    <div id="ketoneModal" class="modal">
-        <div class="modal-content">
-            <h3>케톤 수치 기록</h3>
-            <input type="number" id="ketoneInput" placeholder="케톤 (mmol/L)">
-            <button id="saveKetoneBtn" class="start-btn">저장</button>
-        </div>
-    </div>
-
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -248,7 +306,6 @@
             let milestones = { 10: false, 25: false, 50: false, 70: false, 80: false, 90: false };
             let pendingTargetHours = null;
 
-            // DOM Elements
             const progressArc = document.getElementById('progressArc');
             const remainingTimeEl = document.getElementById('remainingTime');
             const statusMessage = document.getElementById('status-message');
@@ -256,10 +313,10 @@
             const startBtn = document.getElementById('startBtn');
             const stopBtn = document.getElementById('stopBtn');
             const modelSelect = document.getElementById('fastingModelSelect');
-            const startTimeDisplay = document.getElementById('startTimeDisplay').querySelector('span');
-            const endTimeDisplay = document.getElementById('endTimeDisplay');
+            const startTimeBox = document.getElementById('startTimeBox');
+            const startTimeValue = document.getElementById('startTimeValue');
+            const endTimeValue = document.getElementById('endTimeValue');
             
-            // Modals
             const alertModal = document.getElementById('alertModal');
             const alertMessage = document.getElementById('alertMessage');
             const alertCloseBtn = document.getElementById('alertCloseBtn');
@@ -267,8 +324,8 @@
             const confirmChangeModal = document.getElementById('confirmChangeModal');
             const bloodSugarModal = document.getElementById('bloodSugarModal');
             const ketoneModal = document.getElementById('ketoneModal');
+            const exerciseModal = document.getElementById('exerciseModal');
 
-            // Time Picker
             const dayBeforeBtn = document.getElementById('dayBeforeBtn');
             const todayBtn = document.getElementById('todayBtn');
             const hourSelect = document.getElementById('hourSelect');
@@ -276,28 +333,22 @@
             const ampmSelect = document.getElementById('ampmSelect');
             const saveTimeBtn = document.getElementById('saveTimeBtn');
 
-            // Confirm Modal
             const confirmMessage = document.getElementById('confirmMessage');
             const confirmYesBtn = document.getElementById('confirmYesBtn');
             const confirmNoBtn = document.getElementById('confirmNoBtn');
 
-            // Record Buttons & Inputs
+            const myPageBtn = document.getElementById('myPageBtn');
             const bloodSugarBtn = document.getElementById('bloodSugarBtn');
             const ketoneBtn = document.getElementById('ketoneBtn');
+            const exerciseBtn = document.getElementById('exerciseBtn');
             const saveBloodSugarBtn = document.getElementById('saveBloodSugarBtn');
             const saveKetoneBtn = document.getElementById('saveKetoneBtn');
+            const saveExerciseBtn = document.getElementById('saveExerciseBtn');
             const bloodSugarInput = document.getElementById('bloodSugarInput');
             const ketoneInput = document.getElementById('ketoneInput');
-            
-            // Charts
-            const chartsContainer = document.getElementById('chartsContainer');
-            const bloodSugarChartBox = document.getElementById('bloodSugarChartBox');
-            const ketoneChartBox = document.getElementById('ketoneChartBox');
-            let bloodSugarChart, ketoneChart;
-            
-            // Data storage
-            let bloodSugarData = [];
-            let ketoneData = [];
+            const exerciseTypeContainer = document.getElementById('exerciseType');
+            const exerciseDurationInput = document.getElementById('exerciseDuration');
+            const exerciseCaloriesInput = document.getElementById('exerciseCalories');
 
             // --- Main Functions ---
             
@@ -318,12 +369,25 @@
                 if (fastingState === 'idle') return customAlert("시작된 단식이 없습니다.");
                 clearInterval(fastingInterval);
                 fastingState = 'idle';
-                localStorage.clear();
+                
+                const fastingRecord = {
+                    startTime: selectedStartTime.toISOString(),
+                    endTime: new Date().toISOString(),
+                    targetHours: targetHours,
+                    actualDurationHours: (new Date() - selectedStartTime) / 3600000
+                };
+                const history = JSON.parse(localStorage.getItem('fastingHistoryData') || '[]');
+                history.unshift(fastingRecord);
+                localStorage.setItem('fastingHistoryData', JSON.stringify(history));
+
+                localStorage.removeItem('fastingStartTime');
+                localStorage.removeItem('fastingTargetHours');
+
                 progressArc.style.strokeDasharray = "0 100";
                 remainingTimeEl.textContent = "00:00:00";
                 statusMessage.textContent = "단식 계획을 선택하고 시작하세요.";
                 saltTip.style.display = 'none';
-                endTimeDisplay.textContent = '-';
+                endTimeValue.textContent = '-';
                 initializeTime();
                 updateUIState();
                 customAlert("단식을 종료했습니다. 수고하셨습니다!");
@@ -345,43 +409,15 @@
                 
                 statusMessage.textContent = (elapsedMs / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
                 checkMilestones(progress);
-                if (progress >= 100) { stopFasting(); customAlert("목표 달성! 축하합니다!"); }
+                if (progress >= 100) { 
+                    customAlert("목표 달성! 축하합니다!"); 
+                }
             }
             
-            // --- Chart Functions ---
-            
-            function createChart(ctx, label, data, borderColor) {
-                return new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(d => d.label),
-                        datasets: [{
-                            label: label,
-                            data: data.map(d => d.value),
-                            borderColor: borderColor,
-                            backgroundColor: borderColor + '33', // semi-transparent fill
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true,
-                        }]
-                    },
-                    options: {
-                        scales: { y: { beginAtZero: true } },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-            
-            function updateChart(chart, data) {
-                chart.data.labels = data.map(d => d.label);
-                chart.data.datasets[0].data = data.map(d => d.value);
-                chart.update();
-            }
-
             // --- Helper Functions ---
 
             function checkMilestones(progress) {
-                const messages = { 10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧", 25: "25% 달성! 순조롭게 진행 중이에요.", 50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! �", 70: "거의 다 왔습니다. 조금만 더 힘내세요!", 90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧" };
+                const messages = { 10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧", 25: "25% 달성! 순조롭게 진행 중이에요.", 50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧", 70: "거의 다 왔습니다. 조금만 더 힘내세요!", 90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧" };
                 for (const p in milestones) { if (progress >= p && !milestones[p]) { customAlert(messages[p]); milestones[p] = true; } }
             }
 
@@ -390,15 +426,15 @@
                 const duration = parseInt(modelSelect.value);
                 const end = new Date(start.getTime() + duration * 3600000);
                 const format = (d) => `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-                startTimeDisplay.innerHTML = format(start);
-                endTimeDisplay.innerHTML = format(end);
+                startTimeValue.innerHTML = format(start);
+                endTimeValue.innerHTML = format(end);
             }
 
             function updateUIState() {
                 const isRunning = fastingState === 'running';
                 startBtn.disabled = isRunning; 
                 stopBtn.disabled = !isRunning;
-                document.getElementById('startTimeDisplay').style.pointerEvents = isRunning ? 'none' : 'auto';
+                startTimeBox.style.pointerEvents = isRunning ? 'none' : 'auto';
                 
                 if (isRunning) {
                     startBtn.textContent = '단식중';
@@ -413,7 +449,6 @@
                 }
                 
                 stopBtn.style.opacity = isRunning ? '1' : '0.5';
-                document.getElementById('startTimeDisplay').style.backgroundColor = isRunning ? '#f8f9fa' : 'transparent';
             }
 
             function handleModelChange(e) {
@@ -435,7 +470,7 @@
                 for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
                 for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
                 
-                document.getElementById('startTimeDisplay').addEventListener('click', () => {
+                startTimeBox.addEventListener('click', () => {
                     if(fastingState === 'running') return;
                     const now = selectedStartTime;
                     let h = now.getHours();
@@ -476,19 +511,27 @@
                 const savedTargetHours = localStorage.getItem('fastingTargetHours');
                 if (savedStartTime && savedTargetHours) {
                     const start = new Date(savedStartTime);
-                    const targetMs = parseInt(savedTargetHours) * 3600000;
-                    if (new Date() - start < targetMs) {
+                    targetHours = parseInt(savedTargetHours, 10);
+                    if (new Date() - start < targetHours * 3600000) {
                         selectedStartTime = start;
-                        targetHours = parseInt(savedTargetHours);
                         modelSelect.value = targetHours;
                         fastingState = 'running';
                         saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
                         fastingInterval = setInterval(updateTimer, 1000);
                         updateTimer();
-                    } else { localStorage.clear(); }
+                    } else {
+                        localStorage.removeItem('fastingStartTime');
+                        localStorage.removeItem('fastingTargetHours');
+                    }
                 }
                 updateTimeDisplays();
                 updateUIState();
+            }
+            
+            function saveData(key, data) {
+                const existingData = JSON.parse(localStorage.getItem(key) || '[]');
+                existingData.unshift(data);
+                localStorage.setItem(key, JSON.stringify(existingData));
             }
 
             // --- Event Listeners ---
@@ -513,29 +556,18 @@
                 confirmChangeModal.style.display = 'none';
             });
             
+            myPageBtn.addEventListener('click', () => {
+                // 실제 앱에서는 window.location.href = 'mypage.html' 등으로 페이지를 이동합니다.
+                customAlert("마이페이지로 이동합니다.");
+            });
             bloodSugarBtn.addEventListener('click', () => bloodSugarModal.style.display = 'flex');
             ketoneBtn.addEventListener('click', () => ketoneModal.style.display = 'flex');
+            exerciseBtn.addEventListener('click', () => exerciseModal.style.display = 'flex');
 
             saveBloodSugarBtn.addEventListener('click', () => {
                 const value = parseFloat(bloodSugarInput.value);
                 if (!value || value <= 0) return customAlert("올바른 혈당 수치를 입력하세요.");
-                
-                chartsContainer.style.display = 'flex';
-                bloodSugarChartBox.style.display = 'block';
-                
-                const now = new Date();
-                const newEntry = {
-                    value: value,
-                    label: `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
-                };
-                bloodSugarData.push(newEntry);
-                
-                if (!bloodSugarChart) {
-                    bloodSugarChart = createChart(document.getElementById('bloodSugarChart').getContext('2d'), '혈당', bloodSugarData, '#d9534f');
-                } else {
-                    updateChart(bloodSugarChart, bloodSugarData);
-                }
-                
+                saveData('bloodSugarData', { date: new Date().toISOString(), value: value });
                 bloodSugarInput.value = '';
                 bloodSugarModal.style.display = 'none';
                 customAlert("혈당 수치가 저장되었습니다.");
@@ -544,30 +576,42 @@
             saveKetoneBtn.addEventListener('click', () => {
                 const value = parseFloat(ketoneInput.value);
                 if (!value || value <= 0) return customAlert("올바른 케톤 수치를 입력하세요.");
-
-                chartsContainer.style.display = 'flex';
-                ketoneChartBox.style.display = 'block';
-
-                const now = new Date();
-                const newEntry = {
-                    value: value,
-                    label: `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
-                };
-                ketoneData.push(newEntry);
-                
-                if (!ketoneChart) {
-                    ketoneChart = createChart(document.getElementById('ketoneChart').getContext('2d'), '케톤', ketoneData, '#5bc0de');
-                } else {
-                    updateChart(ketoneChart, ketoneData);
-                }
-                
+                saveData('ketoneData', { date: new Date().toISOString(), value: value });
                 ketoneInput.value = '';
                 ketoneModal.style.display = 'none';
                 customAlert("케톤 수치가 저장되었습니다.");
             });
+            
+            exerciseTypeContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tag')) {
+                    const currentActive = exerciseTypeContainer.querySelector('.tag.active');
+                    if (currentActive) currentActive.classList.remove('active');
+                    e.target.classList.add('active');
+                }
+            });
+
+            saveExerciseBtn.addEventListener('click', () => {
+                const selectedTag = exerciseTypeContainer.querySelector('.tag.active');
+                const duration = parseInt(exerciseDurationInput.value);
+                const calories = parseInt(exerciseCaloriesInput.value);
+
+                if (!selectedTag) return customAlert("운동 종류를 선택하세요.");
+                if (!duration || duration <= 0) return customAlert("올바른 운동 시간을 입력하세요.");
+                if (!calories || calories <= 0) return customAlert("올바른 소모 칼로리를 입력하세요.");
+
+                const record = { date: new Date().toISOString(), type: selectedTag.dataset.value, duration: duration, calories: calories };
+                saveData('exerciseData', record);
+
+                selectedTag.classList.remove('active');
+                exerciseDurationInput.value = '';
+                exerciseCaloriesInput.value = '';
+                exerciseModal.style.display = 'none';
+                customAlert("운동 기록이 저장되었습니다.");
+            });
+
 
             window.addEventListener('click', (e) => { 
-                const modals = [alertModal, timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal];
+                const modals = [alertModal, timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal];
                 if (modals.includes(e.target)) {
                     e.target.style.display = 'none';
                 }
@@ -580,4 +624,3 @@
     </script>
 </body>
 </html>
-�
