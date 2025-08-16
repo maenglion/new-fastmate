@@ -279,7 +279,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // --- Mock Data ---
-            if (!localStorage.getItem('fastingHistoryData')) {
+            const USE_MOCK = false; 
+
+            if (USE_MOCK && !localStorage.getItem('fastingHistoryData')) {
                 const mockHistory = [];
                 for (let i = 1; i <= 25; i++) {
                     const target = 16;
