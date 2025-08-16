@@ -158,7 +158,6 @@
             font-weight: 700;
             font-size: 1.1rem;
             padding: 10px;
-            cursor: pointer;
         }
 
         .date-selector { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
@@ -174,32 +173,32 @@
             border-top: 1px solid var(--border-color); 
             margin-top: 25px; 
             padding-top: 15px; 
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            display: flex;
+            justify-content: space-around;
         }
         .nav-btn { 
-            background: #f8f9fa; 
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 15px 10px;
+            background: none; 
+            border: none;
+            padding: 5px;
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            gap: 8px; 
-            font-size: 0.9rem; 
+            gap: 5px; 
+            font-size: 0.8rem; 
             font-weight: 500;
-            color: var(--text-color); 
+            color: var(--text-light); 
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: color 0.2s;
+            flex-basis: 0;
+            flex-grow: 1;
         }
-        .nav-btn:active {
-            background-color: var(--feedback-color);
+        .nav-btn:hover {
+            color: var(--primary-color);
         }
         .nav-btn svg { 
             width: 28px; 
             height: 28px; 
-            stroke: var(--primary-color); 
+            stroke: currentColor; 
         }
         
         .tag-cloud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
@@ -294,9 +293,12 @@
                 <option value="16">16:8 (16시간 단식)</option>
                 <option value="18">18:6 (18시간 단식)</option>
                 <option value="20">20:4 (20시간 단식)</option>
-                <option value="24">24시간 (하루 단식)</option>
-                <option value="48">48시간 (이틀 단식)</option>
-                <option value="72">72시간 (사흘 단식)</option>
+                <option value="24">24시간 (1일 단식)</option>
+                <option value="36">36시간 (1.5일 단식)</option>
+                <option value="48">48시간 (2일 단식)</option>
+                <option value="72">72시간 (3일 단식)</option>
+                <option value="96">96시간 (4일 단식)</option>
+                <option value="120">120시간 (5일 단식)</option>
             </select>
             <div class="button-group">
                 <button id="startBtn" class="start-btn">단식 시작</button>
@@ -305,6 +307,7 @@
         </div>
 
         <div class="bottom-nav">
+     
             <button class="nav-btn" id="myPageBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span>마이페이지</span>
@@ -318,4 +321,381 @@
                 <span>케톤 기록</span>
             </button>
             <button class="nav-btn" id="exerciseBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linej
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1.5a.75.75 0 0 1 .75.75V6h.25a3.25 3.25 0 0 1 3.25 3.25v7.5a3.25 3.25 0 0 1-3.25 3.25H8a3.25 3.25 0 0 1-3.25-3.25v-7.5A3.25 3.25 0 0 1 8 6h.25V2.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 .75.75zM12 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
+                <span>운동 기록</span>
+            </button>
+        </div>
+
+        <footer class="app-footer">
+            <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
+            <p>© 2025 2e-studio. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <!-- Modals -->
+    <div id="timePickerModal" class="modal"><div class="modal-content"><h3>시작 시간 설정</h3><div class="date-selector"><button id="dayBeforeBtn">어제</button><button id="todayBtn" class="active">오늘</button></div><div class="time-selector"><select id="hourSelect"></select><span>:</span><select id="minuteSelect"></select><select id="ampmSelect"><option>AM</option><option>PM</option></select></div><button id="saveTimeBtn" class="start-btn">저장</button></div></div>
+    <div id="confirmChangeModal" class="modal"><div class="modal-content"><p id="confirmMessage"></p><div class="modal-buttons"><button id="confirmYesBtn" class="start-btn">예</button><button id="confirmNoBtn" class="stop-btn">아니오</button></div></div></div>
+    <div id="bloodSugarModal" class="modal"><div class="modal-content"><h3>혈당 수치 기록</h3><input type="number" id="bloodSugarInput" placeholder="혈당 (mg/dL)"><button id="saveBloodSugarBtn" class="btn-text">저장</button></div></div>
+    <div id="ketoneModal" class="modal"><div class="modal-content"><h3>케톤 수치 기록</h3><input type="number" id="ketoneInput" placeholder="케톤 (mmol/L)"><button id="saveKetoneBtn" class="btn-text">저장</button></div></div>
+    
+    <div id="exerciseModal" class="modal">
+        <div class="modal-content">
+            <h3>운동 기록</h3>
+            <div class="tag-cloud" id="exerciseType">
+                <button class="tag" data-value="걷기">걷기</button>
+                <button class="tag" data-value="달리기">달리기</button>
+                <button class="tag" data-value="요가">요가</button>
+                <button class="tag" data-value="근력운동">근력운동</button>
+                <button class="tag" data-value="기타">기타</button>
+            </div>
+            <div class="input-group">
+                <label for="exerciseDuration">운동 시간(분)</label>
+                <input type="number" id="exerciseDuration" placeholder="예: 30">
+            </div>
+            <div class="input-group">
+                <label for="exerciseCalories">소모 칼로리(kcal)</label>
+                <input type="number" id="exerciseCalories" placeholder="예: 150">
+            </div>
+            <button id="saveExerciseBtn" class="btn-text">저장</button>
+        </div>
+    </div>
+
+    <!-- Toast Alert -->
+    <div id="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let fastingInterval;
+            let targetHours = 16;
+            let fastingState = 'idle';
+            let selectedStartTime = new Date();
+            let milestones = { 10: false, 25: false, 50: false, 70: false, 80: false, 90: false };
+            let pendingTargetHours = null;
+            let toastTimeout;
+
+            const progressArc = document.getElementById('progressArc');
+            const remainingTimeEl = document.getElementById('remainingTime');
+            const statusMessage = document.getElementById('status-message');
+            const saltTip = document.getElementById('salt-tip');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const modelSelect = document.getElementById('fastingModelSelect');
+            const startTimeBox = document.getElementById('startTimeBox');
+            const startTimeValue = document.getElementById('startTimeValue');
+            const endTimeValue = document.getElementById('endTimeValue');
+            
+            const toast = document.getElementById('toast');
+            const timePickerModal = document.getElementById('timePickerModal');
+            const confirmChangeModal = document.getElementById('confirmChangeModal');
+            const bloodSugarModal = document.getElementById('bloodSugarModal');
+            const ketoneModal = document.getElementById('ketoneModal');
+            const exerciseModal = document.getElementById('exerciseModal');
+
+            const dayBeforeBtn = document.getElementById('dayBeforeBtn');
+            const todayBtn = document.getElementById('todayBtn');
+            const hourSelect = document.getElementById('hourSelect');
+            const minuteSelect = document.getElementById('minuteSelect');
+            const ampmSelect = document.getElementById('ampmSelect');
+            const saveTimeBtn = document.getElementById('saveTimeBtn');
+
+            const confirmMessage = document.getElementById('confirmMessage');
+            const confirmYesBtn = document.getElementById('confirmYesBtn');
+            const confirmNoBtn = document.getElementById('confirmNoBtn');
+
+            const myPageBtn = document.getElementById('myPageBtn');
+            const bloodSugarBtn = document.getElementById('bloodSugarBtn');
+            const ketoneBtn = document.getElementById('ketoneBtn');
+            const exerciseBtn = document.getElementById('exerciseBtn');
+            const saveBloodSugarBtn = document.getElementById('saveBloodSugarBtn');
+            const saveKetoneBtn = document.getElementById('saveKetoneBtn');
+            const saveExerciseBtn = document.getElementById('saveExerciseBtn');
+            const bloodSugarInput = document.getElementById('bloodSugarInput');
+            const ketoneInput = document.getElementById('ketoneInput');
+            const exerciseTypeContainer = document.getElementById('exerciseType');
+            const exerciseDurationInput = document.getElementById('exerciseDuration');
+            const exerciseCaloriesInput = document.getElementById('exerciseCalories');
+            const privacyPolicyLink = document.getElementById('privacyPolicyLink');
+
+            // --- Main Functions ---
+            
+            function startFasting() {
+                if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+                fastingState = 'running';
+                targetHours = parseInt(modelSelect.value);
+                localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
+                localStorage.setItem('fastingTargetHours', targetHours);
+                Object.keys(milestones).forEach(key => milestones[key] = false);
+                saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+                fastingInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+                updateUIState();
+            }
+
+            function stopFasting() {
+                if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
+                clearInterval(fastingInterval);
+                fastingState = 'idle';
+                
+                const fastingRecord = {
+                    startTime: selectedStartTime.toISOString(),
+                    endTime: new Date().toISOString(),
+                    targetHours: targetHours,
+                    actualDurationHours: (new Date() - selectedStartTime) / 3600000
+                };
+                const history = JSON.parse(localStorage.getItem('fastingHistoryData') || '[]');
+                history.unshift(fastingRecord);
+                localStorage.setItem('fastingHistoryData', JSON.stringify(history));
+
+                localStorage.removeItem('fastingStartTime');
+                localStorage.removeItem('fastingTargetHours');
+
+                progressArc.style.strokeDasharray = "0 100";
+                remainingTimeEl.textContent = "00:00:00";
+                statusMessage.textContent = "단식 계획을 선택하고 시작하세요.";
+                saltTip.style.display = 'none';
+                endTimeValue.textContent = '-';
+                initializeTime();
+                updateUIState();
+                showToast("단식을 종료했습니다. 수고하셨습니다!");
+            }
+
+            function updateTimer() {
+                const now = new Date();
+                const elapsedMs = now - selectedStartTime;
+                const targetMs = targetHours * 3600000;
+                let progress = Math.min((elapsedMs / targetMs) * 100, 100);
+                
+                progressArc.style.strokeDasharray = `${progress} 100`;
+
+                const remainingMs = Math.max(0, targetMs - elapsedMs);
+                const remainingH = Math.floor(remainingMs / 3600000);
+                const remainingM = Math.floor((remainingMs % 3600000) / 60000);
+                const remainingS = Math.floor((remainingMs % 60000) / 1000);
+                remainingTimeEl.textContent = `${String(remainingH).padStart(2, '0')}:${String(remainingM).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
+                
+                statusMessage.textContent = (elapsedMs / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
+                checkMilestones(progress);
+                if (progress >= 100) { 
+                    showToast("목표 달성! 축하합니다!"); 
+                }
+            }
+            
+            // --- Helper Functions ---
+
+            function checkMilestones(progress) {
+                const messages = { 10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧", 25: "25% 달성! 순조롭게 진행 중이에요.", 50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧", 70: "거의 다 왔습니다. 조금만 더 힘내세요!", 90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧" };
+                for (const p in milestones) { if (progress >= p && !milestones[p]) { showToast(messages[p]); milestones[p] = true; } }
+            }
+
+            function updateTimeDisplays() {
+                const start = selectedStartTime;
+                const duration = parseInt(modelSelect.value);
+                const end = new Date(start.getTime() + duration * 3600000);
+                const format = (d) => `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+                startTimeValue.innerHTML = format(start);
+                endTimeValue.innerHTML = format(end);
+            }
+
+            function updateUIState() {
+                const isRunning = fastingState === 'running';
+                startBtn.disabled = isRunning; 
+                stopBtn.disabled = !isRunning;
+                startTimeBox.style.pointerEvents = isRunning ? 'none' : 'auto';
+                
+                if (isRunning) {
+                    startBtn.textContent = '단식중';
+                    startBtn.style.backgroundColor = 'var(--gauge-start-color)';
+                    startBtn.style.color = 'var(--text-color)';
+                    startBtn.style.cursor = 'not-allowed';
+                } else {
+                    startBtn.textContent = '단식 시작';
+                    startBtn.style.backgroundColor = 'var(--gauge-end-color)';
+                    startBtn.style.color = 'white';
+                    startBtn.style.cursor = 'pointer';
+                }
+                
+                stopBtn.style.opacity = isRunning ? '1' : '0.5';
+            }
+
+            function handleModelChange(e) {
+                const newTarget = parseInt(e.target.value);
+                if (fastingState === 'running' && newTarget !== targetHours) {
+                    pendingTargetHours = newTarget;
+                    confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
+                    confirmChangeModal.style.display = 'flex';
+                    e.target.value = targetHours;
+                } else if (fastingState !== 'running') {
+                    targetHours = newTarget;
+                    updateTimeDisplays();
+                }
+            }
+
+            function showToast(msg) {
+                if (toastTimeout) clearTimeout(toastTimeout);
+                toast.textContent = msg;
+                toast.className = "show";
+                toastTimeout = setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2000);
+            }
+
+            function initializeTimePicker() {
+                for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
+                for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
+                
+                startTimeBox.addEventListener('click', () => {
+                    if(fastingState === 'running') return;
+                    const now = selectedStartTime;
+                    let h = now.getHours();
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12; h = h ? h : 12;
+                    hourSelect.value = h;
+                    minuteSelect.value = now.getMinutes();
+                    ampmSelect.value = ampm;
+                    timePickerModal.style.display = 'flex';
+                });
+
+                dayBeforeBtn.addEventListener('click', () => { dayBeforeBtn.classList.add('active'); todayBtn.classList.remove('active'); });
+                todayBtn.addEventListener('click', () => { todayBtn.classList.add('active'); dayBeforeBtn.classList.remove('active'); });
+
+                saveTimeBtn.addEventListener('click', () => {
+                    let hour = parseInt(hourSelect.value);
+                    const minute = parseInt(minuteSelect.value);
+                    const isPM = ampmSelect.value === 'PM';
+                    if (isPM && hour < 12) hour += 12;
+                    if (!isPM && hour === 12) hour = 0;
+
+                    const newDate = new Date();
+                    if (dayBeforeBtn.classList.contains('active')) newDate.setDate(newDate.getDate() - 1);
+                    newDate.setHours(hour, minute, 0, 0);
+                    selectedStartTime = newDate;
+                    updateTimeDisplays();
+                    timePickerModal.style.display = 'none';
+                });
+            }
+
+            function initializeTime() {
+                selectedStartTime = new Date();
+                updateTimeDisplays();
+            }
+
+            function loadState() {
+                const savedStartTime = localStorage.getItem('fastingStartTime');
+                const savedTargetHours = localStorage.getItem('fastingTargetHours');
+                if (savedStartTime && savedTargetHours) {
+                    const start = new Date(savedStartTime);
+                    targetHours = parseInt(savedTargetHours, 10);
+                    if (new Date() - start < targetHours * 3600000) {
+                        selectedStartTime = start;
+                        modelSelect.value = targetHours;
+                        fastingState = 'running';
+                        saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+                        fastingInterval = setInterval(updateTimer, 1000);
+                        updateTimer();
+                    } else {
+                        localStorage.removeItem('fastingStartTime');
+                        localStorage.removeItem('fastingTargetHours');
+                    }
+                }
+                updateTimeDisplays();
+                updateUIState();
+            }
+            
+            function saveData(key, data) {
+                const existingData = JSON.parse(localStorage.getItem(key) || '[]');
+                existingData.unshift(data);
+                localStorage.setItem(key, JSON.stringify(existingData));
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', startFasting);
+            stopBtn.addEventListener('click', stopFasting);
+            modelSelect.addEventListener('change', handleModelChange);
+
+            confirmYesBtn.addEventListener('click', () => {
+                targetHours = pendingTargetHours;
+                modelSelect.value = targetHours;
+                localStorage.setItem('fastingTargetHours', targetHours);
+                updateTimeDisplays();
+                updateTimer();
+                saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+                showToast("단식 목표가 변경되었습니다.");
+                confirmChangeModal.style.display = 'none';
+            });
+
+            confirmNoBtn.addEventListener('click', () => {
+                modelSelect.value = targetHours;
+                confirmChangeModal.style.display = 'none';
+            });
+            
+           
+            myPageBtn.addEventListener('click', () => {
+                // 실제 앱에서는 window.location.href = 'mypage.html' 등으로 페이지를 이동합니다.
+                showToast("마이페이지로 이동합니다.");
+            });
+            bloodSugarBtn.addEventListener('click', () => bloodSugarModal.style.display = 'flex');
+            ketoneBtn.addEventListener('click', () => ketoneModal.style.display = 'flex');
+            exerciseBtn.addEventListener('click', () => exerciseModal.style.display = 'flex');
+
+            saveBloodSugarBtn.addEventListener('click', () => {
+                const value = parseFloat(bloodSugarInput.value);
+                if (!value || value <= 0) return showToast("올바른 혈당 수치를 입력하세요.");
+                saveData('bloodSugarData', { date: new Date().toISOString(), value: value });
+                bloodSugarInput.value = '';
+                bloodSugarModal.style.display = 'none';
+                showToast("혈당 수치가 저장되었습니다.");
+            });
+
+            saveKetoneBtn.addEventListener('click', () => {
+                const value = parseFloat(ketoneInput.value);
+                if (!value || value <= 0) return showToast("올바른 케톤 수치를 입력하세요.");
+                saveData('ketoneData', { date: new Date().toISOString(), value: value });
+                ketoneInput.value = '';
+                ketoneModal.style.display = 'none';
+                showToast("케톤 수치가 저장되었습니다.");
+            });
+            
+            exerciseTypeContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tag')) {
+                    const currentActive = exerciseTypeContainer.querySelector('.tag.active');
+                    if (currentActive) currentActive.classList.remove('active');
+                    e.target.classList.add('active');
+                }
+            });
+
+            saveExerciseBtn.addEventListener('click', () => {
+                const selectedTag = exerciseTypeContainer.querySelector('.tag.active');
+                const duration = parseInt(exerciseDurationInput.value);
+                const calories = parseInt(exerciseCaloriesInput.value);
+
+                if (!selectedTag) return showToast("운동 종류를 선택하세요.");
+                if (!duration || duration <= 0) return showToast("올바른 운동 시간을 입력하세요.");
+                if (!calories || calories <= 0) return showToast("올바른 소모 칼로리를 입력하세요.");
+
+                const record = { date: new Date().toISOString(), type: selectedTag.dataset.value, duration: duration, calories: calories };
+                saveData('exerciseData', record);
+
+                selectedTag.classList.remove('active');
+                exerciseDurationInput.value = '';
+                exerciseCaloriesInput.value = '';
+                exerciseModal.style.display = 'none';
+                showToast("운동 기록이 저장되었습니다.");
+            });
+
+            privacyPolicyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                showToast("개인정보처리방침 페이지로 이동합니다. (개발 중)");
+            });
+
+            window.addEventListener('click', (e) => { 
+                const modals = [timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal];
+                if (modals.includes(e.target)) {
+                    e.target.style.display = 'none';
+                }
+            });
+            
+            initializeTimePicker();
+            initializeTime();
+            loadState();
+        });
+    </script>
+</body>
+</html>
