@@ -268,22 +268,85 @@
             opacity: 1;
             bottom: 50px;
         }
+        .user-chip {
+  position: absolute; top: 16px; right: 16px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 9999px;
+  background: #ffffff; color: #333; border: 1px solid var(--border-color);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08); font-weight: 600; font-size: .9rem;
+}
+.user-chip svg { width: 18px; height: 18px; stroke: var(--text-light); }
+
+/* 전체 딤 */
+#appShield {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  z-index: 2000; display: none; align-items: center; justify-content: center;
+}
+
+/* 온보딩 모달 */
+#onboardingModal {
+  width: 92%; max-width: 420px; background: var(--card-bg);
+  border-radius: 16px; padding: 22px; box-shadow: 0 16px 60px rgba(0,0,0,.2);
+  border: 1px solid var(--border-color);
+}
+
+.onb-title{ margin: 0 0 8px 0; color: var(--primary-color); font-weight: 800; }
+.onb-desc{ margin: 0 0 18px 0; color: var(--text-light); font-size: .95rem; }
+
+.onb-input {
+  width: 100%; padding: 14px 16px; border-radius: 12px;
+  border: 1px solid var(--border-color); background: #f8f9fa;
+  font-size: 1rem; outline: none; transition: box-shadow .15s, border-color .15s;
+}
+.onb-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(28,142,62,.12); }
+
+.tag-cloud.onb { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 4px; }
+.tag.onb { padding: 8px 14px; border-radius: 9999px; font-size: .9rem; }
+.tag.onb.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+
+.onb-actions { display: flex; gap: 10px; margin-top: 16px; }
+.onb-btn {
+  flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+}
+.onb-primary { background: var(--primary-color); color: #fff; }
+.onb-primary:hover { background: var(--primary-hover); }
+.onb-ghost { background: #fff; border: 1px solid var(--border-color); color: var(--text-color); }
 
     </style>
 </head>
+<div id="userChip" class="user-chip" style="display:none">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  <span id="userChipName">-</span>님
+</div>
+
+<!-- 딤 + 온보딩 모달 -->
+<div id="appShield">
+  <div id="onboardingModal">
+    <h3 class="onb-title">처음 오셨군요! 👋</h3>
+    <p class="onb-desc">fastmate 사용을 위해 닉네임과 가입 목적을 알려주세요.</p>
+
+    <label style="display:block; margin-bottom:8px; font-weight:700;">닉네임</label>
+    <input id="onbNickname" class="onb-input" type="text" placeholder="예) 라이언" />
+
+    <label style="display:block; margin:16px 0 8px; font-weight:700;">가입 목적</label>
+    <div id="onbGoals" class="tag-cloud onb">
+      <button type="button" class="tag onb" data-value="체중관리">체중관리</button>
+      <button type="button" class="tag onb" data-value="혈당 관리">혈당관리</button>
+      <button type="button" class="tag onb" data-value="자가포식(오토파지)">자가포식(오토파지)</button>
+      <button type="button" class="tag onb" data-value="위장휴식·소화개선">위장휴식·소화개선</button>
+      <button type="button" class="tag onb" data-value="에너지·집중력 개선">에너지·집중력 개선</button>
+      <button type="button" class="tag onb" data-value="기타">기타</button>
+    </div>
+
+    <div class="onb-actions">
+      <button id="onbCancel" class="onb-btn onb-ghost">나중에</button>
+      <button id="onbSave" class="onb-btn onb-primary">저장하고 시작</button>
+    </div>
+  </div>
+</div>
 <body>
 
     <div class="container">
-        <!-- 유저 칩 -->
-<div id="userChip" class="user-chip" title="마이페이지로 이동" style="display:none;">
-  <!-- 사람 아이콘 -->
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-       stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-  <span id="userNickname">로그인 필요</span>
-</div>
         <h1 class="main-title">fastmate</h1>
         
         <div class="ring-wrap">
@@ -907,6 +970,96 @@ runWithUser(async (user) => {
   }
 });
 
+
+(function fastmateOnboarding() {
+  // 깜빡임 방지: 세션 동안 한 번만 띄우기
+  const SHOWN_KEY = 'onboardingShownThisSession';
+
+  const userChip      = document.getElementById('userChip');
+  const userChipName  = document.getElementById('userChipName');
+
+  const appShield     = document.getElementById('appShield');
+  const onbNickname   = document.getElementById('onbNickname');
+  const onbGoalsBox   = document.getElementById('onbGoals');
+  const onbSave       = document.getElementById('onbSave');
+  const onbCancel     = document.getElementById('onbCancel');
+
+  // 태그 토글
+  onbGoalsBox.addEventListener('click', (e) => {
+    if (e.target.classList.contains('tag')) e.target.classList.toggle('active');
+  });
+
+  // 유틸
+  const openShield  = () => appShield.style.display = 'flex';
+  const closeShield = () => appShield.style.display = 'none';
+  const goalsSelected = () =>
+    Array.from(onbGoalsBox.querySelectorAll('.tag.active')).map(t => t.dataset.value);
+
+  // 상단 사용자 칩 채우기
+  const fillUserChip = (nickname) => {
+    if (!nickname) return;
+    userChipName.textContent = nickname;
+    userChip.style.display = 'flex';
+  };
+
+  // 저장 핸들러
+  onbSave.addEventListener('click', async () => {
+    const nickname = onbNickname.value.trim();
+    const goals    = goalsSelected();
+    if (!nickname) return alert('닉네임을 입력해주세요.');
+    if (!goals.length) return alert('가입 목적을 1개 이상 선택해주세요.');
+
+    try {
+      await ensureUserProfile({ nickname, onboarding: { reasons: goals }});
+      sessionStorage.setItem(SHOWN_KEY, '1');
+      fillUserChip(nickname);
+      closeShield();
+    } catch (e) {
+      console.error(e);
+      alert('저장에 실패했습니다.');
+    }
+  });
+
+  // “나중에” → 딤 해제(로그인은 유지), 칩엔 displayName or 이메일 로 표시
+  onbCancel.addEventListener('click', async () => {
+    sessionStorage.setItem(SHOWN_KEY, '1');
+    const u = auth.currentUser;
+    const fallback = u?.displayName || (u?.email?.split('@')[0]) || '-';
+    fillUserChip(fallback);
+    closeShield();
+  });
+
+  // 초기 진입: 인증 확인 후 온보딩 필요 여부 결정
+  runWithUser(async (user) => {
+    try {
+      // fastmate 화면은 기본적으로 보이되, “진행 중엔” 딤으로 덮기
+      openShield(); // ← ③ 요구사항: 가입 로딩/온보딩 중 어둡게
+
+      const profile = await getUserDoc(); // users/{uid}
+      const nickname = profile?.nickname || user.displayName || '';
+      const reasons  = profile?.onboarding?.reasons || [];
+
+      // 상단 칩은 항상 채움 (닉네임 있으면 닉네임, 없으면 displayName/email 아이디)
+      fillUserChip(nickname || (user.displayName || user.email?.split('@')[0] || '-'));
+
+      const shown = sessionStorage.getItem(SHOWN_KEY) === '1';
+      const needOnboarding = !(nickname && Array.isArray(reasons) && reasons.length);
+
+      if (needOnboarding && !shown) {
+        // 닉네임/목적 미완료 → 모달 오픈
+        closeShield(); // 딤을 모달 뒤의 배경으로 쓰고 싶다면 이 줄 지우세요.
+        openShield();  // 모달을 보여주려면 딤이 필요 (유지)
+      } else {
+        // 온보딩 불필요 → 딤 해제
+        closeShield();
+      }
+    } catch (e) {
+      console.error(e);
+      // 실패 시에도 앱은 사용 가능해야 하므로 딤 해제
+      closeShield();
+    }
+  });
+})();
             
             
             initializeTimePicker();
