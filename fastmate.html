@@ -82,7 +82,6 @@
             min-height: 25px;
         }
         
-        /* 시간 정보 UI 수정 */
         .time-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -91,7 +90,7 @@
         }
         .time-box {
             background-color: #f8f9fa;
-            border-radius: 12px; /* radius 강화 */
+            border-radius: 12px;
             padding: 12px;
             text-align: center;
             position: relative;
@@ -152,7 +151,6 @@
         .time-selector span { font-size: 1.5rem; font-weight: 700; }
         #saveTimeBtn { width: 100%; background-color: var(--gauge-end-color); }
         
-        /* 하단 네비게이션 UI 수정 */
         .bottom-nav { 
             border-top: 1px solid var(--border-color); 
             margin-top: 25px; 
@@ -191,6 +189,22 @@
         .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
         .input-group label { flex-shrink: 0; padding: 10px 0; }
         .input-group input { flex-grow: 1; }
+
+        .app-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        .app-footer a, .app-footer p {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-decoration: none;
+            margin: 5px 0;
+        }
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
 
     </style>
 </head>
@@ -266,6 +280,11 @@
                 <span>운동 기록</span>
             </button>
         </div>
+
+        <footer class="app-footer">
+            <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
+            <p>© 2025 2e-studio. All rights reserved.</p>
+        </footer>
     </div>
     
     <!-- Modals -->
@@ -349,6 +368,7 @@
             const exerciseTypeContainer = document.getElementById('exerciseType');
             const exerciseDurationInput = document.getElementById('exerciseDuration');
             const exerciseCaloriesInput = document.getElementById('exerciseCalories');
+            const privacyPolicyLink = document.getElementById('privacyPolicyLink');
 
             // --- Main Functions ---
             
@@ -609,6 +629,10 @@
                 customAlert("운동 기록이 저장되었습니다.");
             });
 
+            privacyPolicyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                customAlert("개인정보처리방침 페이지로 이동합니다. (현재는 개발 중입니다.)");
+            });
 
             window.addEventListener('click', (e) => { 
                 const modals = [alertModal, timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal];
