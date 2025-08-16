@@ -7,20 +7,9 @@
       <!-- Firebase SDK (compat 버전: 기존 네임스페이스 방식 그대로 사용 가능) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 
-<script>
-  // TODO: 본인 프로젝트 값으로 교체
-  const firebaseConfig = {
-    apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-    authDomain: "fasting-b4ccb.firebaseapp.com",
-    projectId: "fasting-b4ccb"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-
-  // 로그인 상태가 브라우저에 유지되도록 설정함
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-</script>
+<script defer src="./firebase-init.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
