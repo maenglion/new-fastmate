@@ -35,11 +35,11 @@
         </div>
         <button onclick="loginWithEmail()" class="main-button">로그인</button>
         <p class="divider">또는</p>
-        <button class="social-button google" onclick="socialLogin('google')">
+        <button id="googleLoginBtn" class="social-button google">
             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png" alt="Google">
             Google로 로그인
         </button>
-        <button class="social-button kakao" onclick="socialLogin('kakao')">
+        <button id="kakaoLoginBtn" class="social-button kakao">
             <img src="https://upload.wikimedia.org.wikipedia/commons/e/e3/KakaoTalk_logo.svg" alt="Kakao">
             카카오로 로그인
         </button>
@@ -57,11 +57,35 @@ function loginWithEmail() {
     console.log(`이메일: ${email}, 비밀번호: ${password} (으)로 로그인 시도`);
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  const googleLoginBtn = document.getElementById('googleLoginBtn');
+  const kakaoLoginBtn  = document.getElementById('kakaoLoginBtn'); // 있다면
+
+  // ✅ 구글 로그인
+  googleLoginBtn?.addEventListener('click', async () => {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      // 로그인 성공 → 마이페이지로 이동함
+      window.location.href = './mypage.html';
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+
+  // ✅ 카카오는 계속 준비중
+  kakaoLoginBtn?.addEventListener('click', () => {
+    alert('카카오 로그인은 준비중입니다.');
+  });
+});
+
 function socialLogin(provider) {
     // 여기에 구글, 카카오 등 소셜 로그인을 처리하는 코드가 들어갑니다.
     console.log(`${provider} (으)로 소셜 로그인 시도`);
 }
-    </script>
+
+
+</script>
 
 </body>
 </html>

@@ -294,6 +294,19 @@
     </div>
 
     <script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ✅ 인증 가드
+  auth.onAuthStateChanged((user) => {
+    if (!user) {
+      // 로그인 안됨 → 로그인 페이지로 보냄
+      window.location.href = './login.html';
+      return;
+    }
+    // 로그인됨 → 나머지 기존 코드 계속 실행함
+    // (아래에 이미 있는 차트/히스토리 렌더링 코드 그대로 둠)
+  });
+});
+
         document.addEventListener('DOMContentLoaded', function () {
             // --- Mock Data ---
             const USE_MOCK = false; 
@@ -476,6 +489,7 @@
             renderExerciseHistory();
             updateChart();
         });
+
     </script>
 </body>
 </html>
