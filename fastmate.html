@@ -628,9 +628,11 @@
             
            
             myPageBtn.addEventListener('click', () => {
-                // 실제 앱에서는 window.location.href = 'mypage.html' 등으로 페이지를 이동합니다.
-                showToast("마이페이지로 이동합니다.");
-            });
+    showToast("마이페이지로 이동합니다.");
+    setTimeout(() => {
+        window.location.href = 'mypage.html';
+    }, 1000); // 토스트가 잠깐 보이고 이동 (1초 뒤 이동)
+});
             bloodSugarBtn.addEventListener('click', () => bloodSugarModal.style.display = 'flex');
             ketoneBtn.addEventListener('click', () => ketoneModal.style.display = 'flex');
             exerciseBtn.addEventListener('click', () => exerciseModal.style.display = 'flex');
