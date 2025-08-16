@@ -3,29 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 - fastmate</title>
-    <link rel="stylesheet" href="./styles.css">
-    <script src="./signup.js" defer></script>
+    <title>Fastmate - 회원가입</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --text-light: #777;
+            --border-color: #e0e0e0;
+            --primary-color: #1c8e3e;
+            --primary-hover: #156a2f;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px 40px;
+            box-sizing: border-box;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress {
+            width: 25%;
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 4px;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .signup-step {
+            display: none;
+        }
+
+        .signup-step.active {
+            display: block;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--text-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .step-description {
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-secondary {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .tag {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .tag.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .terms-container {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .term-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .term-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .term-item label {
+            flex-grow: 1;
+        }
+        .term-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .term-item a:hover {
+            text-decoration: underline;
+        }
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        .modal-header h3 { margin: 0; }
+        .close-btn { font-size: 1.5rem; border: none; background: none; cursor: pointer; }
+        .modal-body { text-align: left; max-height: 60vh; overflow-y: auto; font-size: 0.9rem; line-height: 1.6; }
+        .modal-body h4 { margin-top: 20px; margin-bottom: 10px; }
+        .modal-body p, .modal-body li { margin-bottom: 10px; }
+        .modal-body ul { padding-left: 20px; }
+
+    </style>
 </head>
 <body>
 
-    <div class="signup-container">
-        <h2>회원가입</h2>
-        <p>1/3</p>
-        <div class="input-group">
-            <input type="email" id="signup-email" placeholder="이메일 주소">
+    <div class="container">
+        <div class="progress-bar">
+            <div class="progress" id="progressBar"></div>
         </div>
-        <div class="input-group">
-            <input type="password" id="signup-password" placeholder="비밀번호">
+
+        <!-- Step 1: 계정 정보 -->
+        <div id="step1" class="signup-step active">
+            <h2>회원가입</h2>
+            <p class="step-description">fastmate에서 사용할 계정 정보를 입력해주세요.</p>
+            <div class="input-group">
+                <input type="email" id="email" placeholder="이메일 주소">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="비밀번호 (6자 이상)">
+            </div>
+            <div class="input-group">
+                <input type="password" id="confirmPassword" placeholder="비밀번호 확인">
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" id="nextToStep2">다음</button>
+            </div>
         </div>
-        <div class="input-group">
-            <input type="password" id="confirm-password" placeholder="비밀번호 확인">
+
+        <!-- Step 2: 닉네임 -->
+        <div id="step2" class="signup-step">
+            <h2>닉네임 설정</h2>
+            <p class="step-description">단식 목표를 이룰 멋진 닉네임을 설정해 주세요!</p>
+            <div class="input-group">
+                <input type="text" id="nickname" placeholder="닉네임">
+            </div>
+            <div class="button-group">
+                <button class="btn btn-secondary" id="backToStep1">이전</button>
+                <button class="btn btn-primary" id="nextToStep3">다음</button>
+            </div>
         </div>
-        <button onclick="checkSignupStep1()" class="main-button">다음</button>
-        <p class="login-link">
-            이미 계정이 있다면 <a href="./fastmate.html">로그인</a>
-        </p>
+
+        <!-- Step 3: 목표 설정 -->
+        <div id="step3" class="signup-step">
+            <h2>목표 설정</h2>
+            <p class="step-description">단식을 통해 이루고 싶은 목표를 모두 선택해주세요.</p>
+            <div class="tag-cloud" id="tagCloud">
+                <button class="tag" data-value="건강증진">#건강증진</button>
+                <button class="tag" data-value="체중감량">#체중감량</button>
+                <button class="tag" data-value="혈당관리">#혈당관리</button>
+                <button class="tag" data-value="면역력강화">#면역력강화</button>
+                <button class="tag" data-value="집중력향상">#집중력향상</button>
+                <button class="tag" data-value="수면개선">#수면개선</button>
+                <button class="tag" data-value="기타">#기타</button>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-secondary" id="backToStep2">이전</button>
+                <button class="btn btn-primary" id="nextToStep4">다음</button>
+            </div>
+        </div>
+        
+        <!-- Step 4: 약관 동의 -->
+        <div id="step4" class="signup-step">
+            <h2>약관 동의</h2>
+            <p class="step-description">서비스 이용을 위해 약관에 동의해주세요.</p>
+            <div class="terms-container">
+                <div class="term-item">
+                    <input type="checkbox" id="termsOfService">
+                    <label for="termsOfService">서비스 이용약관 (필수)</label>
+                    <a href="#" data-modal="termsModal">내용 보기</a>
+                </div>
+                <div class="term-item">
+                    <input type="checkbox" id="privacyPolicy">
+                    <label for="privacyPolicy">개인정보처리방침 (필수)</label>
+                    <a href="#" data-modal="privacyModal">내용 보기</a>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-secondary" id="backToStep3">이전</button>
+                <button class="btn btn-primary" id="finishSignup">가입 완료</button>
+            </div>
+        </div>
     </div>
+
+    <!-- 약관 모달 -->
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>서비스 이용약관</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>제1조 (목적)</h4>
+                <p>이 약관은 2e-studio(이하 "회사")가 제공하는 fastmate 애플리케이션(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.</p>
+                
+                <h4>제2조 (용어의 정의)</h4>
+                <ul>
+                    <li>"서비스"라 함은 회사가 제공하는 단식 추적, 건강 데이터(체중, 혈당, 케톤, 운동) 기록 등 제반 서비스를 의미합니다.</li>
+                    <li>"회원"이라 함은 서비스에 접속하여 이 약관에 따라 회사와 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 말합니다.</li>
+                </ul>
+
+                <h4>제3조 (서비스의 내용 및 변경)</h4>
+                <p>회사는 서비스의 내용, 운영상 또는 기술상의 필요에 따라 제공하고 있는 서비스의 전부 또는 일부를 변경할 수 있습니다. 서비스의 내용이 변경되는 경우, 회사는 회원에게 공지합니다.</p>
+
+                <h4>제4조 (면책조항)</h4>
+                <ol>
+                    <li>본 서비스에서 제공하는 모든 정보와 기능은 건강 관리의 보조 수단이며, 전문적인 의학적 진단이나 처방을 대체할 수 없습니다.</li>
+                    <li>회사는 회원의 건강 상태나 질병에 대한 어떠한 책임도 지지 않으며, 모든 의학적 결정은 반드시 전문 의료인과 상담하여야 합니다.</li>
+                    <li>회사는 회원이 서비스를 이용하여 기대하는 수익을 상실한 것이나 서비스를 통하여 얻은 자료로 인한 손해에 관하여 책임을 지지 않습니다.</li>
+                </ol>
+                
+                <h4>제5조 (준거법 및 재판관할)</h4>
+                <p>회사와 회원 간 제기된 소송은 대한민국법을 준거법으로 합니다. 회사와 회원간 발생한 분쟁에 관한 소송은 민사소송법 상의 관할법원에 제소합니다.</p>
+                <p><strong>시행일자: 2025년 8월 16일</strong></p>
+            </div>
+        </div>
+    </div>
+    <div id="privacyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>개인정보처리방침</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>2e-studio(이하 '회사')는 「개인정보 보호법」에 따라 정보주체의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
+                
+                <h4>제1조 (개인정보의 수집 항목 및 처리 목적)</h4>
+                <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.</p>
+                <ul>
+                    <li><strong>회원가입 및 관리:</strong> 이메일 주소, 비밀번호, 닉네임, 단식 목표</li>
+                    <li><strong>서비스 제공:</strong> 단식 기록(시작/종료 시간), 체중, 혈당, 케톤, 운동 기록(종류, 시간, 칼로리) 등 회원이 직접 입력하는 민감 건강 정보</li>
+                </ul>
+
+                <h4>제2조 (개인정보의 처리 및 보유 기간)</h4>
+                <p>회사는 법령에 따른 개인정보 보유·이용기간 또는 정보주체로부터 개인정보를 수집 시에 동의 받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다. 원칙적으로, 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. (단, 회원 탈퇴 시까지 보유)</p>
+                
+                <h4>제3조 (개인정보의 제3자 제공)</h4>
+                <p>회사는 정보주체의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
+                <ul>
+                    <li>정보주체로부터 별도의 동의를 받은 경우</li>
+                    <li>법률에 특별한 규정이 있거나 법령상 의무를 준수하기 위하여 불가피한 경우</li>
+                </ul>
+
+                <h4>제4조 (개인정보 보호책임자)</h4>
+                <ul>
+                    <li><strong>성명:</strong> 맹난영</li>
+                    <li><strong>이메일:</strong> maengnanyoung@gmail.com</li>
+                </ul>
+                <p>정보주체께서는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자에게 문의하실 수 있습니다.</p>
+
+                <h4>제5조 (개인정보 처리방침 변경)</h4>
+                <p>이 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.</p>
+                <p><strong>시행일자: 2025년 8월 16일</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const steps = document.querySelectorAll('.signup-step');
+            const progressBar = document.getElementById('progressBar');
+            let currentStep = 1;
+
+            const navigateTo = (step) => {
+                steps.forEach(s => s.classList.remove('active'));
+                document.getElementById(`step${step}`).classList.add('active');
+                progressBar.style.width = `${(step / steps.length) * 100}%`;
+                currentStep = step;
+            };
+
+            // 네비게이션 버튼 이벤트
+            document.getElementById('nextToStep2').addEventListener('click', () => {
+                // 유효성 검사
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                if (!email || password.length < 6 || password !== confirmPassword) {
+                    alert('입력 정보를 확인해주세요.');
+                    return;
+                }
+                navigateTo(2);
+            });
+            document.getElementById('backToStep1').addEventListener('click', () => navigateTo(1));
+            
+            document.getElementById('nextToStep3').addEventListener('click', () => {
+                const nickname = document.getElementById('nickname').value;
+                if (!nickname) {
+                    alert('닉네임을 입력해주세요.');
+                    return;
+                }
+                navigateTo(3);
+            });
+            document.getElementById('backToStep2').addEventListener('click', () => navigateTo(2));
+
+            document.getElementById('nextToStep4').addEventListener('click', () => {
+                 const selectedTags = document.querySelectorAll('.tag.active');
+                 if (selectedTags.length === 0) {
+                    alert('하나 이상의 목표를 선택해주세요.');
+                    return;
+                }
+                navigateTo(4);
+            });
+            document.getElementById('backToStep3').addEventListener('click', () => navigateTo(3));
+
+            // 태그 클라우드
+            document.getElementById('tagCloud').addEventListener('click', (e) => {
+                if (e.target.classList.contains('tag')) {
+                    e.target.classList.toggle('active');
+                }
+            });
+
+            // 최종 가입
+            document.getElementById('finishSignup').addEventListener('click', () => {
+                const termsAgreed = document.getElementById('termsOfService').checked;
+                const privacyAgreed = document.getElementById('privacyPolicy').checked;
+
+                if (!termsAgreed || !privacyAgreed) {
+                    alert('필수 약관에 모두 동의해주세요.');
+                    return;
+                }
+                
+                // 모든 데이터 수집 및 서버 전송 로직 (현재는 alert으로 대체)
+                const signupData = {
+                    email: document.getElementById('email').value,
+                    nickname: document.getElementById('nickname').value,
+                    goals: Array.from(document.querySelectorAll('.tag.active')).map(t => t.dataset.value)
+                };
+                console.log('가입 데이터:', signupData);
+                alert('회원가입이 완료되었습니다!');
+                // window.location.href = './fastmate.html';
+            });
+
+            // 약관 모달
+            document.querySelectorAll('a[data-modal]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const modalId = e.target.dataset.modal;
+                    document.getElementById(modalId).style.display = 'flex';
+                });
+            });
+            document.querySelectorAll('.modal .close-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.target.closest('.modal').style.display = 'none';
+                });
+            });
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                }
+            });
+
+        });
+    </script>
 
 </body>
 </html>
