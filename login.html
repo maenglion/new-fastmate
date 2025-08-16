@@ -28,6 +28,23 @@
         </button>
         <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
     </div>
+    <script>
+        // 예시: login.js 파일의 내용
+
+function loginWithEmail() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    // 여기에 이메일과 비밀번호로 실제 로그인을 처리하는 코드가 들어갑니다.
+    // (e.g., 서버에 로그인 요청을 보내는 등)
+    console.log(`이메일: ${email}, 비밀번호: ${password} (으)로 로그인 시도`);
+}
+
+function socialLogin(provider) {
+    // 여기에 구글, 카카오 등 소셜 로그인을 처리하는 코드가 들어갑니다.
+    console.log(`${provider} (으)로 소셜 로그인 시도`);
+}
+    </script>
 
 </body>
 </html>
