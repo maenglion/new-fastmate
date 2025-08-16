@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>마이페이지</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" />
+    <link rel="stylesheet" href="./mypage.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.com/npm/chart.js"></script>
+</head>
+<body>
+    
+    <!-- 사이드바 메뉴 -->
+    <nav id="sidebar" class="sidebar">
+        <a href="./fastmate.html" class="sidebar-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>메인</span>
+        </a>
+        <a href="./mypage.html" class="sidebar-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>마이페이지</span>
+        </a>
+        <a href="./login.html" class="sidebar-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-in"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            <span>로그인 / 회원가입</span>
+        </a>
+    </nav>
+    
+    <div id="main-wrapper" class="main-wrapper">
+        <header class="main-header">
+            <button id="menu-button" class="menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h1 class="main-title">fastmate <span class="subtitle">간헐적 단식 도우미</span></h1>
+        </header>
+
+        <div class="card" id="userRecordsCard">
+            <h2>나의 기록</h2>
+            <p>닉네임: <b id="userNickname">Guest</b></p>
+            <p>총 단식 시간: <b id="totalFastingTime">0시간</b></p>
+            <h3>단식 성공 기록 리스트</h3>
+            <ul id="fastingSuccessList">
+                <li>아직 기록이 없어요!</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>체중 기록</h2>
+            <div class="input-group">
+                <input type="date" id="weightDate">
+            </div>
+            <div class="input-group">
+                <input type="number" id="weight" placeholder="체중(kg)">
+            </div>
+            <button onclick="saveWeight()">저장</button>
+            <p id="weightHistory"></p>
+        </div>
+        
+        <div class="card">
+            <h2>그래프 통계</h2>
+            <p class="chart-description">단식 시간과 체중 변화를 그래프로 확인해보세요!</p>
+            <canvas id="fastingChart"></canvas>
+            <canvas id="weightChart" style="margin-top:20px;"></canvas>
+        </div>
+
+        <div class="card">
+            <h2>단식 달력</h2>
+            <p class="calendar-description">단식 성공은 ✅, 실패는 ❌로 표시돼요.</p>
+            <div id="calendar"></div>
+        </div>
+        
+    </div>
+    
+    <!-- Custom Alert Modal -->
+    <div id="alertModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <p id="alertMessage"></p>
+            <button onclick="document.getElementById('alertModal').style.display='none'">확인</button>
+        </div>
+    </div>
+    
+    <script src="./mypage.js"></script>
+</body>
+</html>

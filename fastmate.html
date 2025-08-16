@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fastmate - 업그레이드</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --text-color: #333;
+            --text-light: #777;
+            --border-color: #e0e0e0;
+            --danger-color: #dc3545;
+            --gauge-start-color: #ffd400;
+            --gauge-end-color: #1c8e3e;
+            --gauge-track-color: #fdf3d1;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        #chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .status-message {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-light);
+            margin: 10px 0 20px 0;
+            min-height: 25px;
+        }
+        
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .time-info div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 50%;
+        }
+        .time-info span {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        #startTimeDisplay, #endTimeDisplay {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            background: transparent;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #startTimeDisplay:hover {
+            background-color: #e9ecef;
+        }
+
+        .salt-tip {
+            background-color: #fffbe6;
+            border: 1px solid #ffe58f;
+            color: #d46b08;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin: 0 auto 20px auto;
+            max-width: 90%;
+            text-align: center;
+            display: none;
+        }
+
+        .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 1rem; background-color: #f8f9fa; }
+        .button-group { display: flex; gap: 10px; width: 100%; }
+        button { flex-grow: 1; padding: 12px 20px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease-in-out; }
+        .start-btn { background-color: var(--gauge-end-color); color: white; }
+        .start-btn:hover { background-color: #156a2f; }
+        .stop-btn { background-color: var(--danger-color); color: white; }
+        .stop-btn:hover { background-color: #b22222; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 350px; border-radius: 16px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content h3 { margin-top: 0; }
+        .modal-content p { font-size: 1.1rem; margin-bottom: 20px; line-height: 1.5; }
+        .modal-content .modal-buttons { display: flex; gap: 10px; }
+        .modal-content .modal-buttons button { width: 100%; }
+
+        .date-selector { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        .date-selector button { background-color: #e9ecef; color: #495057; padding: 10px 20px; border: 1px solid #dee2e6; }
+        .date-selector button.active { background-color: var(--gauge-end-color); color: white; border-color: var(--gauge-end-color); }
+        
+        .time-selector { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 25px; }
+        .time-selector select { font-size: 1.5rem; font-weight: 700; border: none; background: #f8f9fa; padding: 10px 5px; border-radius: 6px; }
+        .time-selector span { font-size: 1.5rem; font-weight: 700; }
+        #saveTimeBtn { width: 100%; background-color: var(--gauge-end-color); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>단식 트래커</h1>
+        <div id="chart-container"></div>
+        <div id="status-message" class="status-message">단식 계획을 선택하고 시작하세요.</div>
+
+        <div class="time-info">
+            <div>
+                <span>시작 시간</span>
+                <div id="startTimeDisplay" title="클릭하여 시간 변경">-</div>
+            </div>
+            <div>
+                <span>종료 예정</span>
+                <span id="endTimeDisplay">-</span>
+            </div>
+        </div>
+        
+        <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
+
+        <div class="controls">
+            <select id="fastingModelSelect">
+                <option value="16">16:8 (16시간 단식)</option>
+                <option value="18">18:6 (18시간 단식)</option>
+                <option value="20">20:4 (20시간 단식)</option>
+                <option value="24">24시간 (하루 단식)</option>
+                <option value="48">48시간 (이틀 단식)</option>
+                <option value="72">72시간 (사흘 단식)</option>
+            </select>
+            <div class="button-group">
+                <button id="startBtn" class="start-btn">단식 시작</button>
+                <button id="stopBtn" class="stop-btn">단식 종료</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="alertModal" class="modal"><div class="modal-content"><p id="alertMessage"></p><button id="alertCloseBtn">확인</button></div></div>
+
+    <div id="timePickerModal" class="modal">
+        <div class="modal-content">
+            <h3>시작 시간 설정</h3>
+            <div class="date-selector">
+                <button id="dayBeforeBtn">어제</button>
+                <button id="todayBtn" class="active">오늘</button>
+            </div>
+            <div class="time-selector">
+                <select id="hourSelect"></select>
+                <span>:</span>
+                <select id="minuteSelect"></select>
+                <select id="ampmSelect"><option>AM</option><option>PM</option></select>
+            </div>
+            <button id="saveTimeBtn" class="start-btn">저장</button>
+        </div>
+    </div>
+    
+    <div id="confirmChangeModal" class="modal">
+        <div class="modal-content">
+            <p id="confirmMessage"></p>
+            <div class="modal-buttons">
+                <button id="confirmYesBtn" class="start-btn">예</button>
+                <button id="confirmNoBtn" class="stop-btn">아니오</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let fastingInterval;
+            let targetHours = 16;
+            let fastingState = 'idle';
+            let selectedStartTime = new Date();
+            let milestones = { 10: false, 25: false, 50: false, 70: false, 80: false, 90: false };
+            let pendingTargetHours = null;
+
+            const chartContainer = document.getElementById('chart-container');
+            const statusMessage = document.getElementById('status-message');
+            const saltTip = document.getElementById('salt-tip');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const modelSelect = document.getElementById('fastingModelSelect');
+            const startTimeDisplay = document.getElementById('startTimeDisplay');
+            const endTimeDisplay = document.getElementById('endTimeDisplay');
+            
+            const alertModal = document.getElementById('alertModal');
+            const alertMessage = document.getElementById('alertMessage');
+            const alertCloseBtn = document.getElementById('alertCloseBtn');
+            
+            const timePickerModal = document.getElementById('timePickerModal');
+            const dayBeforeBtn = document.getElementById('dayBeforeBtn');
+            const todayBtn = document.getElementById('todayBtn');
+            const hourSelect = document.getElementById('hourSelect');
+            const minuteSelect = document.getElementById('minuteSelect');
+            const ampmSelect = document.getElementById('ampmSelect');
+            const saveTimeBtn = document.getElementById('saveTimeBtn');
+
+            const confirmChangeModal = document.getElementById('confirmChangeModal');
+            const confirmMessage = document.getElementById('confirmMessage');
+            const confirmYesBtn = document.getElementById('confirmYesBtn');
+            const confirmNoBtn = document.getElementById('confirmNoBtn');
+
+            const chartOptions = {
+                series: [0],
+                chart: { height: 400, type: 'radialBar', offsetY: -10 },
+                plotOptions: {
+                    radialBar: {
+                        startAngle: -135, endAngle: 135,
+                        hollow: { size: '70%', background: '#fff' },
+                        track: { background: 'var(--gauge-track-color)', strokeWidth: '67%', margin: 0 },
+                        dataLabels: {
+                            show: true,
+                            name: { offsetY: -10, show: true, color: '#888', fontSize: '17px' },
+                            value: { formatter: (val) => "", color: '#111', fontSize: '36px', show: true }
+                        }
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'light', type: 'horizontal', shadeIntensity: 0.5,
+                        gradientToColors: ['var(--gauge-end-color)'],
+                        inverseColors: false, opacityFrom: 1, opacityTo: 1, stops: [0, 100]
+                    },
+                    colors: ['var(--gauge-start-color)']
+                },
+                stroke: { lineCap: 'round' },
+                labels: ['남은 시간'],
+            };
+            const chart = new ApexCharts(chartContainer, chartOptions);
+            chart.render();
+
+            function startFasting() {
+                if (fastingState === 'running') return customAlert("이미 단식이 진행 중입니다.");
+                fastingState = 'running';
+                targetHours = parseInt(modelSelect.value);
+                localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
+                localStorage.setItem('fastingTargetHours', targetHours);
+                Object.keys(milestones).forEach(key => milestones[key] = false);
+                saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+                fastingInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+                updateUIState();
+            }
+
+            function stopFasting() {
+                if (fastingState === 'idle') return customAlert("시작된 단식이 없습니다.");
+                clearInterval(fastingInterval);
+                fastingState = 'idle';
+                localStorage.clear();
+                chart.updateSeries([0]);
+                statusMessage.textContent = "단식 계획을 선택하고 시작하세요.";
+                saltTip.style.display = 'none';
+                endTimeDisplay.textContent = '-';
+                initializeTime();
+                updateUIState();
+                chart.updateOptions({ plotOptions: { radialBar: { dataLabels: { name: { text: '남은 시간' }, value: { show: false } } } } });
+                customAlert("단식을 종료했습니다. 수고하셨습니다!");
+            }
+
+            function updateTimer() {
+                const now = new Date();
+                const elapsedMs = now - selectedStartTime;
+                const targetMs = targetHours * 3600000;
+                let progress = Math.min((elapsedMs / targetMs) * 100, 100);
+                
+                const remainingMs = Math.max(0, targetMs - elapsedMs);
+                const remainingH = Math.floor(remainingMs / 3600000);
+                const remainingM = Math.floor((remainingMs % 3600000) / 60000);
+                const remainingS = Math.floor((remainingMs % 60000) / 1000);
+                const remainingTimeStr = `${String(remainingH).padStart(2, '0')}:${String(remainingM).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
+                
+                chart.updateSeries([progress]);
+                chart.updateOptions({ plotOptions: { radialBar: { dataLabels: { value: { show: true, formatter: () => remainingTimeStr, fontSize: '2.2rem', offsetY: 8 } } } } });
+                
+                statusMessage.textContent = (elapsedMs / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
+                checkMilestones(progress);
+                if (progress >= 100) { stopFasting(); customAlert("목표 달성! 축하합니다!"); }
+            }
+
+            function checkMilestones(progress) {
+                const messages = { 10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧", 25: "25% 달성! 순조롭게 진행 중이에요.", 50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧", 70: "거의 다 왔습니다. 조금만 더 힘내세요!", 90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧" };
+                for (const p in milestones) { if (progress >= p && !milestones[p]) { customAlert(messages[p]); milestones[p] = true; } }
+            }
+
+            function updateTimeDisplays() {
+                const start = selectedStartTime;
+                const duration = parseInt(modelSelect.value);
+                const end = new Date(start.getTime() + duration * 3600000);
+                const format = (d) => `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+                startTimeDisplay.innerHTML = format(start);
+                endTimeDisplay.innerHTML = format(end);
+            }
+
+            function updateUIState() {
+                const isRunning = fastingState === 'running';
+                startBtn.disabled = isRunning; 
+                stopBtn.disabled = !isRunning;
+                startTimeDisplay.style.pointerEvents = isRunning ? 'none' : 'auto';
+                
+                if (isRunning) {
+                    startBtn.textContent = '단식중';
+                    startBtn.style.backgroundColor = 'var(--gauge-start-color)';
+                    startBtn.style.color = 'var(--text-color)';
+                    startBtn.style.cursor = 'not-allowed';
+                } else {
+                    startBtn.textContent = '단식 시작';
+                    startBtn.style.backgroundColor = 'var(--gauge-end-color)';
+                    startBtn.style.color = 'white';
+                    startBtn.style.cursor = 'pointer';
+                }
+                
+                stopBtn.style.opacity = isRunning ? '1' : '0.5';
+                startTimeDisplay.style.backgroundColor = isRunning ? '#f8f9fa' : 'transparent';
+            }
+
+            function handleModelChange(e) {
+                const newTarget = parseInt(e.target.value);
+                if (fastingState === 'running' && newTarget !== targetHours) {
+                    pendingTargetHours = newTarget;
+                    confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
+                    confirmChangeModal.style.display = 'flex';
+                    e.target.value = targetHours;
+                } else if (fastingState !== 'running') {
+                    targetHours = newTarget;
+                    updateTimeDisplays();
+                }
+            }
+
+            function customAlert(msg) { alertMessage.textContent = msg; alertModal.style.display = 'flex'; }
+
+            function initializeTimePicker() {
+                for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
+                for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
+                
+                startTimeDisplay.addEventListener('click', () => {
+                    if(fastingState === 'running') return;
+                    const now = selectedStartTime;
+                    let h = now.getHours();
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12; h = h ? h : 12;
+                    hourSelect.value = h;
+                    minuteSelect.value = now.getMinutes();
+                    ampmSelect.value = ampm;
+                    timePickerModal.style.display = 'flex';
+                });
+
+                dayBeforeBtn.addEventListener('click', () => { dayBeforeBtn.classList.add('active'); todayBtn.classList.remove('active'); });
+                todayBtn.addEventListener('click', () => { todayBtn.classList.add('active'); dayBeforeBtn.classList.remove('active'); });
+
+                saveTimeBtn.addEventListener('click', () => {
+                    let hour = parseInt(hourSelect.value);
+                    const minute = parseInt(minuteSelect.value);
+                    const isPM = ampmSelect.value === 'PM';
+                    if (isPM && hour < 12) hour += 12;
+                    if (!isPM && hour === 12) hour = 0;
+
+                    const newDate = new Date();
+                    if (dayBeforeBtn.classList.contains('active')) newDate.setDate(newDate.getDate() - 1);
+                    newDate.setHours(hour, minute, 0, 0);
+                    selectedStartTime = newDate;
+                    updateTimeDisplays();
+                    timePickerModal.style.display = 'none';
+                });
+            }
+
+            function initializeTime() {
+                selectedStartTime = new Date();
+                updateTimeDisplays();
+            }
+
+
+
+            function loadState() {
+                const savedStartTime = localStorage.getItem('fastingStartTime');
+                const savedTargetHours = localStorage.getItem('fastingTargetHours');
+                if (savedStartTime && savedTargetHours) {
+                    const start = new Date(savedStartTime);
+                    const targetMs = parseInt(savedTargetHours) * 3600000;
+                    if (new Date() - start < targetMs) {
+                        selectedStartTime = start;
+                        targetHours = parseInt(savedTargetHours);
+                        modelSelect.value = targetHours;
+                        fastingState = 'running';
+                        saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+                        fastingInterval = setInterval(updateTimer, 1000);
+                        updateTimer();
+                    } else { localStorage.clear(); }
+                }
+                updateTimeDisplays();
+                updateUIState();
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', startFasting);
+            stopBtn.addEventListener('click', stopFasting);
+            alertCloseBtn.addEventListener('click', () => alertModal.style.display = 'none');
+            modelSelect.addEventListener('change', handleModelChange);
+
+            confirmYesBtn.addEventListener('click', () => {
+                targetHours = pendingTargetHours;
+                modelSelect.value = targetHours;
+                localStorage.setItem('fastingTargetHours', targetHours);
+                updateTimeDisplays();
+                updateTimer();
+                saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+                customAlert("단식 목표가 변경되었습니다.");
+                confirmChangeModal.style.display = 'none';
+            });
+
+            confirmNoBtn.addEventListener('click', () => {
+                modelSelect.value = targetHours;
+                confirmChangeModal.style.display = 'none';
+            });
+            
+            window.addEventListener('click', (e) => { 
+                if (e.target === alertModal || e.target === timePickerModal || e.target === confirmChangeModal) {
+                    e.target.style.display = 'none';
+                }
+            });
+            
+            initializeTimePicker();
+            initializeTime();
+            loadState();
+        });
+    </script>
+</body>
+</html>

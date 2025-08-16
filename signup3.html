@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - fastmate</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./signup.js" defer></script>
+</head>
+<body>
+
+    <div class="signup-container">
+        <h2>회원가입</h2>
+        <p>3/3</p>
+        <p class="intro-text-small">단식을 하려는 이유를 선택해 주세요.</p>
+        <div class="reasons-list">
+            <label><input type="checkbox" name="reason" value="건강 증진"> 건강 증진</label>
+            <label><input type="checkbox" name="체중 감량"> 체중 감량</label>
+            <label><input type="checkbox" name="면역력 강화"> 면역력 강화</label>
+            <label><input type="checkbox" name="집중력 향상"> 집중력 향상</label>
+            <label><input type="checkbox" name="기타"> 기타</label>
+        </div>
+        <button onclick="finishSignup()" class="main-button">완료</button>
+        <p class="login-link">
+            이미 계정이 있다면 <a href="./login.html">로그인</a>
+        </p>
+    </div>
+
+</body>
+</html>

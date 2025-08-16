@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - fastmate</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>로그인</h2>
+        <div class="input-group">
+            <input type="email" id="email" placeholder="이메일 주소">
+        </div>
+        <div class="input-group">
+            <input type="password" id="password" placeholder="비밀번호">
+        </div>
+        <button onclick="loginWithEmail()" class="main-button">로그인</button>
+        <p class="divider">또는</p>
+        <button class="social-button google" onclick="socialLogin('google')">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png" alt="Google">
+            Google로 로그인
+        </button>
+        <button class="social-button kakao" onclick="socialLogin('kakao')">
+            <img src="https://upload.wikimedia.org.wikipedia/commons/e/e3/KakaoTalk_logo.svg" alt="Kakao">
+            카카오로 로그인
+        </button>
+        <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
+    </div>
+
+</body>
+</html>
