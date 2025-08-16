@@ -59,7 +59,12 @@ function loginWithEmail() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const googleLoginBtn = document.getElementById('googleLoginBtn');
-  const kakaoLoginBtn  = document.getElementById('kakaoLoginBtn'); // 있다면
+  const kakaoLoginBtn  = document.getElementById('kakaoLoginBtn'); // 
+  
+   // 이미 로그인 상태면 바로 fastmate로
+  auth.onAuthStateChanged((user) => {
+    if (user) window.location.href = './fastmate.html';
+  });
 
   // ✅ 구글 로그인
   googleLoginBtn?.addEventListener('click', async () => {
