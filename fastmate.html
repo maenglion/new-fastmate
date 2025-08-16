@@ -128,7 +128,17 @@
         .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; }
         select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 1rem; background-color: #f8f9fa; }
         .button-group { display: flex; gap: 10px; width: 100%; }
-        button { flex-grow: 1; padding: 12px 20px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease-in-out; }
+        .button-group button {
+            flex-grow: 1;
+            flex-basis: 0; /* 버튼 너비를 동일하게 만듦 */
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
         .start-btn { background-color: var(--gauge-end-color); color: white; }
         .start-btn:hover { background-color: #156a2f; }
         .stop-btn { background-color: var(--dark-gray-color); color: white; }
