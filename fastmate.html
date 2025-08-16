@@ -739,6 +739,27 @@ const db = firebase.firestore();
                 showToast("운동 기록이 저장되었습니다.");
             });
 
+window.addEventListener('load', () => {
+    const selectors = [
+      '#credential_picker_container',          // Google 계정 선택 컨테이너
+      'iframe[name="gsi_iframe"]',
+      'iframe[title*="Sign in with Google"]',
+      'iframe[src*="accounts.google.com"]'
+    ];
+    selectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        // 클릭 가로채지 않도록 비활성화
+        el.style.pointerEvents = 'none';
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0';
+        el.style.width = '0';
+        el.style.height = '0';
+      });
+       });
+  });
+
+
             privacyPolicyLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 showToast("개인정보처리방침 페이지로 이동합니다. (개발 중)");
@@ -751,10 +772,12 @@ const db = firebase.firestore();
                 }
             });
             
+            
             initializeTimePicker();
             initializeTime();
             loadState();
         });
+        
     </script>
 </body>
 </html>
