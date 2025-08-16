@@ -50,7 +50,21 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
             padding: 25px;
             box-sizing: border-box;
+            position: relative;
         }
+
+    
+.user-chip {
+  position: absolute;
+  top: 12px; right: 12px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: 0.9rem; color: var(--text-color);
+  background: #fff; cursor: pointer;
+}
+.user-chip:hover { background: #f8f9fa; }
 
         .main-title {
             text-align: center;
@@ -260,6 +274,16 @@
 <body>
 
     <div class="container">
+        <!-- 유저 칩 -->
+<div id="userChip" class="user-chip" title="마이페이지로 이동" style="display:none;">
+  <!-- 사람 아이콘 -->
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+  <span id="userNickname">로그인 필요</span>
+</div>
         <h1 class="main-title">fastmate</h1>
         
         <div class="ring-wrap">
@@ -374,6 +398,33 @@
             <button id="saveExerciseBtn" class="btn-text">저장</button>
         </div>
     </div>
+    <!-- 온보딩 모달: 닉네임 + 목표 -->
+<div id="onboardingModal" class="modal">
+  <div class="modal-content">
+    <h3>프로필 설정</h3>
+    <p class="step-description">닉네임과 단식 목표를 설정해 주세요.</p>
+
+    <div class="input-group">
+      <input type="text" id="onbNickname" placeholder="닉네임">
+    </div>
+
+    <div class="tag-cloud" id="onbTagCloud" style="margin-top:10px;">
+      <button type="button" class="tag" data-value="체중관리">체중관리</button>
+      <button type="button" class="tag" data-value="혈당 관리">혈당관리</button>
+      <button type="button" class="tag" data-value="자가포식(오토파지)">자가포식(오토파지)</button>
+      <button type="button" class="tag" data-value="위장휴식·소화개선">위장휴식·소화개선</button>
+      <button type="button" class="tag" data-value="에너지·집중력 개선">에너지·집중력 개선</button>
+      <button type="button" class="tag" data-value="기타">기타</button>
+    </div>
+
+    <div class="button-group" style="margin-top:18px;">
+      <button id="onbSaveBtn" class="btn-text" style="width:100%; background:#1c8e3e; color:#fff; border-radius:8px; padding:12px 16px;">
+        저장하고 계속하기
+      </button>
+    </div>
+  </div>
+</div>
+
 
     <!-- Toast Alert -->
     <div id="toast"></div>
@@ -387,6 +438,7 @@
             let milestones = { 10: false, 25: false, 50: false, 70: false, 80: false, 90: false };
             let pendingTargetHours = null;
             let toastTimeout;
+            let lastFastingRecord = null;
 
             const progressArc = document.getElementById('progressArc');
             const remainingTimeEl = document.getElementById('remainingTime');
@@ -471,11 +523,13 @@ auth.onAuthStateChanged((user) => {
                 fastingState = 'idle';
                 
                 const fastingRecord = {
-                    startTime: selectedStartTime.toISOString(),
-                    endTime: new Date().toISOString(),
-                    targetHours: targetHours,
-                    actualDurationHours: (new Date() - selectedStartTime) / 3600000
-                };
+  startTime: selectedStartTime.toISOString(),
+  endTime: new Date().toISOString(),
+  targetHours: targetHours,
+  actualDurationHours: (new Date() - selectedStartTime) / 3600000
+};
+lastFastingRecord = fastingRecord; // ★ 전역에 보관
+
                 const history = JSON.parse(localStorage.getItem('fastingHistoryData') || '[]');
                 history.unshift(fastingRecord);
                 localStorage.setItem('fastingHistoryData', JSON.stringify(history));
@@ -627,7 +681,10 @@ const db = firebase.firestore();
   // ...
   // const fastingRecord = { ... }  // 이미 만듦
   // localStorage 저장 로직 유지해도 되고 점진 전환 가능함
-  saveFastingRecordToFirestore(fastingRecord);
+// ✅ (전역 가드로 접근 + 없으면 패스)
+if (lastFastingRecord) {
+  doSomething(lastFastingRecord);
+}
 
             function initializeTime() {
                 selectedStartTime = new Date();
@@ -771,6 +828,85 @@ window.addEventListener('load', () => {
                     e.target.style.display = 'none';
                 }
             });
+
+            // 로그인 후 프로필 확인 → 닉네임/목표 없으면 모달 띄우기
+runWithUser(async (user) => {
+  try {
+    const profile = await getUserDoc();
+    const needNickname = !profile?.nickname;
+    const needGoals    = !(profile?.onboarding?.reasons?.length);
+
+    if (needNickname || needGoals) {
+      const modal = document.getElementById('onboardingModal');
+      modal.style.display = 'flex';
+    }
+  } catch (e) {
+    console.error(e);
+  }
+});
+
+// 태그 선택 토글
+document.getElementById('onbTagCloud')?.addEventListener('click', (e) => {
+  if (e.target.classList.contains('tag')) {
+    e.target.classList.toggle('active');
+  }
+});
+
+function collectOnbGoals() {
+  const actives = Array.from(document.querySelectorAll('#onbTagCloud .tag.active'));
+  return actives.map(t => t.dataset.value || t.textContent.trim());
+}
+
+// 저장 버튼
+document.getElementById('onbSaveBtn')?.addEventListener('click', async () => {
+  try {
+    const nickname = (document.getElementById('onbNickname')?.value || '').trim();
+    const goals    = collectOnbGoals();
+
+    if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
+    if (!goals.length) { alert('하나 이상의 목표를 선택해주세요.'); return; }
+
+    await ensureUserProfile({
+      nickname,
+      onboarding: { reasons: goals }
+    });
+
+    // 닫고 토스트 등
+    document.getElementById('onboardingModal').style.display = 'none';
+    // 이미 있는 showToast가 있다면 사용:
+    if (typeof showToast === 'function') showToast('프로필이 저장되었습니다!');
+  } catch (e) {
+    console.error(e);
+    alert('저장 실패: ' + (e?.message || '알 수 없는 오류'));
+  }
+});
+
+// 모달 바깥 클릭 닫기 (선택)
+window.addEventListener('click', (e) => {
+  const modal = document.getElementById('onboardingModal');
+  if (e.target === modal) modal.style.display = 'none';
+});
+
+// 로그인 상태에 따라 칩 표시/닉네임 반영
+runWithUser(async (user) => {
+  try {
+    const chip = document.getElementById('userChip');
+    const nameEl = document.getElementById('userNickname');
+    if (!chip || !nameEl) return;
+
+    const profile = await getUserDoc();
+    const nickname = profile?.nickname || user.displayName || '회원님';
+
+    nameEl.textContent = `${nickname}님`;
+    chip.style.display = 'flex';
+
+    // 칩 클릭 시 마이페이지 이동
+    chip.onclick = () => { window.location.href = './mypage.html'; };
+  } catch (e) {
+    console.error(e);
+  }
+});
+
             
             
             initializeTimePicker();

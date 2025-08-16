@@ -215,6 +215,11 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .profile-rows { display: grid; gap: 10px; }
+.profile-rows .row { display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background:#fafafa; }
+.profile-rows .label { color: var(--text-light); font-weight: 500; }
+
 
     </style>
 </head>
@@ -222,6 +227,16 @@
 
     <div class="container">
         <header class="page-header">
+            <div class="card" id="profileCard">
+  <section>
+    <h2 style="margin-top:0;">내 프로필</h2>
+    <div class="profile-rows">
+      <div class="row"><span class="label">닉네임</span><span id="pfNickname">-</span></div>
+      <div class="row"><span class="label">이메일</span><span id="pfEmail">-</span></div>
+      <div class="row"><span class="label">가입 목적</span><span id="pfGoals">-</span></div>
+    </div>
+  </section>
+</div>
             <button id="homeBtn" class="home-btn" title="홈으로 돌아가기">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             </button>
@@ -284,41 +299,64 @@
 
     <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ✅ 인증 가드
+  // 1) 로그인 가드
   auth.onAuthStateChanged((user) => {
     if (!user) {
-      // 로그인 안됨 → 로그인 페이지로 보냄
       window.location.href = './login.html';
       return;
     }
-    // 로그인됨 → 나머지 기존 코드 계속 실행함
-    // (아래에 이미 있는 차트/히스토리 렌더링 코드 그대로 둠)
   });
+
+  // 2) 프로필 카드 채우기
+  runWithUser(async (user) => {
+    try {
+      const profile  = await getUserDoc();
+      const nickname = profile?.nickname || user.displayName || '-';
+      const email    = user.email || '-';
+      const goalsArr = profile?.onboarding?.reasons || [];
+      const goals    = goalsArr.length ? goalsArr.join(', ') : '-';
+
+      document.getElementById('pfNickname').textContent = nickname;
+      document.getElementById('pfEmail').textContent    = email;
+      document.getElementById('pfGoals').textContent    = goals;
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  // 3) 목업 데이터 (없으면 초기화)
+  const USE_MOCK = false;
+
+  if (USE_MOCK && !localStorage.getItem('fastingHistoryData')) {
+    const mockHistory = [];
+    for (let i = 1; i <= 25; i++) {
+      const target = 16;
+      const actual = 14 + Math.random() * 4;
+      const end = new Date(new Date().setDate(new Date().getDate() - i));
+      const start = new Date(end.getTime() - actual * 3600 * 1000);
+      mockHistory.push({
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        targetHours: target,
+        actualDurationHours: actual
+      });
+    }
+    localStorage.setItem('fastingHistoryData', JSON.stringify(mockHistory));
+  }
+
+  if (!localStorage.getItem('exerciseData')) {
+    const mockExercise = [];
+    for (let i = 2; i <= 15; i += 2) {
+      mockExercise.push({
+        date: new Date(new Date().setDate(new Date().getDate() - i)).toISOString(),
+        type: '달리기',
+        duration: 30,
+        calories: 250
+      });
+    }
+    localStorage.setItem('exerciseData', JSON.stringify(mockExercise));
+  }
 });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // --- Mock Data ---
-            const USE_MOCK = false; 
-
-            if (USE_MOCK && !localStorage.getItem('fastingHistoryData')) {
-                const mockHistory = [];
-                for (let i = 1; i <= 25; i++) {
-                    const target = 16;
-                    const actual = 14 + Math.random() * 4;
-                    const end = new Date(new Date().setDate(new Date().getDate() - i));
-                    const start = new Date(end.getTime() - actual * 3600 * 1000);
-                    mockHistory.push({ startTime: start.toISOString(), endTime: end.toISOString(), targetHours: target, actualDurationHours: actual });
-                }
-                localStorage.setItem('fastingHistoryData', JSON.stringify(mockHistory));
-            }
-            if (!localStorage.getItem('exerciseData')) {
-                const mockExercise = [];
-                for (let i = 2; i <= 15; i+=2) {
-                     mockExercise.push({ date: new Date(new Date().setDate(new Date().getDate() - i)).toISOString(), type: '달리기', duration: 30, calories: 250 });
-                }
-                localStorage.setItem('exerciseData', JSON.stringify(mockExercise));
-            }
-            // (기존 목업 데이터 생성 코드 생략)
 
             // --- DOM Elements ---
             const homeBtn = document.getElementById('homeBtn');
