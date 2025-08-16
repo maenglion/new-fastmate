@@ -8,7 +8,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 <script defer src="./firebase-init.js"></script>
-</script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
@@ -205,11 +204,11 @@
             <div class="input-group">
                 <input type="password" id="confirmPassword" placeholder="비밀번호 확인">
             </div>
-            <div class="button-group">
-                <button class="btn btn-primary" id="nextToStep2">다음</button>
-            </div>
-        </div>
-
+        <div class="button-group">
+  <button class="btn btn-secondary" id="googleSignupBtn">Google로 간편가입</button>
+  <button class="btn btn-primary" id="nextToStep2">다음</button>
+</div>
+      
         <!-- Step 2: 닉네임 -->
         <div id="step2" class="signup-step">
             <h2>닉네임 설정</h2>
@@ -352,6 +351,30 @@
                 currentStep = step;
             };
 
+            function collectGoals() {
+    // 체크박스가 있다면 우선 사용
+    const checked = Array.from(document.querySelectorAll('#tagCloud input[type="checkbox"]:checked'));
+    if (checked.length) return checked.map(i => i.value);
+
+    // 아니면 .tag.active 방식 사용
+    const actives = Array.from(document.querySelectorAll('#tagCloud .tag.active'));
+    return actives.map(t => t.dataset.value || t.value || t.textContent.trim());
+  }
+
+   document.getElementById('googleSignupBtn').addEventListener('click', async () => {
+    try {
+      const user = await signInWithGoogle(); // firebase-init.js 헬퍼 사용
+      // 이메일 프리필(선택)
+      const emailInput = document.getElementById('email');
+      if (emailInput && user?.email) emailInput.value = user.email;
+      // 다음 스텝으로 이동
+      // navigateTo 함수는 기존에 있음
+      navigateTo(2);
+    } catch(e) {
+      // signInWithGoogle 내부에서 alert 처리함
+    }
+  });
+
             // 네비게이션 버튼 이벤트
             document.getElementById('nextToStep2').addEventListener('click', () => {
                 // 유효성 검사
@@ -395,26 +418,59 @@
 
             });
 
-            // 최종 가입
-            document.getElementById('finishSignup').addEventListener('click', () => {
-                const termsAgreed = document.getElementById('termsOfService').checked;
-                const privacyAgreed = document.getElementById('privacyPolicy').checked;
+// 최종 가입
+  document.getElementById('finishSignup').addEventListener('click', async () => {
+    const termsAgreed = document.getElementById('termsOfService').checked;
+    const privacyAgreed = document.getElementById('privacyPolicy').checked;
+    if (!termsAgreed || !privacyAgreed) {
+      alert('필수 약관에 모두 동의해주세요.');
+      return;
+    }
 
-                if (!termsAgreed || !privacyAgreed) {
-                    alert('필수 약관에 모두 동의해주세요.');
-                    return;
-                }
-                
-                // 모든 데이터 수집 및 서버 전송 로직 (현재는 alert으로 대체)
-                const signupData = {
-                    email: document.getElementById('email').value,
-                    nickname: document.getElementById('nickname').value,
-                    goals: Array.from(document.querySelectorAll('.tag.active')).map(t => t.dataset.value)
-                };
-                console.log('가입 데이터:', signupData);
-                alert('회원가입이 완료되었습니다!');
-                // window.location.href = './fastmate.html';
-            });
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password')?.value || '';
+    const nickname = document.getElementById('nickname').value.trim();
+    const goals    = collectGoals();
+
+    if (!nickname) {
+      alert('닉네임을 입력해주세요.');
+      return;
+    }
+    if (!goals.length) {
+      alert('하나 이상의 목표를 선택해주세요.');
+      return;
+    }
+
+    try {
+      let user = auth.currentUser;
+
+      // 아직 로그인 안 된 상태면 → 이메일/비번로 회원 생성
+      if (!user) {
+        if (!email || password.length < 6) {
+          alert('이메일/비밀번호(6자 이상)를 확인해주세요.');
+          return;
+        }
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        user = cred.user;
+      }
+
+      // Firestore 프로필/온보딩 저장
+      await db.collection('users').doc(user.uid).set({
+        email: user.email || email || null,
+        nickname,
+        onboarding: { reasons: goals },
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      alert('회원가입이 완료되었습니다!');
+      window.location.href = './fastmate.html';
+    } catch (error) {
+      console.error(error);
+      // 제공자 충돌 등 케이스 최소 처리
+      // auth/account-exists-with-different-credential 등은 추후 상세 처리 가능
+      alert('회원가입 실패: ' + (error?.message || '알 수 없는 오류'));
+    }
+  });
 
             // 약관 모달
             document.querySelectorAll('a[data-modal]').forEach(link => {
