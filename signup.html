@@ -379,11 +379,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* =============== 목표 수집 =============== */
   function collectGoals() {
-    const checked = Array.from(document.querySelectorAll('#tagCloud input[type="checkbox"]:checked'));
-    if (checked.length) return checked.map(i => i.value);
-
     const actives = Array.from(document.querySelectorAll('#tagCloud .tag.active'));
-    return actives.map(t => t.dataset.value || t.value || t.textContent.trim());
+    return actives.map(t => t.dataset.value || t.textContent.trim());
   }
   window.collectGoals = collectGoals;
 
@@ -421,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!googleBtn || googleBtn.disabled) return;
     googleBtn.disabled = true;
 
-    // 복귀 시 Step2로 고정
+    // 복귀 시 Step2로 가도록 플래그 설정
     sessionStorage.setItem('postAuth', 'signup:2');
 
     try {
@@ -429,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const user = await signInWithGoogle();
       if (!user) return; // redirect 폴백인 경우
 
-      // 팝업 성공: 기본 프로필 보장 + 이메일 프리필 + Step2
+      // 팝업 성공: 기본 프로필 보장 + 이메일 프리필 + Step2로 즉시 이동
       await ensureUserProfile?.();
       if (emailInput && user.email) emailInput.value = user.email;
       navigateTo(2);
@@ -533,38 +530,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /* =============== 인증 상태에 따른 초기 진입 제어 =============== */
-  let handledOnce = false;
+  /* =============== 인증 상태에 따른 초기 진입 제어 (수정됨) =============== */
+  let authHandled = false;
   auth.onAuthStateChanged((user) => {
-    if (handledOnce) return;
+    if (authHandled) return;
+    authHandled = true;
 
-    // 1) URL ?step= 우선
-    const stepParam = new URL(location.href).searchParams.get('step');
-    if (stepParam && ['1','2','3','4'].includes(stepParam)) {
-      handledOnce = true;
-      if (user && emailInput && user.email) emailInput.value = user.email;
-      navigateTo(parseInt(stepParam, 10));
-      return;
-    }
-
-    // 2) 구글/리다이렉트 복귀
+    const params = new URL(location.href).searchParams;
+    const stepParam = params.get('step');
     const postAuth = sessionStorage.getItem('postAuth');
-    if (postAuth === 'signup:2') {
-      handledOnce = true;
-      if (user && emailInput && user.email) emailInput.value = user.email;
-      navigateTo(2);
-      return;
-    }
 
-    // 3) 그냥 들어온 경우: 로그인 상태면 Step2로
+    // 사용자가 로그인되어 있으면 1단계에 머무를 이유가 없음
     if (user) {
-      handledOnce = true;
-      if (emailInput && user.email) emailInput.value = user.email;
+      if (emailInput && user.email) {
+        emailInput.value = user.email;
+      }
+      
+      // 우선순위 1: URL에 step 파라미터가 있는 경우 (fastmate에서 리디렉션된 경우)
+      if (stepParam && ['2', '3', '4'].includes(stepParam)) {
+        navigateTo(parseInt(stepParam, 10));
+        return;
+      }
+      
+      // 우선순위 2: 구글 로그인 직후
+      if (postAuth === 'signup:2') {
+        sessionStorage.removeItem('postAuth'); // 사용한 플래그는 즉시 제거
+        navigateTo(2);
+        return;
+      }
+      
+      // 우선순위 3: 그 외 로그인된 사용자가 이 페이지에 온 모든 경우
       navigateTo(2);
-      return;
+
+    } else {
+      // 로그인되어 있지 않으면 무조건 1단계
+      navigateTo(1);
     }
-    // 미로그인 ⇒ Step1 유지
   });
+
 
   /* =============== 약관 모달 열고/닫기 =============== */
   document.querySelectorAll('a[data-modal]').forEach(link => {
@@ -589,7 +592,9 @@ document.addEventListener('DOMContentLoaded', () => {
   (function initStepFromURL() {
     const stepParam = new URL(location.href).searchParams.get('step');
     if (stepParam && ['1','2','3','4'].includes(stepParam)) {
-      navigateTo(parseInt(stepParam, 10));
+      // onAuthStateChanged 핸들러가 처리하도록 맡기므로 이 함수는 비워두거나,
+      // 핸들러가 실행되기 전에 초기 단계를 설정하고 싶다면 navigateTo를 호출할 수 있습니다.
+      // 현재 로직에서는 onAuthStateChanged가 모든 경우를 처리하므로 이 함수는 사실상 불필요합니다.
     }
   })();
 });
