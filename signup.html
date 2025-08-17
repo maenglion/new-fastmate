@@ -339,49 +339,51 @@
         </div>
     </div>
 
-    <script>
+   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // -----------------------------
-  // 0) 캐시: DOM 요소
-  // -----------------------------
-  const steps             = document.querySelectorAll('.signup-step');
-  const progressBar       = document.getElementById('progressBar');
-  const googleBtn         = document.getElementById('googleSignupBtn');
+  /* =========================
+   * 0) DOM 캐시
+   * ========================= */
+  const steps           = document.querySelectorAll('.signup-step');
+  const progressBar     = document.getElementById('progressBar');
+  const googleBtn       = document.getElementById('googleSignupBtn');
 
-  const emailInput        = document.getElementById('email');
-  const passwordInput     = document.getElementById('password');
-  const confirmPwInput    = document.getElementById('confirmPassword');
-  const nicknameInput     = document.getElementById('nickname');
+  const emailInput      = document.getElementById('email');
+  const passwordInput   = document.getElementById('password');
+  const confirmPwInput  = document.getElementById('confirmPassword');
+  const nicknameInput   = document.getElementById('nickname');
 
-  const nextToStep2Btn    = document.getElementById('nextToStep2');
-  const backToStep1Btn    = document.getElementById('backToStep1');
-  const nextToStep3Btn    = document.getElementById('nextToStep3');
-  const backToStep2Btn    = document.getElementById('backToStep2');
-  const nextToStep4Btn    = document.getElementById('nextToStep4');
-  const backToStep3Btn    = document.getElementById('backToStep3');
-  const finishSignupBtn   = document.getElementById('finishSignup');
+  const nextToStep2Btn  = document.getElementById('nextToStep2');
+  const backToStep1Btn  = document.getElementById('backToStep1');
+  const nextToStep3Btn  = document.getElementById('nextToStep3');
+  const backToStep2Btn  = document.getElementById('backToStep2');
+  const nextToStep4Btn  = document.getElementById('nextToStep4');
+  const backToStep3Btn  = document.getElementById('backToStep3');
+  const finishSignupBtn = document.getElementById('finishSignup');
 
-  const tagCloud          = document.getElementById('tagCloud');
-  const termsCheckbox     = document.getElementById('termsOfService');
-  const privacyCheckbox   = document.getElementById('privacyPolicy');
+  const tagCloud        = document.getElementById('tagCloud');
+  const termsCheckbox   = document.getElementById('termsOfService');
+  const privacyCheckbox = document.getElementById('privacyPolicy');
 
-  // -----------------------------
-  // 1) 네비게이션 유틸
-  // -----------------------------
+  /* =========================
+   * 1) 네비게이션 유틸
+   * ========================= */
   function navigateTo(step) {
     steps.forEach(s => s.classList.remove('active'));
     const target = document.getElementById(`step${step}`);
     if (target) target.classList.add('active');
     if (progressBar) progressBar.style.width = `${(step / steps.length) * 100}%`;
+
+    // URL step 파라미터 갱신(새로고침해도 유지)
+    const url = new URL(location.href);
+    url.searchParams.set('step', step);
+    history.replaceState(null, '', url.toString());
   }
-  // 필요 시 외부에서도 호출 가능하게 export
   window.navigateTo = navigateTo;
 
-  // -----------------------------
-  // 2) 목표(Goals) 수집 유틸
-  //    - 체크박스가 있으면 체크박스 우선
-  //    - 아니면 .tag.active 사용
-  // -----------------------------
+  /* =========================
+   * 2) 목표 수집 유틸
+   * ========================= */
   function collectGoals() {
     const checked = Array.from(document.querySelectorAll('#tagCloud input[type="checkbox"]:checked'));
     if (checked.length) return checked.map(i => i.value);
@@ -391,103 +393,101 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.collectGoals = collectGoals;
 
-  // -----------------------------
-  // 3) 구글 간편가입 핸들러
-  //    - signInWithGoogle, ensureUserProfile는 firebase-init.js 제공
-  // -----------------------------
+  /* =========================
+   * 3) 태그 토글
+   * ========================= */
+  tagCloud?.addEventListener('click', (e) => {
+    if (e.target.classList.contains('tag')) {
+      e.target.classList.toggle('active');
+    }
+  });
+
+  /* =========================
+   * 4) 구글 간편가입 (팝업 우선, 실패 시 리다이렉트)
+   * ========================= */
   async function handleGoogleSignup() {
-      if (!googleBtn) return;
-  // 더블 클릭 방지
+    if (!googleBtn) return;
+    if (googleBtn.disabled) return;
+    googleBtn.disabled = true;
+
+    // 복귀 시 Step2 강제 및 온보딩 진행 플래그
+    sessionStorage.setItem('postAuth', 'signup:2');
+    sessionStorage.setItem('onboardingPending', '1');
+
     try {
-      const user = await signInWithGoogle();   // 팝업 우선, 실패 시 redirect
-      if (!user) return;                       // redirect 케이스
+      const user = await signInWithGoogle(); // firebase-init.js 헬퍼
+      if (!user) return; // 리다이렉트 폴백이면 여기서 종료(복귀 후 onAuthStateChanged에서 처리)
 
-      await ensureUserProfile();               // users/{uid} 기본 문서 보장
+      // 팝업 성공 케이스: 기본 문서 보장 + 이메일 프리필 + Step2
+      await ensureUserProfile?.();
       if (emailInput && user.email) emailInput.value = user.email;
-
-  navigateTo(2); // 닉네임 단계로
-  } catch (e) {
-    console.error(e);
-  } finally {
-    // 성공/실패 관계없이 버튼 다시 활성화 (리다이렉트 폴백이면 어차피 페이지 이동)
-    googleBtn.disabled = false;
-  }
-}
-
-  // -----------------------------
-  // 4) UI 이벤트 바인딩
-  // -----------------------------
-  // 4-1) 구글 버튼
-  if (googleBtn) googleBtn.addEventListener('click', handleGoogleSignup);
-
-  // 4-2) Step 이동 버튼들
-  if (nextToStep2Btn) {
-    nextToStep2Btn.addEventListener('click', () => {
-      const email    = (emailInput?.value || '').trim();
-      const password = passwordInput?.value || '';
-      const confirm  = confirmPwInput?.value || '';
-
-      if (!email || password.length < 6 || password !== confirm) {
-        alert('이메일/비밀번호(6자 이상) 및 비밀번호 확인을 점검해주세요.');
-        return;
-      }
       navigateTo(2);
-    });
+    } catch (e) {
+      console.error(e); // alert는 내부 처리
+    } finally {
+      googleBtn.disabled = false; // 리다이렉트면 어차피 페이지 이동됨
+    }
   }
-  if (backToStep1Btn) backToStep1Btn.addEventListener('click', () => navigateTo(1));
+  googleBtn?.addEventListener('click', handleGoogleSignup);
 
-  if (nextToStep3Btn) {
-    nextToStep3Btn.addEventListener('click', () => {
-      const nickname = (nicknameInput?.value || '').trim();
-      if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
-      navigateTo(3);
-    });
-  }
-  if (backToStep2Btn) backToStep2Btn.addEventListener('click', () => navigateTo(2));
+  /* =========================
+   * 5) Step 이동 버튼
+   * ========================= */
+  // Step1 → Step2
+  nextToStep2Btn?.addEventListener('click', () => {
+    // 이미 구글로 로그인 중이면 이메일/비번 검증 스킵
+    if (auth.currentUser) {
+      navigateTo(2);
+      return;
+    }
+    const email    = (emailInput?.value || '').trim();
+    const pw       = passwordInput?.value || '';
+    const pw2      = confirmPwInput?.value || '';
+    if (!email || pw.length < 6 || pw !== pw2) {
+      alert('이메일/비밀번호(6자 이상) 및 비밀번호 확인을 점검해주세요.');
+      return;
+    }
+    navigateTo(2);
+  });
+  backToStep1Btn?.addEventListener('click', () => navigateTo(1));
 
-  if (nextToStep4Btn) {
-    nextToStep4Btn.addEventListener('click', () => {
-      const goals = collectGoals();
-      if (!goals.length) { alert('하나 이상의 목표를 선택해주세요.'); return; }
-      navigateTo(4);
-    });
-  }
-  if (backToStep3Btn) backToStep3Btn.addEventListener('click', () => navigateTo(3));
+  // Step2 → Step3
+  nextToStep3Btn?.addEventListener('click', () => {
+    const nickname = (nicknameInput?.value || '').trim();
+    if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
+    navigateTo(3);
+  });
+  backToStep2Btn?.addEventListener('click', () => navigateTo(2));
 
-  // 4-3) 태그 토글(.tag.active)
-  if (tagCloud) {
-    tagCloud.addEventListener('click', (e) => {
-      if (e.target.classList.contains('tag')) {
-        e.target.classList.toggle('active');
-      }
-    });
-  }
+  // Step3 → Step4
+  nextToStep4Btn?.addEventListener('click', () => {
+    const goals = collectGoals();
+    if (!goals.length) { alert('하나 이상의 목표를 선택해주세요.'); return; }
+    navigateTo(4);
+  });
+  backToStep3Btn?.addEventListener('click', () => navigateTo(3));
 
-  // -----------------------------
-  // 5) 최종 가입 (검증 → 계정 생성/로그인 → 프로필 저장 → 이동)
-  // -----------------------------
-  if (finishSignupBtn) {
-    finishSignupBtn.addEventListener('click', onFinishSignup);
-  }
+  /* =========================
+   * 6) 최종 가입
+   * ========================= */
+  finishSignupBtn?.addEventListener('click', onFinishSignup);
 
   async function onFinishSignup() {
     try {
-      // 5-1) 필수 약관
       if (!termsCheckbox?.checked || !privacyCheckbox?.checked) {
         alert('필수 약관에 모두 동의해주세요.');
         return;
       }
 
-      // 5-2) 입력값
       const email    = (emailInput?.value || '').trim();
       const password = passwordInput?.value || '';
       const nickname = (nicknameInput?.value || '').trim();
       const goals    = collectGoals();
 
-      if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
-      if (!goals.length) { alert('하나 이상의 목표를 선택해주세요.'); return; }
+      if (!nickname)      { alert('닉네임을 입력해주세요.'); return; }
+      if (!goals.length)  { alert('하나 이상의 목표를 선택해주세요.'); return; }
 
-      // 5-3) 인증 확인 (구글로 이미 로그인했으면 auth.currentUser 있음)
+      // 이메일/비번 회원은 여기서 계정 생성
       let user = auth.currentUser;
       if (!user) {
         if (!email || password.length < 6) {
@@ -498,14 +498,17 @@ document.addEventListener('DOMContentLoaded', () => {
         user = cred.user;
       }
 
-      // 5-4) 프로필/온보딩 저장
-      await ensureUserProfile({
+      // 프로필/온보딩 저장
+      await ensureUserProfile?.({
         email: user.email || email || null,
         nickname,
         onboarding: { reasons: goals }
       });
 
-      // 5-5) 완료
+      // 온보딩 진행 플래그 정리
+      sessionStorage.removeItem('postAuth');
+      sessionStorage.removeItem('onboardingPending');
+
       alert('회원가입이 완료되었습니다!');
       window.location.href = './fastmate.html';
     } catch (error) {
@@ -514,23 +517,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // -----------------------------
-  // 6) 리다이렉트 복귀/이미 로그인 시 자동 진행
-  //    - 이메일 프리필 → Step2로 이동
-  // -----------------------------
-  runWithUser(async (user) => {
-    try {
-      await ensureUserProfile();
+  /* =========================
+   * 7) 인증 상태에 따른 초기 진입 제어
+   *    - 리다이렉트 복귀/팝업 성공 모두 커버
+   * ========================= */
+  let handledOnce = false;
+  auth.onAuthStateChanged(async (user) => {
+    if (handledOnce) return;
+
+    // URL 파라미터 우선 반영
+    const stepParam = new URL(location.href).searchParams.get('step');
+    if (stepParam && ['1','2','3','4'].includes(stepParam)) {
+      handledOnce = true;
+      if (user && emailInput && user.email) emailInput.value = user.email;
+      navigateTo(parseInt(stepParam, 10));
+      return;
+    }
+
+    // postAuth 플래그로 복귀 시 Step2 고정
+    const postAuth = sessionStorage.getItem('postAuth');
+    if (postAuth === 'signup:2') {
+      handledOnce = true;
+      if (user && emailInput && user.email) emailInput.value = user.email;
+      navigateTo(2);
+      return;
+    }
+
+    // 그냥 들어온 경우: 로그인 되어 있으면 Step2로, 아니면 Step1 그대로
+    if (user) {
+      handledOnce = true;
       if (emailInput && user.email) emailInput.value = user.email;
       navigateTo(2);
-    } catch (e) {
-      console.error(e);
+      return;
     }
+    // 미로그인 → 아무 것도 하지 않음 (Step1 그대로)
   });
 
-  // -----------------------------
-  // 7) 약관 모달 열고/닫기
-  // -----------------------------
+  /* =========================
+   * 8) 약관 모달 열고/닫기
+   * ========================= */
   document.querySelectorAll('a[data-modal]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -544,9 +569,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   window.addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal')) {
+    if (e.target.classList?.contains('modal')) {
       e.target.style.display = 'none';
     }
   });
+
+  /* =========================
+   * 9) 첫 진입 시 URL step 반영
+   * ========================= */
+  (function initStepFromURL() {
+    const stepParam = new URL(location.href).searchParams.get('step');
+    if (stepParam && ['1','2','3','4'].includes(stepParam)) {
+      navigateTo(parseInt(stepParam, 10));
+    }
+  })();
 });
 </script>
