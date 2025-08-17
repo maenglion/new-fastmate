@@ -325,6 +325,7 @@
                 </div>
             </div>
         </div>
+        <h2><span id="userNickname"></span>님의 마이페이지</h2>
 
         <div class="card">
             <section class="history-section">
@@ -397,6 +398,35 @@
                     populateProfileCard(user);
                 }
             });
+
+            document.addEventListener('DOMContentLoaded', () => {
+    // Firebase 인증 상태가 확인되면 실행
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            // Firestore에서 사용자 프로필 정보 가져오기
+            const userProfile = await getUserDoc(); // firebase-init.js에 있는 함수
+            const nicknameDisplay = document.getElementById('userNickname');
+
+            if (nicknameDisplay) {
+                // 1순위: Firestore에 저장된 닉네임
+                // 2순위: 구글 계정 이름 등 (displayName)
+                // 3순위: 이메일 주소 앞부분
+                const nickname = userProfile?.nickname || user.displayName || user.email.split('@')[0];
+                nicknameDisplay.textContent = nickname;
+            }
+        } else {
+            // 로그인되어 있지 않으면 로그인 페이지로 이동
+            window.location.href = './login.html';
+        }
+    });
+
+    // ... 마이페이지의 다른 기존 스크립트 ...
+    const homeButton = document.getElementById('homeBtn');
+    homeButton?.addEventListener('click', () => {
+        window.location.href = './fastmate.html';
+    });
+    // ...
+});
 
             // 프로필 카드 UI 업데이트 함수
             const populateProfileCard = async (user) => {
