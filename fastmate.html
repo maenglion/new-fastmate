@@ -1067,32 +1067,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 케톤 기록 ---
     ketoneBtn?.addEventListener('click', () => ketoneModal && (ketoneModal.style.display='flex'));
     saveKetoneBtn?.addEventListener('click', async () => {
-      const v = parseFloat(ketoneInput?.value);
-      if (v == null || isNaN(v) || v < 0) return showToast("올바른 케톤 수치를 입력하세요.");
+    const v = parseFloat(ketoneInput?.value);
+    if (v == null || isNaN(v) || v < 0) return showToast("올바른 케톤 수치를 입력하세요.");
 
-      const user = ensureSignedIn(); if (!user) return;
+    const user = ensureSignedIn(); if (!user) return;
 
-      // 로컬
-      saveLocalList('ketoneData', { date:new Date().toISOString(), value:v });
+    saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
 
-      // Firestore
-      try {
+    // Firestore 저장 로직만 남겨둡니다.
+    try {
         await db.collection('users').doc(user.uid)
-          .collection('measurements').doc('ketone')
-          .collection('items').add({
-            date: new Date(),
-            value: v,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-      } catch (e) {
+            .collection('measurements').doc('ketone')
+            .collection('items').add({
+                date: new Date(),
+                value: v,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+    } catch (e) {
         console.error('save ketone failed:', e);
         showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
-      }
+    }
 
-      ketoneInput.value = '';
-      ketoneModal.style.display = 'none';
-      showToast("케톤 수치가 저장되었습니다.");
-    });
+    ketoneInput.value = '';
+    ketoneModal.style.display = 'none';
+    showToast("케톤 수치가 저장되었습니다.");
+
+  });
 
     // --- 운동 기록 ---
     exerciseBtn?.addEventListener('click', () => exerciseModal && (exerciseModal.style.display='flex'));
@@ -1140,6 +1140,53 @@ document.addEventListener('DOMContentLoaded', () => {
       exerciseModal.style.display = 'none';
       showToast("운동 기록이 저장되었습니다.");
     });
+
+// mypage.html의 <script> 태그 안에 추가
+
+// --- 모든 기록을 Firestore에서 가져오는 함수들 ---
+
+async function fetchBloodSugarHistory(limitCount = 50) {
+    const user = firebase.auth().currentUser;
+    if (!user) return [];
+    const snap = await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar').collection('items').orderBy('date', 'desc').limit(limitCount).get();
+    return snap.docs.map(doc => ({ ...doc.data(), date: doc.data().date.toDate(), createdAt: doc.data().createdAt.toDate() }));
+}
+
+async function fetchKetoneHistory(limitCount = 50) {
+    const user = firebase.auth().currentUser;
+    if (!user) return [];
+    const snap = await db.collection('users').doc(user.uid).collection('measurements').doc('ketone').collection('items').orderBy('date', 'desc').limit(limitCount).get();
+    return snap.docs.map(doc => ({ ...doc.data(), date: doc.data().date.toDate(), createdAt: doc.data().createdAt.toDate() }));
+}
+
+async function fetchExerciseHistory(limitCount = 50) {
+    const user = firebase.auth().currentUser;
+    if (!user) return [];
+    const snap = await db.collection('users').doc(user.uid).collection('measurements').doc('exercise').collection('items').orderBy('date', 'desc').limit(limitCount).get();
+    return snap.docs.map(doc => ({ ...doc.data(), date: doc.data().date.toDate(), createdAt: doc.data().createdAt.toDate() }));
+}
+
+// 차트를 그리는 메인 함수에서 위 함수들을 호출
+async function updateChart() {
+    const bloodSugarData = await fetchBloodSugarHistory();
+    const ketoneData = await fetchKetoneHistory();
+    const exerciseData = await fetchExerciseHistory();
+
+    console.log("불러온 혈당 데이터:", bloodSugarData);
+    console.log("불러온 케톤 데이터:", ketoneData);
+    console.log("불러온 운동 데이터:", exerciseData);
+
+    // ... 가져온 데이터들로 차트를 그리는 로직 ...
+}
+
+// 페이지 로드 시 차트 업데이트 함수 호출
+document.addEventListener('DOMContentLoaded', () => {
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            updateChart();
+        }
+    });
+});
 
     // 개인정보처리방침
     privacyPolicyLink?.addEventListener('click', (e) => {
