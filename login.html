@@ -1,100 +1,69 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <!-- Firebase SDK (compat 버전: 기존 네임스페이스 방식 그대로 사용 가능) -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-<script defer src="./firebase-init.js"></script>
+<script>
+    // 1. 이메일/비밀번호 로그인 기능 (실제 Firebase 연동 코드 추가)
+    async function loginWithEmail() {
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const email = emailInput.value;
+        const password = passwordInput.value;
 
-    <title>로그인 - fastmate</title>
-    <link rel="stylesheet" href="./styles.css">
-</head>
-<body>
+        if (!email || !password) {
+            alert('이메일과 비밀번호를 모두 입력해주세요.');
+            return;
+        }
 
-    <div class="login-container">
-        <h2>로그인</h2>
-        <div class="input-group">
-            <input type="email" id="email" placeholder="이메일 주소">
-        </div>
-        <div class="input-group">
-            <input type="password" id="password" placeholder="비밀번호">
-        </div>
-        <button onclick="loginWithEmail()" class="main-button">로그인</button>
-        <p class="divider">또는</p>
-        <button id="googleLoginBtn" class="social-button google">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png" alt="Google">
-            Google로 로그인
-        </button>
-        <button id="kakaoLoginBtn" class="social-button kakao">
-            <img src="https://upload.wikimedia.org.wikipedia/commons/e/e3/KakaoTalk_logo.svg" alt="Kakao">
-            카카오로 로그인
-        </button>
-        <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
-    </div>
-    <script>
-        // 예시: login.js 파일의 내용
-
-function loginWithEmail() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    // 여기에 이메일과 비밀번호로 실제 로그인을 처리하는 코드가 들어갑니다.
-    // (e.g., 서버에 로그인 요청을 보내는 등)
-    console.log(`이메일: ${email}, 비밀번호: ${password} (으)로 로그인 시도`);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const googleLoginBtn = document.getElementById('googleLoginBtn');
-  const kakaoLoginBtn  = document.getElementById('kakaoLoginBtn'); // 
-  
-   // 이미 로그인 상태면 바로 fastmate로
-  auth.onAuthStateChanged((user) => {
-    if (user) window.location.href = './fastmate.html';
-  });
-
-  // ✅ 구글 로그인
-  googleLoginBtn?.addEventListener('click', async () => {
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithPopup(provider);
-      // 로그인 성공 → 마이페이지로 이동함
-      window.location.href = './mypage.html';
-    } catch (e) {
-      alert(e.message);
+        try {
+            await firebase.auth().signInWithEmailAndPassword(email, password);
+            // 성공하면 아래 onAuthStateChanged가 페이지를 이동시킵니다.
+        } catch (error) {
+            console.error("로그인 실패:", error);
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+                alert('가입되지 않은 이메일이거나 이메일 형식이 올바르지 않습니다.');
+            } else if (error.code === 'auth/wrong-password') {
+                alert('비밀번호가 틀렸습니다.');
+            } else {
+                alert('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            }
+        }
     }
-  });
 
-  // ✅ 카카오는 계속 준비중
-  kakaoLoginBtn?.addEventListener('click', () => {
-    alert('카카오 로그인은 준비중입니다.');
-  });
-});
+    // 2. 페이지가 완전히 준비된 후에 Firebase 관련 코드를 실행하도록 수정
+    document.addEventListener('DOMContentLoaded', () => {
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const kakaoLoginBtn  = document.getElementById('kakaoLoginBtn');
+        const db = firebase.firestore();
 
-<!-- login 성공 직후 한 번 테스트 -->
+        // 이미 로그인 상태면 바로 fastmate로 이동
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                console.log('로그인 상태 확인, fastmate.html로 이동합니다.');
+                // Firestore 쓰기 테스트 (이제 안전한 위치에 있습니다)
+                try {
+                    await db.collection('users').doc(user.uid)
+                        .collection('smokeTest')
+                        .add({ ok: true, at: firebase.firestore.FieldValue.serverTimestamp() });
+                    console.log('Firestore 쓰기 테스트 성공.');
+                } catch (e) {
+                    console.error('Firestore 쓰기 테스트 실패:', e);
+                }
+                // 모든 확인 후 페이지 이동
+                window.location.href = './fastmate.html';
+            }
+        });
 
-  const db = firebase.firestore();
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (!user) return;
-    try {
-      // users/{uid}/smokeTest 에 쓰기
-      await db.collection('users').doc(user.uid)
-        .collection('smokeTest')
-        .add({ ok: true, at: firebase.firestore.FieldValue.serverTimestamp() });
-      console.log('write ok');
-    } catch (e) {
-      console.error('write fail', e); // 여기에 권한/규칙 에러 메시지 찍힘
-    }
-  });
+        // ✅ 구글 로그인
+        googleLoginBtn?.addEventListener('click', async () => {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await firebase.auth().signInWithPopup(provider);
+                // 성공 → 위의 onAuthStateChanged가 감지하여 페이지 이동
+            } catch (e) {
+                alert('구글 로그인에 실패했습니다: ' + e.message);
+            }
+        });
+
+        // ✅ 카카오는 계속 준비중
+        kakaoLoginBtn?.addEventListener('click', () => {
+            alert('카카오 로그인은 준비중입니다.');
+        });
+    });
 </script>
-
-
-
-</body>
-</html>
