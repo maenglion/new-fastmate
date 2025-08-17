@@ -35,7 +35,12 @@
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png" alt="Google">
   Google로 로그인
 </button>
-     
+     <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
+      
+      <p class="forgot-password-link" style="margin-top: 15px; text-align: center; font-size: 0.9rem;">
+          <a href="#" id="forgotPasswordLink" style="color: #555; text-decoration: none;">비밀번호를 잊으셨나요?</a>
+      </p>
+          </div>
         <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
     </div>
 
@@ -88,6 +93,35 @@
                 googleLoginBtn.disabled = false; // 버튼 다시 활성화
             }
         });
+
+        // document.addEventListener('DOMContentLoaded', () => { ... }); 안쪽에 추가
+
+    // --- 비밀번호 재설정 링크 이벤트 리스너 ---
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+
+    forgotPasswordLink?.addEventListener('click', async (e) => {
+        e.preventDefault(); // 링크의 기본 동작(페이지 이동)을 막습니다.
+
+        const email = prompt("가입하신 이메일 주소를 입력해주세요. 해당 주소로 비밀번호 재설정 링크를 보내드립니다.");
+        
+        if (!email) {
+            return; // 사용자가 '취소'를 누르면 아무것도 하지 않음
+        }
+
+        try {
+            // Firebase에 비밀번호 재설정 이메일 발송 요청
+            await firebase.auth().sendPasswordResetEmail(email);
+            alert("비밀번호 재설정 이메일을 보냈습니다. 이메일 함을 확인해주세요.");
+        } catch (error) {
+            console.error("비밀번호 재설정 이메일 발송 실패:", error);
+            if (error.code === 'auth/user-not-found') {
+                alert("가입되지 않은 이메일입니다.");
+            } else {
+                alert("오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            }
+        }
+    });
+
 
         // --- 에러코드 한글화 함수 ---
         function mapAuthErrorToKo(error) {
