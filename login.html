@@ -40,7 +40,7 @@
     </div>
 
 <script>
-    // 1. 이메일/비밀번호 로그인 기능 (실제 Firebase 연동 코드 추가)
+    // 1. 이메일/비밀번호 로그인 기능
     async function loginWithEmail() {
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
@@ -48,113 +48,64 @@
         const password = passwordInput.value;
 
         if (!email || !password) {
-            alert('이메일과 비밀번호를 모두 입력해주세요.');
-            return;
+            return alert('이메일과 비밀번호를 모두 입력해주세요.');
         }
 
         try {
             await firebase.auth().signInWithEmailAndPassword(email, password);
             // 성공하면 아래 onAuthStateChanged가 페이지를 이동시킵니다.
         } catch (error) {
-            console.error("로그인 실패:", error);
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-                alert('가입되지 않은 이메일이거나 이메일 형식이 올바르지 않습니다.');
-            } else if (error.code === 'auth/wrong-password') {
-                alert('비밀번호가 틀렸습니다.');
-            } else {
-                alert('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
-            }
+            // mapAuthErrorToKo 함수를 사용하여 한글 에러 메시지 표시
+            alert(mapAuthErrorToKo(error));
         }
     }
 
+    // 2. 페이지가 완전히 준비된 후에 Firebase 관련 코드를 실행
     document.addEventListener('DOMContentLoaded', () => {
-  // Firebase 핸들
-  if (typeof firebase === 'undefined') {
-    alert('Firebase 초기화 실패');
-    return;
-  }
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
+        const emailLoginBtn = document.getElementById('emailLoginBtn');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+      
+        // 로그인 상태를 감지하고 페이지 이동을 전담하는 리스너
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = './fastmate.html';
+            }
+        });
 
-  // DOM 캐시
-  const emailInput     = document.getElementById('email');
-  const passwordInput  = document.getElementById('password');
-  const emailLoginBtn  = document.getElementById('emailLoginBtn');
-  const googleLoginBtn = document.getElementById('googleLoginBtn');
+        // --- 이메일 로그인 버튼 이벤트 리스너 ---
+        emailLoginBtn?.addEventListener('click', loginWithEmail);
 
-  // 이미 로그인 상태면 바로 fastmate로
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) return;
-    try {
-      // 권한/규칙 체크 스모크 테스트(선택)
-      await db.collection('users').doc(user.uid)
-        .collection('smokeTest')
-        .add({ ok: true, at: firebase.firestore.FieldValue.serverTimestamp() });
-      console.log('Firestore write ok');
-    } catch (e) {
-      console.error('Firestore write fail', e);
-    }
-    window.location.href = './fastmate.html';
-  });
+        // --- 구글 로그인 버튼 이벤트 리스너 ---
+        googleLoginBtn?.addEventListener('click', async () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await firebase.auth().signInWithPopup(provider);
+                // 성공 → 위의 onAuthStateChanged가 감지하여 페이지 이동
+            } catch (error) {
+                alert(mapAuthErrorToKo(error));
+            }
+        });
+    });
 
-  // 이메일/비밀번호 로그인
-  emailLoginBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = (emailInput?.value || '').trim();
-    const pw    = passwordInput?.value || '';
-
-    if (!email || !pw) {
-      alert('이메일과 비밀번호를 입력하세요.');
-      return;
-    }
-
-    emailLoginBtn.disabled = true;
-    try {
-      await auth.signInWithEmailAndPassword(email, pw);
-      // onAuthStateChanged에서 이동
-    } catch (error) {
-      console.error(error);
-      alert(mapAuthErrorToKo(error));
-    } finally {
-      emailLoginBtn.disabled = false;
-    }
-  });
-
-  // 구글 로그인(팝업)
-  googleLoginBtn?.addEventListener('click', async () => {
-    if (googleLoginBtn.disabled) return;
-    googleLoginBtn.disabled = true;
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithPopup(provider);
-      // onAuthStateChanged에서 이동
-    } catch (error) {
-      console.error(error);
-      alert(mapAuthErrorToKo(error));
-    } finally {
-      googleLoginBtn.disabled = false;
-    }
-  });
-
-  // 에러코드 한글화
-  function mapAuthErrorToKo(error) {
-    const code = error?.code || '';
-    switch (code) {
-      case 'auth/invalid-email': return '이메일 형식이 올바르지 않습니다.';
-      case 'auth/user-disabled': return '비활성화된 계정입니다.';
-      case 'auth/user-not-found': return '가입 내역이 없습니다. 회원가입 후 이용해주세요.';
-      case 'auth/wrong-password': return '비밀번호가 일치하지 않습니다.';
-      case 'auth/popup-closed-by-user': return '로그인 팝업이 닫혔습니다. 다시 시도해주세요.';
-      case 'auth/cancelled-popup-request': return '다른 로그인 팝업이 진행 중이었습니다. 다시 시도해주세요.';
-      case 'auth/popup-blocked': return '브라우저가 팝업을 차단했습니다. 팝업 허용 후 다시 시도해주세요.';
-      case 'auth/account-exists-with-different-credential':
-        return '이미 다른 로그인 방식으로 가입되어 있습니다. 기존 방식으로 로그인해주세요.';
-      default:
-        if (code === 'auth/email-already-in-use') {
-          return '이미 가입된 이메일입니다. 로그인 화면에서 로그인해주세요.';
+    // 에러코드 한글화 (이 함수는 전역에 있는 것이 좋습니다)
+    function mapAuthErrorToKo(error) {
+        const code = error?.code || '';
+        switch (code) {
+            case 'auth/invalid-email': return '이메일 형식이 올바르지 않습니다.';
+            case 'auth/user-disabled': return '비활성화된 계정입니다.';
+            case 'auth/user-not-found': return '가입 내역이 없습니다. 회원가입 후 이용해주세요.';
+            case 'auth/wrong-password': return '비밀번호가 일치하지 않습니다.';
+            case 'auth/popup-closed-by-user': return '로그인 팝업이 닫혔습니다. 다시 시도해주세요.';
+            case 'auth/cancelled-popup-request': return '다른 로그인 팝업이 진행 중이었습니다. 다시 시도해주세요.';
+            case 'auth/popup-blocked': return '브라우저가 팝업을 차단했습니다. 팝업 허용 후 다시 시도해주세요.';
+            case 'auth/account-exists-with-different-credential':
+                return '이미 다른 로그인 방식으로 가입되어 있습니다. 기존 방식으로 로그인해주세요.';
+            default:
+                if (code === 'auth/email-already-in-use') {
+                    return '이미 가입된 이메일입니다. 로그인 화면에서 로그인해주세요.';
+                }
+                return error?.message || '로그인 중 알 수 없는 오류가 발생했습니다.';
         }
-        return error?.message || '로그인 중 알 수 없는 오류가 발생했습니다.';
     }
-  }
-});
+   
 </script>
