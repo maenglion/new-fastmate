@@ -548,11 +548,36 @@ document.addEventListener('DOMContentLoaded', () => {
    *   - 닉네임/목적 없으면 signup.html Step2로
    * ========================= */
   let bootstrapped = false;
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      window.location.href = './login.html';
-      return;
-    }
+ auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = './login.html';
+    return;
+  }
+
+  // 이미 한 번 signup으로 보냈다면 같은 세션에서는 또 안 보냄
+  if (sessionStorage.getItem('onboardingLock') === '1') {
+    // 이 상태에선 앱만 초기화하고 사용자가 signup에서 마무리하도록 두기
+    initializeTimePicker();
+    initializeTime();
+    loadState();
+    wireEventsOnce();
+    return;
+  }
+
+  // 프로필 확인
+  const prof = await getUserDoc().catch(() => null);
+  const completed = !!prof?.onboarding?.completed;
+  const hasNickname = !!prof?.nickname;
+  const hasGoals = Array.isArray(prof?.onboarding?.reasons) && prof.onboarding.reasons.length > 0;
+
+  if (!completed || !hasNickname || !hasGoals) {
+    // 한번만 보냄
+    sessionStorage.setItem('onboardingLock', '1');
+    window.location.href = './signup.html?step=2&from=fastmate';
+    return;
+  }
+
+
     if (bootstrapped) return;
     bootstrapped = true;
 
