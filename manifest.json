@@ -1,16 +1,16 @@
 {
-  "name": "Fastmate",
   "short_name": "Fastmate",
+  "name": "Fastmate - 당신의 단식 동반자",
   "icons": [
     {
       "src": "/icons/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "sizes": "192x192"
     },
     {
       "src": "/icons/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ],
   "start_url": ".",

@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fastmate - 마이페이지</title>
-        <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
-    <link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
       <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
@@ -57,13 +57,15 @@
             margin-bottom: 20px;
         }
 
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            margin-bottom: 20px;
-        }
+       .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 제목을 중앙에 배치 */
+    position: relative; /* 홈 버튼의 위치 기준점 */
+    padding: 15px 10px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 25px;
+}
 
         .main-title {
             text-align: center;
@@ -74,29 +76,36 @@
         }
 
         .home-btn {
-            position: absolute;
-            left: -10px; /* 아이콘 위치 조정 */
-            top: 50%;
-            transform: translateY(-50%);
-            padding: 8px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-            color: var(--text-light);
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        .home-btn:hover {
-            background-color: #f0f0f0;
-        }
-        .home-btn svg {
-            width: 24px;
-            height: 24px;
-            stroke: currentColor;
-        }
+    position: absolute; /* 헤더의 왼쪽 끝에 배치 */
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%); /* 수직 중앙 정렬 */
+    
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%; /* 동그란 배경 효과 */
+    transition: background-color 0.2s;
+}
+
+.home-btn:hover {
+    background-color: #f0f2f5; /* 마우스를 올렸을 때 배경색 */
+}
+
+.home-btn svg {
+    width: 26px;
+    height: 26px;
+    stroke: #333; /* 아이콘 색상 */
+    stroke-width: 2;
+}
+
+.main-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0; /* 불필요한 여백 제거 */
+}
         
         /* --- 프로필 카드 스타일 시작 --- */
         .profile-card {
@@ -600,12 +609,14 @@
             };
 
             // --- Event Listeners ---
-            homeBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                // window.location.href = './fastmate.html';
-                alert('홈 화면으로 돌아갑니다.');
-            });
-
+           document.addEventListener('DOMContentLoaded', () => {
+    const homeButton = document.getElementById('homeBtn');
+    
+    homeButton?.addEventListener('click', () => {
+        // e.preventDefault(); 와 alert를 제거하고
+        // 아래 window.location.href 코드의 주석을 해제합니다.
+        window.location.href = './fastmate.html';
+    });
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     tabs.forEach(t => t.classList.remove('active'));
@@ -700,11 +711,12 @@ async function saveExercise(type, duration, calories) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 }
+
             // --- Initial Load ---
             renderFastingHistory();
             renderExerciseHistory();
             updateChart();
-   
+   }); 
 
     </script>
 </body>
