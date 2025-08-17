@@ -337,6 +337,34 @@
     color: white;
 }
 
+/* --- 데이터 코치 스타일 --- */
+.data-coach {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    background-color: var(--primary-light);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 20px;
+    border: 1px solid #d1e7dd;
+}
+.coach-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.coach-text h4 {
+    margin: 0 0 5px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+.coach-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
     </style>
 </head>
 <body>
@@ -396,6 +424,16 @@
                     </select>
                 </div>
 
+  <div id="dataCoach" class="data-coach">
+                    <div class="coach-icon">💡</div>
+                    <div class="coach-text">
+                        <h4 class="coach-title">데이터 코치 한마디</h4>
+                        <p id="coachComment">데이터를 분석 중입니다...</p>
+                    </div>
+                </div>
+                <div id="weightContent" class="tab-content active">
+                    </div>
+
                 <div id="weightContent" class="tab-content active">
                     <div class="chart-container">
                         <canvas id="weightChart"></canvas>
@@ -423,7 +461,7 @@
         </div>
     </div>
 
-   <script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const homeBtn = document.getElementById('homeBtn');
@@ -465,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return snap.docs.map(doc => {
                 const data = doc.data();
                 return {
-                    ...data,
+                    id: doc.id, ...data,
                     date: data.date?.toDate?.(),
                     createdAt: data.createdAt?.toDate?.()
                 };
@@ -475,47 +513,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return [];
         }
     }
-   // mypage.html의 <script> 안에서 fetchFastingHistory 함수를 찾아 교체
-async function fetchFastingHistory() {
-    const user = firebase.auth().currentUser;
-    if (!user) return [];
-    try {
-        const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
-        // [수정] 각 문서의 고유 id를 함께 반환하도록 변경
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
-    } catch (error) {
-        console.error("단식 기록 로딩 실패:", error);
-        return [];
+    async function fetchFastingHistory() {
+        const user = firebase.auth().currentUser;
+        if (!user) return [];
+        try {
+            const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
+            return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
+        } catch (error) {
+            console.error("단식 기록 로딩 실패:", error);
+            return [];
+        }
     }
-}
 
     // --- Main Data Loading and Rendering Function ---
     async function loadAndRenderAllData() {
         try {
             const [profile, weight, bloodSugar, ketone, fasting, exercise] = await Promise.all([
-                getUserDoc(),
-                fetchFromFirestore('weight'),
-                fetchFromFirestore('bloodSugar'),
-                fetchFromFirestore('ketone'),
-                fetchFastingHistory(),
-                fetchFromFirestore('exercise')
+                getUserDoc(), fetchFromFirestore('weight'), fetchFromFirestore('bloodSugar'),
+                fetchFromFirestore('ketone'), fetchFastingHistory(), fetchFromFirestore('exercise')
             ]);
-
             allData = { profile, weight, bloodSugar, ketone, fasting, exercise };
-
-            renderProfileCard();
-            renderFastingHistory();
-            renderExerciseHistory();
-            renderAllCharts();
-            updateTabIndicators();
-
+            renderProfileCard(); renderFastingHistory(); renderExerciseHistory();
+            renderAllCharts(); updateTabIndicators();
         } catch (error) {
-            console.error("모든 데이터를 불러오는 중 오류 발생:", error);
+            console.error("데이터를 불러오는 중 오류 발생:", error);
         }
     }
 
     // --- Rendering Functions ---
-    function renderProfileCard() {
+  function renderProfileCard() {
         const profile = allData.profile;
         const user = firebase.auth().currentUser;
         if (!profile || !user) return;
@@ -594,6 +620,42 @@ function renderFastingHistory() {
     }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
 }
 
+// mypage.html의 <script> 안에 추가
+
+function updateCoachComment(activeTab) {
+    const commentEl = document.getElementById('coachComment');
+    let latestData, comment;
+
+    switch (activeTab) {
+        case 'ketone':
+            latestData = allData.ketone && allData.ketone[0];
+            if (!latestData) {
+                comment = "케톤 데이터를 기록하고 몸의 변화를 관찰해보세요!";
+            } else {
+                const value = latestData.value;
+                if (value < 0.5) {
+                    comment = `현재 케톤 수치는 <strong>${value}mmol/L</strong> 입니다. 아직 케토시스 상태는 아니지만, 몸이 지방을 태울 준비를 시작했다는 긍정적인 신호일 수 있어요. 포기하지 마세요!`;
+                } else if (value <= 3.0) {
+                    comment = `훌륭해요! 현재 <strong>${value}mmol/L</strong>로, 케토시스 상태에 안정적으로 진입했습니다. 몸이 지방을 주 에너지원으로 효율적으로 사용하고 있다는 증거입니다.`;
+                } else {
+                    comment = `케톤 수치가 <strong>${value}mmol/L</strong>로 높은 편입니다. 장기 단식 중 나타날 수 있으며, 몸이 지방을 매우 활발히 태우고 있다는 의미입니다. 몸의 컨디션을 주의 깊게 살펴보세요.`;
+                }
+            }
+            break;
+        case 'weight':
+            // (나중에 체중 관련 코멘트 로직 추가 가능)
+            comment = "꾸준한 체중 기록은 건강 관리의 첫걸음입니다. 잘하고 계세요!";
+            break;
+        case 'bloodSugar':
+            // (나중에 혈당 관련 코멘트 로직 추가 가능)
+            comment = "혈당 수치를 기록하며 식단과 몸의 반응을 살펴보세요.";
+            break;
+        default:
+            comment = "데이터를 선택하여 분석 코멘트를 확인하세요.";
+    }
+    commentEl.innerHTML = comment;
+}
+
     function renderExerciseHistory() {
         renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
             const li = document.createElement('li');
@@ -604,91 +666,99 @@ function renderFastingHistory() {
         }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
     }
 
+
+    // [수정] 'New' 알림 점 업데이트 함수
     function updateTabIndicators() {
         const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-        const isNew = (data) => data && data.length > 0 && data[0].createdAt > sixHoursAgo;
+        // 최신 데이터는 배열의 첫 번째 항목(내림차순 정렬)
+        const isNew = (data) => data && data.length > 0 && data[0].createdAt && data[0].createdAt > sixHoursAgo;
+
         document.querySelector('.tab-button[data-tab="weight"]')?.classList.toggle('new-indicator', isNew(allData.weight));
         document.querySelector('.tab-button[data-tab="bloodSugar"]')?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
         document.querySelector('.tab-button[data-tab="ketone"]')?.classList.toggle('new-indicator', isNew(allData.ketone));
     }
 
     // --- Charting Functions ---
-    const newIconPlugin = { id: 'newIconPlugin', afterDraw: (chart) => { /* ... (이전과 동일) */ } };
-
-    function createChart(canvasId, label, data) { // color 파라미터는 더 이상 필요 없으므로 삭제
-    if (allCharts[canvasId]) {
-        allCharts[canvasId].destroy();
+   const newIconPlugin = {
+    id: 'newIconPlugin',
+    afterDraw: (chart) => {
+        const ctx = chart.ctx;
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+        
+        chart.data.datasets.forEach((dataset, i) => {
+            const meta = chart.getDatasetMeta(i);
+            if (!dataset.data) return;
+            
+            meta.data.forEach((element, index) => {
+                const dataPoint = dataset.data[index];
+                // 'createdAt' 속성이 있고, 6시간 이내인 데이터에만 (N) 아이콘을 그립니다.
+                if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
+                    ctx.save();
+                    ctx.font = 'bold 10px Noto Sans KR';
+                    ctx.fillStyle = 'red';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('(N)', element.x, element.y - 8);
+                    ctx.restore();
+                }
+            });
+        });
     }
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    
-    const chartData = (data || [])
-        .filter(d => d && typeof d.value === 'number' && !isNaN(d.value))
-        .map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+};
 
-    allCharts[canvasId] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: label,
-                data: chartData,
-                // [수정] 선 색상 (줄)
-                borderColor: '#7FE89B', 
-                borderWidth: 2.5,
-                tension: 0.2,
-                // [수정] 점 색상
-                pointRadius: 4,
-                pointBackgroundColor: '#7FE89B',
-                pointHoverRadius: 6,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    type: 'time',
-                    time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
-                    grid: { display: true, color: '#f0f0f0' }
+    // [수정] 차트 생성 함수 (툴팁 시간 표시, 'n' 오류 최종 수정)
+    function createChart(canvasId, label, data, color) {
+        if (allCharts[canvasId]) allCharts[canvasId].destroy();
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+        allCharts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: [{ label, data: chartData, borderColor: color, borderWidth: 2, tension: 0.2, pointRadius: 3, pointBackgroundColor: color, pointHoverRadius: 6 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } }, grid: { display: true, color: '#f0f0f0' } },
+                    y: { beginAtZero: false, grid: { display: true, color: '#e0e0e0' } }
                 },
-                y: {
-                    beginAtZero: false,
-                    grid: { display: true, color: '#e0e0e0' }
+                plugins: {
+                    legend: { display: false },
+                    zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
+                    tooltip: {
+                        enabled: true, mode: 'index', intersect: false,
+                        backgroundColor: '#E1FDC5', titleColor: '#333', bodyColor: '#333',
+                        padding: 10, cornerRadius: 8,
+                        callbacks: {
+                            // 툴팁 제목: '2025년 8월 18일' 형식으로 표시
+                            title: function(tooltipItems) {
+                                const date = new Date(tooltipItems[0].parsed.x);
+                                return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+                            },
+                            // 툴팁 하단: '기록 시간: 오전 1:45' 형식으로 초록색 글씨 표시
+                            footer: function(tooltipItems) {
+                                const rawData = tooltipItems[0].raw;
+                                if (rawData.createdAt) {
+                                    const time = new Date(rawData.createdAt);
+                                    return '기록 시간: ' + time.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                }
+                                return '';
+                            }
+                        },
+                        footerColor: 'var(--primary-color)', // 초록색 글씨
+                        footerFont: { weight: 'bold' }
+                    }
                 }
             },
-            plugins: {
-                legend: { display: false },
-                // [수정] 툴팁(버블) 스타일
-                tooltip: {
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: '#E1FDC5', // 버블 배경색
-                    titleColor: '#333',         // 제목 글자색 (어둡게)
-                    bodyColor: '#333',          // 본문 글자색 (어둡게)
-                    titleFont: { weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    padding: 10,
-                    cornerRadius: 8,
-                    boxPadding: 4
-                },
-                zoom: {
-                    pan: { enabled: true, mode: 'x' },
-                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
-                }
-            }
-        },
-        plugins: [newIconPlugin]
-    });
-}
+            plugins: [newIconPlugin]
+        });
+    }
+
     function renderAllCharts() {
         const range = dateRangeSelector.value;
         const filterFn = (data) => {
             if (range === 'all' || !data) return data;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-            return data.filter(d => d.date >= cutoffDate);
+            return data.filter(d => d && d.date >= cutoffDate);
         };
         createChart('weightChart', '체중 (kg)', filterFn(allData.weight), 'var(--primary-color)');
         createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar), '#FFC107');
@@ -706,35 +776,5 @@ function renderFastingHistory() {
         });
     });
     dateRangeSelector.addEventListener('change', renderAllCharts);
-});
-
-// 단식 기록 리스트에서 클릭 이벤트 처리 (이벤트 위임)
-fastingHistoryList.addEventListener('click', async (e) => {
-    // 삭제 버튼(delete-btn)을 클릭한 경우에만 동작
-    if (e.target.classList.contains('delete-btn')) {
-        const li = e.target.closest('.history-item');
-        const docId = li.dataset.docId;
-
-        if (docId && confirm('이 단식 기록을 정말로 삭제하시겠습니까?')) {
-            try {
-                const user = firebase.auth().currentUser;
-                if (!user) return;
-                
-                // Firestore에서 해당 문서 삭제
-                await db.collection('users').doc(user.uid).collection('fastingHistory').doc(docId).delete();
-
-                // 화면에서 해당 항목 즉시 제거
-                li.remove();
-                
-                // allData에서도 제거하여 페이지네이션 오류 방지
-                allData.fasting = allData.fasting.filter(item => item.id !== docId);
-
-                alert('기록이 삭제되었습니다.');
-            } catch (error) {
-                console.error("기록 삭제 실패:", error);
-                alert('기록 삭제에 실패했습니다.');
-            }
-        }
-    }
 });
 </script>
