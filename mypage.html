@@ -3,36 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fastmate - 마이페이지</title>
-<link rel="icon" href="/favicon.ico" sizes="any">
+    <title>Fastmate - 관리하는 단식 </title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
-      <!-- Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
     <script src="./firebase-init.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
         :root {
-            color-scheme: light; 
+          color-scheme: light; 
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
             --text-color: #333;
             --text-light: #777;
             --border-color: #e0e0e0;
-            --primary-color: #1c8e3e;
+            --primary-color: #1c8e3e; /* 기존 gauge-end-color를 메인 컬러로 사용 */
             --primary-hover: #156a2f;
-            --primary-light: #f0f8f2;
-            --chart-line-color: #7FE89B;
-            --chart-bubble-bg: #C8F5D4;
+            --gauge-start-color: #ffd400;
+            --gauge-track-color: #f6f3e7;
+            --dark-gray-color: #6c757d;
+            --dark-gray-hover: #5a6268;
         }
 
         body {
@@ -40,706 +37,1238 @@
             background-color: var(--bg-color);
             margin: 0;
             padding: 20px;
-            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
         }
 
         .container {
             width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .card {
+            max-width: 420px;
             background-color: var(--card-bg);
             border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-            padding: 25px;
-            margin-bottom: 20px;
+            box-shadow: 0 8px G30px rgba(0, 0, 0, 0.1);
+            padding: 40px 25px 25px 25px; 
+            box-sizing: border-box;
+            position: relative;
         }
 
-       .page-header {
-    display: flex;
-    align-items: center;
-    justify-content: center; /* 제목을 중앙에 배치 */
-    position: relative; /* 홈 버튼의 위치 기준점 */
-    padding: 15px 10px;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 25px;
-}
+        .user-chip {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            background: #ffffff;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+            font-weight: 600;
+            font-size: .85rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .user-chip:hover { background-color: #f8f9fa; }
+        .user-chip svg { width: 16px; height: 16px; stroke: var(--text-light); }
+
 
         .main-title {
             text-align: center;
             color: var(--primary-color);
+            margin-bottom: 20px;
             font-weight: 700;
-            font-size: 1.6rem;
-            margin: 0;
+            font-size: 1.8rem;
+            margin-top: 15px;
         }
 
-        .home-btn {
-    position: absolute; /* 헤더의 왼쪽 끝에 배치 */
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%); /* 수직 중앙 정렬 */
-    
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%; /* 동그란 배경 효과 */
-    transition: background-color 0.2s;
-}
+        .ring-wrap {
+            position: relative;
+            width: 80%;
+            max-width: 300px;
+            margin: 20px auto;
+            aspect-ratio: 1 / 1;
+        }
 
-.home-btn:hover {
-    background-color: #f0f2f5; /* 마우스를 올렸을 때 배경색 */
-}
-
-.home-btn svg {
-    width: 26px;
-    height: 26px;
-    stroke: #333; /* 아이콘 색상 */
-    stroke-width: 2;
-}
-
-.main-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #333;
-    margin: 0; /* 불필요한 여백 제거 */
-}
+        .ring { width: 100%; height: 100%; }
         
-        /* --- 프로필 카드 스타일 시작 --- */
-        .profile-card {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
         }
-        .profile-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .profile-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: var(--primary-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .profile-avatar svg {
-            width: 32px;
-            height: 32px;
-            stroke: var(--primary-color);
-            stroke-width: 2;
-        }
-        .profile-info h2 {
-            margin: 0;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--text-color);
-        }
-        .profile-info p {
-            margin: 4px 0 0;
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-        .profile-details {
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-        }
-        .profile-details h3 {
-            margin: 0 0 15px;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-color);
-        }
-        .goals-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .goal-tag {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-            padding: 8px 14px;
-            border-radius: 999px;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        /* --- 프로필 카드 스타일 끝 --- */
+        
+        .timer-display .label { font-size: 1rem; color: var(--text-light); }
+        .timer-display .time { font-size: 2.5rem; font-weight: 700; color: var(--text-color); line-height: 1.2; }
 
-        .history-section h2 {
-            font-size: 1.2rem;
-            color: var(--text-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-        .history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            min-height: 100px;
-        }
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 10px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .history-item:last-child {
-            border-bottom: none;
-        }
-        .history-info .duration, .history-info .type {
-            font-weight: 700;
+        .status-message {
+            text-align: center;
             font-size: 1.1rem;
-            color: var(--text-color);
-        }
-        .history-info .period, .history-info .details {
-            font-size: 0.8rem;
-            color: var(--text-light);
-            margin-top: 4px;
-        }
-        .history-percentage, .history-calories {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-        .history-calories .unit {
-            font-size: 0.9rem;
             font-weight: 500;
             color: var(--text-light);
+            margin: 10px 0 20px 0;
+            min-height: 25px;
         }
         
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 20px;
-            gap: 15px;
+        .time-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        .pagination button {
-            background: none;
-            border: 1px solid var(--border-color);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
+        .time-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            position: relative;
+        }
+        #startTimeBox {
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .pagination button:hover:not(:disabled) {
-            background-color: #f0f0f0;
+        #startTimeBox:hover {
+            background-color: #e9ecef;
         }
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .time-box .label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            display: block;
+            margin-bottom: 5px;
         }
-        .pagination span {
-            font-weight: 500;
+        .time-box .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .edit-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            stroke: #adb5bd;
+            width: 16px;
+            height: 16px;
         }
 
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 10px;
-        }
+        .salt-tip { background-color: #fffbe6; border: 1px solid #ffe58f; color: #d46b08; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin: 0 auto 20px auto; max-width: 90%; text-align: center; display: none; }
 
-        .tab-button {
-            padding: 10px 20px;
-            cursor: pointer;
+        .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 1rem; background-color: #f8f9fa; }
+        .button-group { display: flex; gap: 10px; width: 100%; }
+        .button-group button {
+            flex-grow: 1;
+            flex-basis: 0;
+            padding: 12px 20px;
             border: none;
-            background-color: transparent;
+            border-radius: 8px;
             font-size: 1rem;
             font-weight: 500;
-            color: var(--text-light);
-            border-bottom: 3px solid transparent;
+            cursor: pointer;
             transition: all 0.2s ease-in-out;
-            position: relative; /* 점(dot)의 위치 기준점 */
+        }
+        .start-btn { background-color: var(--primary-color); color: white; }
+        .start-btn:hover { background-color: var(--primary-hover); }
+        .stop-btn { background-color: var(--dark-gray-color); color: white; }
+        .stop-btn:hover { background-color: var(--dark-gray-hover); }
 
+        .bottom-nav { 
+            border-top: 1px solid var(--border-color); 
+            margin-top: 25px; 
+            padding-top: 15px; 
+            display: flex;
+            justify-content: space-around;
+        }
+        .nav-btn { 
+            background: none; 
+            border: none;
+            padding: 5px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 5px; 
+            font-size: 0.8rem; 
+            font-weight: 500;
+            color: var(--text-light); 
+            cursor: pointer;
+            transition: color 0.2s;
+            flex-basis: 0;
+            flex-grow: 1;
+        }
+        .nav-btn:hover {
+            color: var(--primary-color);
+        }
+        .nav-btn svg { 
+            width: 28px; 
+            height: 28px; 
+            stroke: currentColor; 
         }
 
-        .tab-button.active {
+        .app-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        .app-footer a, .app-footer p {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-decoration: none;
+            margin: 5px 0;
+        }
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 2000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        /* --- 온보딩 모달 스타일 시작 --- */
+        #appShield {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5); /* 반투명 검은 배경 */
+            z-index: 2000;
+            display: none; /* 평소엔 숨김 */
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #onboardingModal {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 16px 60px rgba(0,0,0,.2);
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .onb-title {
+            margin: 0 0 8px 0;
             color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        .onb-desc {
+            margin: 0 0 24px 0;
+            color: var(--text-light);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        .onb-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .onb-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: #f8f9fa;
+            font-size: 1rem;
+            outline: none;
+            transition: box-shadow .15s, border-color .15s;
+            box-sizing: border-box;
+        }
+        .onb-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(28,142,62,.12);
+        }
+
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tag {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .tag.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
             font-weight: 700;
         }
 
-        /* 'New' 알림 점 스타일 */
-.tab-button.new-indicator::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    right: 8px;
-    width: 6px; /* 4px보다 조금 더 잘보이게 6px로 조정 */
-    height: 6px;
-    background-color: var(--gauge-start-color); /* 정의된 노란색 */
-    border-radius: 50%;
-    box-shadow: 0 0 3px var(--gauge-start-color);
-}
-
-        .chart-header {
+        .onb-actions {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 0 5px;
+            gap: 10px;
+            margin-top: 24px;
         }
-        
-        .chart-info {
-            font-size: 0.8rem;
-            color: var(--text-light);
+        .onb-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
-
-        .chart-header select {
-            padding: 8px 12px;
+        .onb-primary {
+            background: var(--primary-color);
+            color: #fff;
+        }
+        .onb-primary:hover {
+            background: var(--primary-hover);
+        }
+        .onb-ghost {
+            background: transparent;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.9rem;
+            color: var(--text-color);
         }
-
-        .chart-container {
-            position: relative;
-            height: 40vh;
-            max-height: 400px;
+        .onb-ghost:hover {
+            background-color: #f8f9fa;
         }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        /* mypage.html의 <style> 안에 추가 */
-.history-item {
-    align-items: flex-start; /* 버튼이 위로 가도록 정렬 변경 */
+        /* --- 온보딩 모달 스타일 끝 --- */
+        /* --- 시간 선택 모달 스타일 시작 --- */
+.time-picker-content {
+    width: 100%;
+    max-width: 320px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 16px 60px rgba(0,0,0,.2);
+    text-align: center;
 }
-.history-actions {
+.date-selector {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px;
+    background-color: var(--bg-color);
+}
+.date-selector .date-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+}
+.date-selector .date-btn.active {
+    background-color: var(--card-bg);
+    color: var(--primary-color);
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+.time-selector {
     display: flex;
     align-items: center;
-    gap: 15px;
-    text-align: right;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 25px;
 }
-.delete-btn {
-    background: #fde2e2;
-    color: #c53030;
-    border: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 24px; /* X 아이콘 중앙 정렬 */
-    transition: all 0.2s;
+.time-selector select {
+    width: auto;
+    flex-grow: 1;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 10px 5px;
 }
-.delete-btn:hover {
-    background: #c53030;
+.time-selector span {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+/* --- 목표 달성 애니메이션 스타일 --- */
+.completion-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 3000;
+    display: none; /* 평소엔 숨김 */
+    align-items: center;
+    justify-content: center;
     color: white;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.completion-overlay.show {
+    display: flex;
+    opacity: 1;
+}
+
+.completion-content h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    animation: text-pop-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.completion-content p {
+    font-size: 1.1rem;
+    opacity: 0;
+    animation: fade-in 0.5s 0.5s ease forwards;
+}
+
+@keyframes text-pop-in {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* 색종이 조각(Confetti) 애니메이션 */
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #f00;
+    opacity: 0.7;
+    animation: confetti-fall 4s linear forwards;
+}
+.confetti:nth-child(1) { background-color: #FFD700; left: 10%; animation-delay: 0s; }
+.confetti:nth-child(2) { background-color: #00BFFF; left: 25%; animation-delay: 0.5s; }
+.confetti:nth-child(3) { background-color: #FF69B4; left: 40%; animation-delay: 1s; }
+.confetti:nth-child(4) { background-color: #32CD32; left: 60%; animation-delay: 1.5s; }
+.confetti:nth-child(5) { background-color: #FF4500; left: 75%; animation-delay: 2s; }
+.confetti:nth-child(6) { background-color: #9370DB; left: 90%; animation-delay: 2.5s; }
+
+@keyframes confetti-fall {
+    0% { top: -20px; transform: rotate(0deg); }
+    100% { top: 110vh; transform: rotate(720deg); }
 }
 
     </style>
 </head>
 <body>
 
+    <!-- 앱 메인 컨텐츠 -->
     <div class="container">
-        <header class="page-header">
-            <button id="homeBtn" class="home-btn" title="홈으로 돌아가기">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-            </button>
-            <h1 class="main-title">마이페이지</h1>
-        </header>
+        <div id="userChip" class="user-chip" style="display:none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="userChipName">-</span>님
+        </div>
+
+        <h1 class="main-title">fastmate</h1>
         
-        <!-- 개선된 프로필 카드 -->
-        <div class="card profile-card">
-            <div class="profile-header">
-                <div class="profile-avatar">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                </div>
-                <div class="profile-info">
-                    <h2 id="pfNickname">-</h2>
-                    <p id="pfEmail">-</p>
-                </div>
+        <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 120 120">
+                <defs>
+                    <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
+                    <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="var(--gauge-start-color)"/>
+                        <stop offset="100%" stop-color="var(--primary-color)"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="54" stroke="url(#trackGrad)" stroke-width="12" fill="none"/>
+                <circle id="progressArc" cx="60" cy="60" r="54" stroke="url(#progGrad)" stroke-width="12" fill="none" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="timer-display">
+                <div class="label">남은 시간</div>
+                <div id="remainingTime" class="time">00:00:00</div>
             </div>
-            <div class="profile-details">
-                <h3>나의 가입 목적</h3>
-                <div id="pfGoals" class="goals-container">
-                    <!-- JavaScript로 태그가 채워집니다 -->
-                </div>
+        </div>
+
+        <div id="status-message" class="status-message">단식 계획을 선택하고 시작하세요.</div>
+
+        <div class="time-info">
+            <div id="startTimeBox" class="time-box" title="클릭하여 시간 변경">
+                <span class="label">시작 시간</span>
+                <span id="startTimeValue" class="value">-</span>
+                <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <div class="time-box">
+                <span class="label">종료 예정</span>
+                <span id="endTimeValue" class="value">-</span>
             </div>
         </div>
-        <h2><span id="userNickname"></span>나의 건강데이터</h2>
+        <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+        <div class="time-picker-content">
+            <h3 class="onb-title">시작 시간 선택</h3>
+            <div class="date-selector">
+                <button id="dayBeforeBtn" type="button" class="date-btn">어제</button>
+                <button id="todayBtn" type="button" class="date-btn active">오늘</button>
+            </div>
+            <div class="time-selector">
+                <select id="ampmSelect">
+                    <option>AM</option>
+                    <option>PM</option>
+                </select>
+                <select id="hourSelect"></select>
+                <span>:</span>
+                <select id="minuteSelect"></select>
+            </div>
+            <div class="onb-actions">
+                <button type="button" data-close="timePickerModal" class="onb-btn onb-ghost">취소</button>
+                <button id="saveTimeBtn" type="button" class="onb-btn onb-primary">확인</button>
+            </div>
+        </div>
+    </div>
+        <div id="completionOverlay" class="completion-overlay">
+        <div class="completion-content">
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <h2>목표 달성!</h2>
+            <p>축하합니다! 성공적으로 단식을 마쳤습니다.</p>
+        </div>
+    </div>
+    
+</body>
+        <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
 
-        <div class="card">
-            <section class="history-section">
-                <h2>나의 단식 기록</h2>
-                <ul class="history-list" id="fastingHistoryList"></ul>
-                <div class="pagination" id="fastingPaginationControls"></div>
-            </section>
+        <div class="controls">
+            <select id="fastingModelSelect">
+              <option value="8">8:16 (8시간 단식,야식끊기)</option>  
+              <option value="12">12:12 (12시간 단식,초보)</option>  
+              <option value="16">16:8 (16시간 단식,인기)</option>
+                <option value="18">18:6 (18시간 단식,인기)</option>
+                <option value="20">20:4 (20시간 단식,고급)</option>
+                <option value="24">24시간 (1일 단식,고급)</option>
+                <option value="36">36시간(1.5일 단식,고급)</option>
+                <option value="48">48시간 (2일 단식,고급)</option>
+                <option value="72">72시간 (3일 단식,고급)</option>
+            </select>
+            <div class="button-group">
+                <button id="startBtn" class="start-btn">단식 시작</button>
+                <button id="stopBtn" class="stop-btn">단식 종료</button>
+            </div>
         </div>
 
-        <div class="card">
-            <section class="chart-section">
-                <div class="tabs">
-                    <button class="tab-button active" data-tab="weight">체중</button>
-                    <button class="tab-button" data-tab="bloodSugar">혈당</button>
-                    <button class="tab-button" data-tab="ketone">케톤</button>
-                </div>
+        <div class="bottom-nav">
+               <button class="nav-btn" id="weightBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3L2 9l10 6 10-6-10-6zM2 15l10 6 10-6"></path><path d="M2 9v6"></path><path d="M22 9v6"></path><path d="M12 21v-6"></path>
+        </svg>
+        <span>체중 기록</span>
+            </button>
+            <button class="nav-btn" id="bloodSugarBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                <span>혈당 기록</span>
+            </button>
+            <button class="nav-btn" id="ketoneBtn">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M7 7h10"/><path d="M7 17h10"/></svg>
+  <span>케톤 기록</span>
+</button>
 
-                <div class="chart-header">
-                    <p class="chart-info">💡 손가락으로 확대/축소, 좌우로 밀어보세요.</p>
-                    <select id="dateRangeSelector">
-                        <option value="30">최근 1개월</option>
-                        <option value="90">최근 3개월</option>
-                        <option value="180">최근 6개월</option>
-                        <option value="365">최근 1년</option>
-                        <option value="all">전체</option>
-                    </select>
-                </div>
-
-                <div id="weightContent" class="tab-content active">
-                    <div class="chart-container">
-                        <canvas id="weightChart"></canvas>
-                    </div>
-                </div>
-                <div id="bloodSugarContent" class="tab-content">
-                    <div class="chart-container">
-                        <canvas id="bloodSugarChart"></canvas>
-                    </div>
-                </div>
-                <div id="ketoneContent" class="tab-content">
-                    <div class="chart-container">
-                        <canvas id="ketoneChart"></canvas>
-                    </div>
-                </div>
-            </section>
+<button class="nav-btn" id="exerciseBtn">
+  <svg xmlns="http://www.w3.org/2000/svg" 
+       viewBox="0 0 24 24" fill="none" 
+       stroke="currentColor" stroke-width="2" 
+       stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 6v12M18 6v12"/>
+    <path d="M3 10v4M21 10v4"/>
+    <path d="M6 12h12"/>
+  </svg>
+  <span>운동 기록</span>
+</button>
         </div>
 
-        <div class="card">
-            <section class="history-section">
-                <h2>나의 운동 기록</h2>
-                <ul class="history-list" id="exerciseHistoryList"></ul>
-                <div class="pagination" id="exercisePaginationControls"></div>
-            </section>
+       
+        <!-- 체중 기록 모달 -->
+<div id="weightModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">체중 기록</h3>
+    <p class="onb-desc">현재 체중(kg)을 입력해주세요.</p>
+    <input id="weightInput" class="onb-input" type="number" step="0.1" min="0" placeholder="예. 65.5" />
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="weightModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveWeightBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+       
+       
+        <!-- 케톤 기록 모달 -->
+<div id="ketoneModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">케톤 기록</h3>
+    <p class="onb-desc">케톤 수치(mmOL/L)를 입력해주세요.</p>
+    <input id="ketoneInput" class="onb-input" type="number" step="0.1" min="0" placeholder="예. 1.2" />
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="ketoneModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveKetoneBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+
+    <!-- 혈당 기록 모달 -->
+<div id="bloodSugarModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">혈당 기록</h3>
+    <p class="onb-desc">혈당 수치와 측정 시간을 입력해주세요.</p>
+    
+    <label class="onb-label" style="margin-top:20px; margin-bottom: 5px; text-align: left;">혈당 (mg/dL)</label>
+    <input id="bloodSugarInput" class="onb-input" type="number" step="1" min="1" placeholder="예. 92" />
+
+    <label class="onb-label" style="margin-top:15px; margin-bottom: 5px; text-align: left;">측정 시간</label>
+    <input id="bloodSugarTimestampInput" class="onb-input" type="datetime-local" />
+
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="bloodSugarModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveBloodSugarBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 운동 기록 모달 -->
+<div id="exerciseModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">운동 기록</h3>
+    <p class="onb-desc">운동 종류와 시간을 입력해주세요.</p>
+
+    <!-- 기존 태그 스타일 재사용 -->
+    <div id="exerciseType" class="tag-cloud" style="margin-bottom:12px;">
+      <button type="button" class="tag" data-value="걷기">걷기</button>
+      <button type="button" class="tag" data-value="달리기">달리기</button>
+      <button type="button" class="tag" data-value="요가">요가</button>
+      <button type="button" class="tag" data-value="근력운동">근력운동</button>
+      <button type="button" class="tag" data-value="수영">수영</button>
+      <button type="button" class="tag" data-value="자전거">자전거</button>
+      <button type="button" class="tag" data-value="등산">등산</button>
+      <button type="button" class="tag" data-value="줄넘기">줄넘기</button>
+      <button type="button" class="tag" data-value="필라테스">필라테스</button>
+      <button type="button" class="tag" data-value="댄스">댄스</button>
+      <button type="button" class="tag" data-value="등산">등산</button>
+      <button type="button" class="tag" data-value="타바타">타바타</button>
+      <button type="button" class="tag" data-value="계단">계단운동</button>
+      <button type="button" class="tag" data-value="기타">기타</button>
+    </div>
+
+    <input id="exerciseDuration" class="onb-input" type="number" min="1" placeholder="운동 시간(분)" style="margin-bottom:10px;" />
+    <input id="exerciseCalories" class="onb-input" type="number" min="0" placeholder="소모 칼로리(kcal, 선택)" />
+
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="exerciseModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveExerciseBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+
+        <footer class="app-footer">
+            <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
+            <p>© 2025 2e-studio. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <!-- 온보딩 모달 (화면 전체를 덮는 배경 포함) -->
+    <div id="appShield">
+        <div id="onboardingModal">
+            <h3 class="onb-title">처음 오셨군요! 👋</h3>
+            <p class="onb-desc">fastmate의 모든 기능을 사용하기 위해 닉네임과 가입 목적을 알려주세요.</p>
+    
+            <label class="onb-label" for="onbNickname">닉네임</label>
+            <input id="onbNickname" class="onb-input" type="text" placeholder="예.건강한 라이언" />
+    
+            <label class="onb-label" style="margin-top: 20px;">가입 목적 (1개 이상 선택)</label>
+            <div id="onbGoals" class="tag-cloud">
+                <button type="button" class="tag" data-value="체중관리">체중관리</button>
+                <button type="button" class="tag" data-value="혈당 관리">혈당관리</button>
+                <button type="button" class="tag" data-value="자가포식(오토파지)">자가포식(오토파지)</button>
+                <button type="button" class="tag" data-value="위장휴식·소화개선">위장휴식·소화개선</button>
+                <button type="button" class="tag" data-value="에너지·집중력 개선">에너지·집중력 개선</button>
+                <button type="button" class="tag" data-value="기타">기타</button>
+            </div>
+    
+            <div class="onb-actions">
+                <button id="onbCancel" type="button" class="onb-btn onb-ghost">나중에 할게요</button>
+                <button id="onbSave" type="button" class="onb-btn onb-primary">저장하고 시작</button>
+            </div>
         </div>
     </div>
 
-   <script>
+    <!-- Toast Alert -->
+    <div id="toast"></div>
+
+<script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM Elements ---
-    const homeBtn = document.getElementById('homeBtn');
-    const pfNickname = document.getElementById('pfNickname');
-    const pfEmail = document.getElementById('pfEmail');
-    const pfGoals = document.getElementById('pfGoals');
-    const userNicknameHeader = document.getElementById('userNickname');
-    const fastingHistoryList = document.getElementById('fastingHistoryList');
-    const fastingPaginationControls = document.getElementById('fastingPaginationControls');
-    const exerciseHistoryList = document.getElementById('exerciseHistoryList');
-    const exercisePaginationControls = document.getElementById('exercisePaginationControls');
-    const tabs = document.querySelectorAll('.tab-button');
-    const dateRangeSelector = document.getElementById('dateRangeSelector');
-    
-    // --- State Variables ---
-    let allCharts = {};
-    let allData = {};
-    let fastingCurrentPage = 1;
-    let exerciseCurrentPage = 1;
-    const itemsPerPage = 7;
+  let bootstrapped = false;
 
-    const db = firebase.firestore();
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = './login.html'; return; }
 
-    // --- Firebase Auth Listener (Main Entry Point) ---
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            loadAndRenderAllData();
-        } else {
-            window.location.href = './login.html';
-        }
-    });
-
-    // --- Data Fetching Functions ---
-    async function fetchFromFirestore(dataType) {
-        const user = firebase.auth().currentUser;
-        if (!user) return [];
-        try {
-            const snap = await db.collection('users').doc(user.uid).collection('measurements').doc(dataType).collection('items').orderBy('date', 'desc').limit(200).get();
-            return snap.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    ...data,
-                    date: data.date?.toDate?.(),
-                    createdAt: data.createdAt?.toDate?.()
-                };
-            });
-        } catch (error) {
-            console.error(`${dataType} 데이터 로딩 실패:`, error);
-            return [];
-        }
+    if (sessionStorage.getItem('onboardingLock') === '1') {
+      if (!bootstrapped) {
+        bootstrapped = true;
+        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
+      }
+      return;
     }
-   // mypage.html의 <script> 안에서 fetchFastingHistory 함수를 찾아 교체
-async function fetchFastingHistory() {
-    const user = firebase.auth().currentUser;
-    if (!user) return [];
+
     try {
-        const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
-        // [수정] 각 문서의 고유 id를 함께 반환하도록 변경
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
-    } catch (error) {
-        console.error("단식 기록 로딩 실패:", error);
-        return [];
+      const prof = await getUserDoc().catch(() => null);
+      const completed   = !!prof?.onboarding?.completed;
+      const hasNickname = !!prof?.nickname;
+      const hasGoals    = Array.isArray(prof?.onboarding?.reasons) && prof.onboarding.reasons.length > 0;
+
+      if (!completed || !hasNickname || !hasGoals) {
+        sessionStorage.setItem('onboardingLock', '1');
+        window.location.href = './signup.html?step=2&from=fastmate';
+        return;
+      }
+
+      sessionStorage.removeItem('onboardingLock');
+
+      if (!bootstrapped) {
+        bootstrapped = true;
+        const chip = document.getElementById('userChip');
+        const chipName = document.getElementById('userChipName');
+        const nickname = prof?.nickname || user.displayName || (user.email ? user.email.split('@')[0] : '회원');
+        if (chip && chipName) {
+          chipName.textContent = nickname;
+          chip.style.display = 'flex';
+          chip.onclick = () => (window.location.href = './mypage.html');
+        }
+
+        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
+      }
+    } catch (e) {
+      console.error(e);
+      if (!bootstrapped) {
+        bootstrapped = true;
+        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
+      }
+    }
+  });
+
+  /* =========================
+   * 1) DOM 캐시
+   * ========================= */
+  const progressArc      = document.getElementById('progressArc');
+  const completionOverlay = document.getElementById('completionOverlay');
+  const remainingTimeEl  = document.getElementById('remainingTime');
+  const statusMessage    = document.getElementById('status-message');
+  const saltTip          = document.getElementById('salt-tip');
+  const startBtn         = document.getElementById('startBtn');
+  const stopBtn          = document.getElementById('stopBtn');
+  const modelSelect      = document.getElementById('fastingModelSelect');
+  const startTimeBox     = document.getElementById('startTimeBox');
+  const startTimeValue   = document.getElementById('startTimeValue');
+  const endTimeValue     = document.getElementById('endTimeValue');
+  const timePickerModal  = document.getElementById('timePickerModal');
+  const dayBeforeBtn     = document.getElementById('dayBeforeBtn');
+  const todayBtn         = document.getElementById('todayBtn');
+  const hourSelect       = document.getElementById('hourSelect');
+  const minuteSelect     = document.getElementById('minuteSelect');
+  const ampmSelect       = document.getElementById('ampmSelect');
+  const saveTimeBtn      = document.getElementById('saveTimeBtn');
+  const confirmChangeModal = document.getElementById('confirmChangeModal');
+  const confirmMessage     = document.getElementById('confirmMessage');
+  const confirmYesBtn      = document.getElementById('confirmYesBtn');
+  const confirmNoBtn       = document.getElementById('confirmNoBtn');
+  const bloodSugarBtn    = document.getElementById('bloodSugarBtn');
+  const ketoneBtn        = document.getElementById('ketoneBtn');
+  const exerciseBtn      = document.getElementById('exerciseBtn');
+  const bloodSugarModal  = document.getElementById('bloodSugarModal');
+  const saveBloodSugarBtn= document.getElementById('saveBloodSugarBtn');
+  const bloodSugarInput  = document.getElementById('bloodSugarInput');
+  const ketoneModal      = document.getElementById('ketoneModal');
+  const saveKetoneBtn    = document.getElementById('saveKetoneBtn');
+  const ketoneInput      = document.getElementById('ketoneInput');
+  const exerciseModal    = document.getElementById('exerciseModal');
+  const exerciseTypeWrap = document.getElementById('exerciseType');
+  const exerciseDuration = document.getElementById('exerciseDuration');
+  const exerciseCalories = document.getElementById('exerciseCalories');
+  const saveExerciseBtn  = document.getElementById('saveExerciseBtn');
+  const privacyPolicyLink= document.getElementById('privacyPolicyLink');
+  const toast            = document.getElementById('toast');
+  const weightBtn        = document.getElementById('weightBtn');
+  const weightModal      = document.getElementById('weightModal');
+  const saveWeightBtn    = document.getElementById('saveWeightBtn');
+  const weightInput      = document.getElementById('weightInput');
+
+  /* =========================
+   * 2) 상태/유틸
+   * ========================= */
+  let timePickerUsed = false; // <-- 이 줄을 추가!
+let fastingInterval  = null;
+  let targetHours      = 16;
+  let fastingState     = 'idle';
+  let selectedStartTime= new Date();
+  let pendingTargetHours = null;
+  let toastTimeout     = null;
+  let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
+  const milestones = { 10:false, 25:false, 50:false, 70:false, 80:false, 90:false };
+  const db = firebase.firestore();
+
+  function showToast(msg) {
+    if (!toast) return;
+    clearTimeout(toastTimeout);
+    toast.textContent = msg;
+    toast.classList.add('show');
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+  function saveLocalList(key, data) {
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.unshift(data);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+  function ensureSignedIn() {
+    const user = auth?.currentUser;
+    if (!user) {
+      showToast('로그인이 필요합니다.');
+      window.location.href = './login.html';
+      return null;
+    }
+    return user;
+  }
+
+  /* =========================
+   * 3) 단식 타이머
+   * ========================= */
+  function updateTimeDisplays() {
+    const start = selectedStartTime;
+    const duration = parseInt(modelSelect.value || targetHours, 10);
+    const end = new Date(start.getTime() + duration * 3600000);
+    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+    if (startTimeValue) startTimeValue.textContent = fmt(start);
+    if (endTimeValue)   endTimeValue.textContent   = fmt(end);
+  }
+  // fastmate.html의 <script> 안에서 updateUIState 함수를 찾아 교체
+function updateUIState() {
+    const running = fastingState === 'running';
+    if (startBtn) {
+        startBtn.disabled = running;
+        startBtn.textContent = running ? '단식중' : '단식 시작';
+        startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
+        startBtn.style.color = running ? 'var(--text-color)' : '#fff';
+    }
+    if (stopBtn) { 
+        stopBtn.disabled = !running; 
+        stopBtn.style.opacity = running ? '1' : '0.5'; 
+    }
+    // [추가] 단식 중에는 시작 시간 박스를 클릭할 수 없도록 비활성화
+    if (startTimeBox) { 
+        startTimeBox.style.pointerEvents = running ? 'none' : 'auto'; 
     }
 }
+  function checkMilestones(progress) {
+    const messages = { 10:"시작이 반! 💧", 25:"25% 달성!", 50:"절반! 대단해요. 💧", 70:"거의 다 왔습니다!", 90:"90% 돌파! 화이팅! 💧" };
+    Object.keys(milestones).forEach((p) => {
+      const pi = parseInt(p,10);
+      if (progress >= pi && !milestones[p]) { showToast(messages[p]); milestones[p] = true; }
+    });
+  }
+  // fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
+function updateTimer() {
+    const now = new Date();
+    const elapsed = now - selectedStartTime;
+    const target  = parseFloat(targetHours) * 3600000;
+    const progress = Math.min((elapsed / target) * 100, 100);
 
-    // --- Main Data Loading and Rendering Function ---
-    async function loadAndRenderAllData() {
-        try {
-            const [profile, weight, bloodSugar, ketone, fasting, exercise] = await Promise.all([
-                getUserDoc(),
-                fetchFromFirestore('weight'),
-                fetchFromFirestore('bloodSugar'),
-                fetchFromFirestore('ketone'),
-                fetchFastingHistory(),
-                fetchFromFirestore('exercise')
-            ]);
+    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
 
-            allData = { profile, weight, bloodSugar, ketone, fasting, exercise };
-
-            renderProfileCard();
-            renderFastingHistory();
-            renderExerciseHistory();
-            renderAllCharts();
-            updateTabIndicators();
-
-        } catch (error) {
-            console.error("모든 데이터를 불러오는 중 오류 발생:", error);
-        }
-    }
-
-    // --- Rendering Functions ---
-    function renderProfileCard() {
-        const profile = allData.profile;
-        const user = firebase.auth().currentUser;
-        if (!profile || !user) return;
-        
-        const nickname = profile?.nickname || user.displayName || '사용자';
-        pfNickname.textContent = `${nickname}님`;
-        pfEmail.textContent = user.email || '이메일 정보 없음';
-        
-        if (userNicknameHeader) userNicknameHeader.parentElement.style.display = 'none';
-
-        const goals = profile?.onboarding?.reasons || [];
-        pfGoals.innerHTML = '';
-        if (goals.length > 0) {
-            goals.forEach(goalText => {
-                const tag = document.createElement('div');
-                tag.className = 'goal-tag';
-                tag.textContent = goalText;
-                pfGoals.appendChild(tag);
-            });
+    const remain = Math.max(0, target - elapsed);
+    const h = Math.floor(remain / 3600000);
+    const m = Math.floor((remain % 3600000) / 60000);
+    const s = Math.floor((remain % 60000) / 1000);
+    if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    
+    // [수정] statusMessage 업데이트 로직 변경
+    if (statusMessage) {
+        if ((elapsed / 3600000) >= 16) {
+            statusMessage.textContent = "세포 재활용, 오토파지 활성화 중!";
         } else {
-            pfGoals.textContent = '설정된 목표가 없습니다.';
+            // innerHTML을 사용하여 스타일이 적용된 텍스트를 표시합니다.
+            statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
         }
-    }
-
-    function renderHistory(listEl, paginationEl, data, page, renderItemFn, onPageChange) {
-        listEl.innerHTML = '';
-        if (!data || data.length === 0) {
-            listEl.innerHTML = '<li style="text-align:center; color: var(--text-light); padding: 20px 0;">기록이 없습니다.</li>';
-            paginationEl.innerHTML = '';
-            return;
-        }
-        const totalPages = Math.ceil(data.length / itemsPerPage);
-        const startIndex = (page - 1) * itemsPerPage;
-        const pageItems = data.slice(startIndex, startIndex + itemsPerPage);
-        pageItems.forEach(item => listEl.appendChild(renderItemFn(item)));
-        renderPagination(paginationEl, page, totalPages, onPageChange);
     }
     
-    function renderPagination(container, currentPage, totalPages, onPageChange) {
-        if (totalPages <= 1) {
-            container.innerHTML = ''; return;
-        }
-        container.innerHTML = `<button class="prev-page" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button><span>${currentPage} / ${totalPages}</span><button class="next-page" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
-        container.querySelector('.prev-page')?.addEventListener('click', () => onPageChange(currentPage - 1));
-        container.querySelector('.next-page')?.addEventListener('click', () => onPageChange(currentPage + 1));
-    }
-
-    // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체
-function renderFastingHistory() {
-    renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
-        const li = document.createElement('li');
-        li.className = 'history-item';
-        li.dataset.docId = item.id; // [추가] 리스트 항목에 문서 ID를 저장
-
-        const hours = Math.floor(item.actualDurationHours);
-        const minutes = Math.round((item.actualDurationHours - hours) * 60);
-        const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
-        
-        let color = 'var(--primary-color)';
-        if (percentage < 1) color = '#FAAD14';
-        else if (percentage <= 60) color = 'var(--gauge-start-color)';
-
-        const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-        
-        // [수정] 삭제 버튼(x)을 HTML에 추가
-        li.innerHTML = `
-            <div class="history-info">
-                <div class="duration">${hours}시간 ${minutes}분</div>
-                <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
-            </div>
-            <div class="history-actions">
-                <div class="history-percentage" style="color: ${color};">${percentage}%</div>
-                <button class="delete-btn" title="기록 삭제">×</button>
-            </div>`;
-        return li;
-    }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
-}
-
-    function renderExerciseHistory() {
-        renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            const format = (d) => `${d.getMonth()+1}/${d.getDate()}`;
-            li.innerHTML = `<div class="history-info"><div class="type">${item.type}</div><div class="details">${format(item.date)} / ${item.duration}분</div></div><div class="history-calories">${item.calories || 0} <span class="unit">kcal</span></div>`;
-            return li;
-        }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
-    }
-
-    function updateTabIndicators() {
-        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-        const isNew = (data) => data && data.length > 0 && data[0].createdAt > sixHoursAgo;
-        document.querySelector('.tab-button[data-tab="weight"]')?.classList.toggle('new-indicator', isNew(allData.weight));
-        document.querySelector('.tab-button[data-tab="bloodSugar"]')?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
-        document.querySelector('.tab-button[data-tab="ketone"]')?.classList.toggle('new-indicator', isNew(allData.ketone));
-    }
-
-    // --- Charting Functions ---
-    const newIconPlugin = { id: 'newIconPlugin', afterDraw: (chart) => { /* ... (이전과 동일) */ } };
-
-    function createChart(canvasId, label, data) { // color 파라미터는 더 이상 필요 없으므로 삭제
-    if (allCharts[canvasId]) {
-        allCharts[canvasId].destroy();
-    }
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    checkMilestones(progress);
     
-    const chartData = (data || [])
-        .filter(d => d && typeof d.value === 'number' && !isNaN(d.value))
-        .map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+    if (progress >= 100 && !completionFired) {
+        completionFired = true;
+        clearInterval(fastingInterval);
 
-    allCharts[canvasId] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: label,
-                data: chartData,
-                // [수정] 선 색상 (줄)
-                borderColor: '#7FE89B', 
-                borderWidth: 2.5,
-                tension: 0.2,
-                // [수정] 점 색상
-                pointRadius: 4,
-                pointBackgroundColor: '#7FE89B',
-                pointHoverRadius: 6,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    type: 'time',
-                    time: { unit: 'day',// 24시간 형식 (예: 2025.08.18 14:30)
-tooltipFormat: 'yyyy.MM.dd HH:mm', 
-    displayFormats: {
-        day: 'MM/dd'
-    }
-},
-                    grid: { display: true, color: '#f0f0f0' }
-                },
-                y: {
-                    beginAtZero: false,
-                    grid: { display: true, color: '#e0e0e0' }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                // [수정] 툴팁(버블) 스타일
-                tooltip: {
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: '#E1FDC5', // 버블 배경색
-                    titleColor: '#333',         // 제목 글자색 (어둡게)
-                    bodyColor: '#333',          // 본문 글자색 (어둡게)
-                    titleFont: { weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    padding: 10,
-                    cornerRadius: 8,
-                    boxPadding: 4
-                },
-                zoom: {
-                    pan: { enabled: true, mode: 'x' },
-                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
-                }
+        if (completionOverlay) {
+            completionOverlay.classList.add('show');
+        }
+
+        setTimeout(() => {
+            if (completionOverlay) {
+                completionOverlay.classList.remove('show');
             }
-        },
-        plugins: [newIconPlugin]
-    });
+            stopFasting();
+        }, 4000);
+    }
 }
-    function renderAllCharts() {
-        const range = dateRangeSelector.value;
-        const filterFn = (data) => {
-            if (range === 'all' || !data) return data;
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-            return data.filter(d => d.date >= cutoffDate);
-        };
-        createChart('weightChart', '체중 (kg)', filterFn(allData.weight), 'var(--primary-color)');
-        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar), '#FFC107');
-        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone), 'var(--primary-color)');
+   function startFasting() {
+   completionFired = false; // [추가] 다음 단식을 위해 깃발 초기화
+    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+
+  // [수정] 사용자가 시간 선택 모달을 사용하지 않았을 경우에만 시작 시간을 '지금'으로 설정
+  if (!timePickerUsed) {
+    selectedStartTime = new Date();
+  }
+  
+  updateTimeDisplays();
+  
+  fastingState = 'running';
+  targetHours = parseInt(modelSelect.value, 10);
+  localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
+  localStorage.setItem('fastingTargetHours', targetHours);
+  Object.keys(milestones).forEach(k => milestones[k] = false);
+
+  if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+  fastingInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+  updateUIState();
+  
+  timePickerUsed = false; // 다음 단식을 위해 깃발 초기화
+}
+
+
+  async function stopFasting() {
+    if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
+    clearInterval(fastingInterval);
+    fastingState = 'idle';
+    const record = { startTime: selectedStartTime.toISOString(), endTime: new Date().toISOString(), targetHours, actualDurationHours: (new Date() - selectedStartTime) / 3600000 };
+    saveLocalList('fastingHistoryData', record);
+    try {
+      const user = ensureSignedIn(); if (!user) return;
+      await db.collection('users').doc(user.uid).collection('fastingHistory').add({ startTime: new Date(record.startTime), endTime: new Date(record.endTime), targetHours: record.targetHours, actualDurationHours: record.actualDurationHours, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    } catch (e) { console.error('save fasting history failed:', e); }
+    localStorage.removeItem('fastingStartTime');
+    localStorage.removeItem('fastingTargetHours');
+    if (progressArc) progressArc.style.strokeDasharray = '0 100';
+    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+    if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+    if (saltTip) saltTip.style.display = 'none';
+    if (endTimeValue) endTimeValue.textContent = '-';
+    selectedStartTime = new Date();
+    updateTimeDisplays();
+    updateUIState();
+    showToast("단식을 종료했습니다. 수고하셨습니다!");
+  }
+  function handleModelChange(e) {
+    const newTarget = parseInt(e.target.value, 10);
+    if (fastingState === 'running' && newTarget !== targetHours) {
+      pendingTargetHours = newTarget;
+      if (confirmChangeModal && confirmMessage) {
+        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
+        confirmChangeModal.style.display = 'flex';
+      }
+      e.target.value = targetHours;
+    } else if (fastingState !== 'running') {
+      targetHours = newTarget;
+      updateTimeDisplays();
+    }
+  }
+
+  /* =========================
+   * 4) 시간 선택 초기화
+   * ========================= */
+/* =========================
+ * 4) 시간 선택 초기화
+ * ========================= */
+function initializeTimePicker() {
+    if (!timePickerModal) return;
+    
+    hourSelect.innerHTML = '';
+    for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
+    
+    minuteSelect.innerHTML = '';
+    for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
+
+    startTimeBox?.addEventListener('click', () => {
+        if (fastingState === 'running') {
+            // 단식 중에도 모달을 열 수 있도록 허용 (이전 수정 사항 반영)
+        }
+        const now = selectedStartTime;
+        let h = now.getHours();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        hourSelect.value = h;
+        minuteSelect.value = now.getMinutes();
+        ampmSelect.value = ampm;
+        timePickerModal.style.display = 'flex';
+    });
+
+    dayBeforeBtn?.addEventListener('click', () => {
+        dayBeforeBtn.classList.add('active');
+        todayBtn.classList.remove('active');
+    });
+
+    todayBtn?.addEventListener('click', () => {
+        todayBtn.classList.add('active');
+        dayBeforeBtn.classList.remove('active');
+    });
+
+    saveTimeBtn?.addEventListener('click', () => {
+        timePickerUsed = true; // 사용자가 시간 선택 모달을 사용했다는 깃발을 세움
+
+        let hour = parseInt(hourSelect.value, 10);
+        const minute = parseInt(minuteSelect.value, 10);
+        const isPM = ampmSelect.value === 'PM';
+        if (isPM && hour < 12) hour += 12;
+        if (!isPM && hour === 12) hour = 0;
+
+        const newDate = new Date();
+        if (dayBeforeBtn?.classList.contains('active')) newDate.setDate(newDate.getDate() - 1);
+        newDate.setHours(hour, minute, 0, 0);
+
+        selectedStartTime = newDate;
+        updateTimeDisplays();
+        timePickerModal.style.display = 'none';
+
+        if (fastingState === 'running') {
+            localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
+            updateTimer();
+            showToast('진행 중인 단식의 시작 시간이 변경되었습니다.');
+        }
+    });
+} // <-- 여기에 닫는 괄호 '}'가 필요했습니다.
+
+function initializeTime() {
+    selectedStartTime = new Date();
+    updateTimeDisplays();
+}
+ 
+  function loadState() {
+    const savedStart = localStorage.getItem('fastingStartTime');
+    const savedHours = localStorage.getItem('fastingTargetHours');
+    if (savedStart && savedHours) {
+      const start = new Date(savedStart);
+      const hrs   = parseInt(savedHours,10);
+      if ((new Date() - start) < hrs*3600000) {
+        selectedStartTime = start;
+        targetHours = hrs;
+        modelSelect.value = hrs;
+        fastingState = 'running';
+        if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+        fastingInterval = setInterval(updateTimer,1000);
+        updateTimer();
+      } else {
+        localStorage.removeItem('fastingStartTime');
+        localStorage.removeItem('fastingTargetHours');
+      }
+    }
+    updateTimeDisplays();
+    updateUIState();
+  }
+
+  /* =========================
+   * 5) 이벤트 바인딩 (1회)
+   * ========================= */
+  let eventsWired = false;
+  function wireEventsOnce() {
+    if (eventsWired) return;
+    eventsWired = true;
+
+    startBtn?.addEventListener('click', startFasting);
+    stopBtn?.addEventListener('click', stopFasting);
+    modelSelect?.addEventListener('change', handleModelChange);
+
+    confirmYesBtn?.addEventListener('click', () => {
+      if (pendingTargetHours == null) return;
+      targetHours = pendingTargetHours; pendingTargetHours = null;
+      modelSelect.value = targetHours;
+      localStorage.setItem('fastingTargetHours', targetHours);
+      updateTimeDisplays(); updateTimer();
+      if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+      showToast("단식 목표가 변경되었습니다.");
+      confirmChangeModal.style.display = 'none';
+    });
+    confirmNoBtn?.addEventListener('click', () => {
+      modelSelect.value = targetHours;
+      confirmChangeModal.style.display = 'none';
+    });
+    
+    // --- 체중 기록 ---
+    weightBtn?.addEventListener('click', () => weightModal && (weightModal.style.display='flex'));
+    saveWeightBtn?.addEventListener('click', async () => {
+      const v = parseFloat(weightInput?.value);
+      if (!v || v <= 0) return showToast("올바른 체중을 입력하세요.");
+      const user = ensureSignedIn(); if (!user) return;
+      try {
+        await db.collection('users').doc(user.uid).collection('measurements').doc('weight').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } catch (e) {
+        console.error('save weight failed:', e);
+        showToast('서버 저장 실패(체중)… 잠시 후 다시 시도해주세요.');
+      }
+      weightInput.value = '';
+      weightModal.style.display = 'none';
+      showToast("체중이 저장되었습니다.");
+    });
+    
+    // --- 혈당 기록 ---
+    bloodSugarBtn?.addEventListener('click', () => {
+      if (bloodSugarModal) {
+        bloodSugarModal.style.display = 'flex';
+   // [추가] 시간 입력창에 현재 시간을 기본값으로 설정
+        const timestampInput = document.getElementById('bloodSugarTimestampInput');
+        if (timestampInput) {
+            const now = new Date();
+            // YYYY-MM-DDTHH:mm 형식에 맞게 시간 오프셋을 조정합니다.
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            timestampInput.value = now.toISOString().slice(0, 16);
+        }
+       
+      } else {
+        const v = parseFloat(prompt('혈당 수치 (mg/dL)를 입력하세요:') || '');
+        if (v > 0) {
+          saveLocalList('bloodSugarData', { date:new Date().toISOString(), value:v });
+          showToast('혈당 수치가 저장되었습니다.');
+        }
+      }
+    });
+    // wireEventsOnce 함수 안
+
+saveBloodSugarBtn?.addEventListener('click', async () => {
+    const v = parseFloat(bloodSugarInput?.value);
+    if (!v || v <= 0) return showToast("올바른 혈당 수치를 입력하세요.");
+
+    // [추가] 시간 입력창에서 값 가져오기
+    const timestampInput = document.getElementById('bloodSugarTimestampInput');
+    const timestamp = timestampInput.value;
+
+    if (!timestamp) return showToast("측정 시간을 선택해주세요.");
+    
+    // [수정] 입력된 시간 문자열을 Date 객체로 변환
+    const recordDate = new Date(timestamp);
+
+    const user = ensureSignedIn(); if (!user) return;
+
+    saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
+
+    try {
+        await db.collection('users').doc(user.uid)
+            .collection('measurements').doc('bloodSugar')
+            .collection('items').add({
+                date: recordDate, // [수정] new Date() 대신 선택한 시간으로 저장
+                value: v,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+    } catch (e) {
+        console.error('save blood sugar failed:', e);
+        showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
     }
 
-    // --- Event Listeners ---
-    homeBtn?.addEventListener('click', () => { window.location.href = './fastmate.html'; });
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
-        });
-    });
-    dateRangeSelector.addEventListener('change', renderAllCharts);
+    bloodSugarInput.value = '';
+    bloodSugarModal.style.display = 'none';
+    showToast("혈당 수치가 저장되었습니다.");
 });
 
-// 단식 기록 리스트에서 클릭 이벤트 처리 (이벤트 위임)
-fastingHistoryList.addEventListener('click', async (e) => {
-    // 삭제 버튼(delete-btn)을 클릭한 경우에만 동작
-    if (e.target.classList.contains('delete-btn')) {
-        const li = e.target.closest('.history-item');
-        const docId = li.dataset.docId;
+    // --- 케톤 기록 ---
+    ketoneBtn?.addEventListener('click', () => ketoneModal && (ketoneModal.style.display='flex'));
+    saveKetoneBtn?.addEventListener('click', async () => {
+      const v = parseFloat(ketoneInput?.value);
+      if (v == null || isNaN(v) || v < 0) return showToast("올바른 케톤 수치를 입력하세요.");
+      const user = ensureSignedIn(); if (!user) return;
+      saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
+      try {
+        await db.collection('users').doc(user.uid).collection('measurements').doc('ketone').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } catch (e) {
+        console.error('save ketone failed:', e);
+        showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
+      }
+      ketoneInput.value = '';
+      ketoneModal.style.display = 'none';
+      showToast("케톤 수치가 저장되었습니다.");
+    });
 
-        if (docId && confirm('이 단식 기록을 정말로 삭제하시겠습니까?')) {
-            try {
-                const user = firebase.auth().currentUser;
-                if (!user) return;
-                
-                // Firestore에서 해당 문서 삭제
-                await db.collection('users').doc(user.uid).collection('fastingHistory').doc(docId).delete();
+    // --- 운동 기록 ---
+    exerciseBtn?.addEventListener('click', () => exerciseModal && (exerciseModal.style.display='flex'));
+    exerciseTypeWrap?.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('tag')) return;
+      const prev = exerciseTypeWrap.querySelector('.tag.active');
+      if (prev) prev.classList.remove('active');
+      e.target.classList.add('active');
+    });
+    saveExerciseBtn?.addEventListener('click', async () => {
+      const sel = exerciseTypeWrap?.querySelector('.tag.active');
+      const duration = parseInt(exerciseDuration?.value,10);
+      const calories = exerciseCalories?.value === '' ? null : parseInt(exerciseCalories.value,10);
+      if (!sel) return showToast("운동 종류를 선택하세요.");
+      if (!duration || duration<=0) return showToast("올바른 운동 시간을 입력하세요.");
+      if (calories !== null && calories < 0) return showToast("칼로리는 0 이상으로 입력하세요.");
+      const user = ensureSignedIn(); if (!user) return;
+      const rec = { date:new Date().toISOString(), type: sel.dataset.value, duration, calories };
+      saveLocalList('exerciseData', rec);
+      try {
+        await db.collection('users').doc(user.uid).collection('measurements').doc('exercise').collection('items').add({ date: new Date(), type: rec.type, duration: rec.duration, calories: rec.calories ?? 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } catch (e) {
+        console.error('save exercise failed:', e);
+        showToast('서버 저장 실패(운동)… 잠시 후 다시 시도해주세요.');
+      }
+      sel.classList.remove('active');
+      exerciseDuration.value = '';
+      exerciseCalories.value = '';
+      exerciseModal.style.display = 'none';
+      showToast("운동 기록이 저장되었습니다.");
+    });
 
-                // 화면에서 해당 항목 즉시 제거
-                li.remove();
-                
-                // allData에서도 제거하여 페이지네이션 오류 방지
-                allData.fasting = allData.fasting.filter(item => item.id !== docId);
+    // --- 기타 링크 및 공통 이벤트 ---
+    privacyPolicyLink?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showToast("개인정보처리방침 페이지로 이동합니다. (개발 중)");
+    });
+  }
 
-                alert('기록이 삭제되었습니다.');
-            } catch (error) {
-                console.error("기록 삭제 실패:", error);
-                alert('기록 삭제에 실패했습니다.');
-            }
-        }
+  // --- 공통 모달 닫기 로직 ---
+  document.addEventListener('click', (e) => {
+    const closeId = e.target?.getAttribute?.('data-close');
+    if (closeId) {
+      const el = document.getElementById(closeId);
+      if (el) el.style.display = 'none';
     }
+  });
+
+  window.addEventListener('click', (e) => {
+    [timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal, weightModal]
+      .filter(Boolean)
+      .forEach(modal => { if (e.target === modal) modal.style.display = 'none'; });
+  });
+
 });
 </script>
