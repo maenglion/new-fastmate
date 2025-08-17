@@ -363,6 +363,61 @@
             background-color: #f8f9fa;
         }
         /* --- 온보딩 모달 스타일 끝 --- */
+        /* --- 시간 선택 모달 스타일 시작 --- */
+.time-picker-content {
+    width: 100%;
+    max-width: 320px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 16px 60px rgba(0,0,0,.2);
+    text-align: center;
+}
+.date-selector {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px;
+    background-color: var(--bg-color);
+}
+.date-selector .date-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+}
+.date-selector .date-btn.active {
+    background-color: var(--card-bg);
+    color: var(--primary-color);
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+.time-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+.time-selector select {
+    width: auto;
+    flex-grow: 1;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 10px 5px;
+}
+.time-selector span {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+/* --- 시간 선택 모달 스타일 끝 --- */
 
     </style>
 </head>
@@ -408,7 +463,33 @@
                 <span id="endTimeValue" class="value">-</span>
             </div>
         </div>
-        
+        <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+        <div class="time-picker-content">
+            <h3 class="onb-title">시작 시간 선택</h3>
+            <div class="date-selector">
+                <button id="dayBeforeBtn" type="button" class="date-btn">어제</button>
+                <button id="todayBtn" type="button" class="date-btn active">오늘</button>
+            </div>
+            <div class="time-selector">
+                <select id="ampmSelect">
+                    <option>AM</option>
+                    <option>PM</option>
+                </select>
+                <select id="hourSelect"></select>
+                <span>:</span>
+                <select id="minuteSelect"></select>
+            </div>
+            <div class="onb-actions">
+                <button type="button" data-close="timePickerModal" class="onb-btn onb-ghost">취소</button>
+                <button id="saveTimeBtn" type="button" class="onb-btn onb-primary">확인</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // (기존 스크립트 내용)
+    </script>
+</body>
         <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
 
         <div class="controls">
