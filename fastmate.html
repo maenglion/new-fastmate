@@ -417,7 +417,69 @@
     font-size: 1.2rem;
     font-weight: 700;
 }
-/* --- 시간 선택 모달 스타일 끝 --- */
+/* --- 목표 달성 애니메이션 스타일 --- */
+.completion-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 3000;
+    display: none; /* 평소엔 숨김 */
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.completion-overlay.show {
+    display: flex;
+    opacity: 1;
+}
+
+.completion-content h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    animation: text-pop-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.completion-content p {
+    font-size: 1.1rem;
+    opacity: 0;
+    animation: fade-in 0.5s 0.5s ease forwards;
+}
+
+@keyframes text-pop-in {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* 색종이 조각(Confetti) 애니메이션 */
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #f00;
+    opacity: 0.7;
+    animation: confetti-fall 4s linear forwards;
+}
+.confetti:nth-child(1) { background-color: #FFD700; left: 10%; animation-delay: 0s; }
+.confetti:nth-child(2) { background-color: #00BFFF; left: 25%; animation-delay: 0.5s; }
+.confetti:nth-child(3) { background-color: #FF69B4; left: 40%; animation-delay: 1s; }
+.confetti:nth-child(4) { background-color: #32CD32; left: 60%; animation-delay: 1.5s; }
+.confetti:nth-child(5) { background-color: #FF4500; left: 75%; animation-delay: 2s; }
+.confetti:nth-child(6) { background-color: #9370DB; left: 90%; animation-delay: 2.5s; }
+
+@keyframes confetti-fall {
+    0% { top: -20px; transform: rotate(0deg); }
+    100% { top: 110vh; transform: rotate(720deg); }
+}
 
     </style>
 </head>
@@ -483,6 +545,18 @@
                 <button type="button" data-close="timePickerModal" class="onb-btn onb-ghost">취소</button>
                 <button id="saveTimeBtn" type="button" class="onb-btn onb-primary">확인</button>
             </div>
+        </div>
+    </div>
+        <div id="completionOverlay" class="completion-overlay">
+        <div class="completion-content">
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <div class="confetti"></div>
+            <h2>목표 달성!</h2>
+            <p>축하합니다! 성공적으로 단식을 마쳤습니다.</p>
         </div>
     </div>
     
@@ -701,6 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * 1) DOM 캐시
    * ========================= */
   const progressArc      = document.getElementById('progressArc');
+  const completionOverlay = document.getElementById('completionOverlay');
   const remainingTimeEl  = document.getElementById('remainingTime');
   const statusMessage    = document.getElementById('status-message');
   const saltTip          = document.getElementById('salt-tip');
@@ -752,6 +827,7 @@ let fastingInterval  = null;
   let selectedStartTime= new Date();
   let pendingTargetHours = null;
   let toastTimeout     = null;
+  let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
   const milestones = { 10:false, 25:false, 50:false, 70:false, 80:false, 90:false };
   const db = firebase.firestore();
 
@@ -807,22 +883,32 @@ let fastingInterval  = null;
     });
   }
   function updateTimer() {
-    const now = new Date();
-    const elapsed = now - selectedStartTime;
-    const target  = targetHours * 3600000;
-    const progress = Math.min((elapsed / target) * 100, 100);
-    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
-    const remain = Math.max(0, target - elapsed);
-    const h = Math.floor(remain / 3600000);
-    const m = Math.floor((remain % 3600000) / 60000);
-    const s = Math.floor((remain % 60000) / 1000);
-    if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    if (statusMessage) statusMessage.textContent = (elapsed / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
+    // ... (기존의 now, elapsed, target, progress 등 계산 로직은 그대로) ...
+    
     checkMilestones(progress);
-    if (progress >= 100) showToast("목표 달성! 축하합니다!");
-  }
+
+    // [수정] 아래 if문을 통째로 교체해주세요.
+    if (progress >= 100 && !completionFired) {
+        completionFired = true; // 이벤트가 중복 실행되지 않도록 깃발을 세움
+        clearInterval(fastingInterval); // 타이머 즉시 정지
+
+        // 축하 화면 표시
+        if (completionOverlay) {
+            completionOverlay.classList.add('show');
+        }
+
+        // 4초 후에 축하 화면을 숨기고 앱을 초기화(단식 종료)
+        setTimeout(() => {
+            if (completionOverlay) {
+                completionOverlay.classList.remove('show');
+            }
+            stopFasting(); // 기존의 단식 종료 및 초기화 함수 호출
+        }, 4000); // 4초 동안 애니메이션 표시
+    }
+}
    function startFasting() {
-  if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+   completionFired = false; // [추가] 다음 단식을 위해 깃발 초기화
+    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
 
   // [수정] 사용자가 시간 선택 모달을 사용하지 않았을 경우에만 시작 시간을 '지금'으로 설정
   if (!timePickerUsed) {
