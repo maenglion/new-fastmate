@@ -21,7 +21,9 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
-        :root {
+ 
+    /* --- 기본 스타일 --- */
+       :root {
             color-scheme: light; 
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
@@ -34,338 +36,76 @@
             --chart-line-color: #7FE89B;
             --chart-bubble-bg: #C8F5D4;
         }
-
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-
-       .page-header {
-    display: flex;
-    align-items: center;
-    justify-content: center; /* 제목을 중앙에 배치 */
-    position: relative; /* 홈 버튼의 위치 기준점 */
-    padding: 15px 10px;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 25px;
-}
-
-        .main-title {
-            text-align: center;
-            color: var(--primary-color);
-            font-weight: 700;
-            font-size: 1.6rem;
-            margin: 0;
-        }
-
-        .home-btn {
-    position: absolute; /* 헤더의 왼쪽 끝에 배치 */
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%); /* 수직 중앙 정렬 */
     
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%; /* 동그란 배경 효과 */
-    transition: background-color 0.2s;
-}
+    body { font-family: 'Noto Sans KR', sans-serif; margin: 0; background-color: #f4f4f4; color: #333; }
+    .container { max-width: 600px; margin: 20px auto; padding: 20px; }
+    .card { background-color: white; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); padding: 20px; }
+    h1, h2, h3, h4, p { margin-bottom: 15px; }
+    h1 { text-align: center; color: var(--primary-color); }
+    h2 { color: #555; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 8px 0; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; align-items: center; }
+    li:last-child { border-bottom: none; }
+    button { background-color: var(--primary-color); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.3s ease; }
+    button:hover { background-color: var(--primary-dark); }
+    select { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; }
+    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+    .button-group { display: flex; gap: 10px; justify-content: center; }
+    .tab-container { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+    .tab-button { background: none; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; color: #777; border-bottom: 2px solid transparent; transition: color 0.3s ease, border-bottom-color 0.3s ease; }
+    .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+    .tab-content { display: none; padding-top: 20px; }
+    .tab-content.active { display: block; }
+    .chart-section { margin-bottom: 30px; }
+    .chart-container { width: 100%; height: 300px; position: relative; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .chart-info { font-size: 0.8rem; color: #888; }
+    .history-section h2 { margin-top: 0; }
+    .pagination { display: flex; justify-content: center; margin-top: 20px; }
+    .pagination button { margin: 0 5px; }
 
-.home-btn:hover {
-    background-color: #f0f2f5; /* 마우스를 올렸을 때 배경색 */
-}
+    /* --- 데이터 코치 스타일 --- */
+    .data-coach {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        background-color: var(--primary-light);
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 20px;
+        border: 1px solid #d1e7dd;
+    }
+    .coach-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .coach-text h4 {
+        margin: 0 0 5px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    .coach-text p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: var(--text-color);
+    }
 
-.home-btn svg {
-    width: 26px;
-    height: 26px;
-    stroke: #333; /* 아이콘 색상 */
-    stroke-width: 2;
-}
+    /* --- 'New' 알림 스타일 --- */
+    .tab-button.new-indicator::after {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #ffc107; /* 노란색 */
+        border-radius: 50%;
+        margin-left: 5px;
+        vertical-align: middle;
+    }
+</style>
 
-.main-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #333;
-    margin: 0; /* 불필요한 여백 제거 */
-}
-        
-        /* --- 프로필 카드 스타일 시작 --- */
-        .profile-card {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .profile-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .profile-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: var(--primary-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .profile-avatar svg {
-            width: 32px;
-            height: 32px;
-            stroke: var(--primary-color);
-            stroke-width: 2;
-        }
-        .profile-info h2 {
-            margin: 0;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--text-color);
-        }
-        .profile-info p {
-            margin: 4px 0 0;
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-        .profile-details {
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-        }
-        .profile-details h3 {
-            margin: 0 0 15px;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-color);
-        }
-        .goals-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .goal-tag {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-            padding: 8px 14px;
-            border-radius: 999px;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        /* --- 프로필 카드 스타일 끝 --- */
-
-        .history-section h2 {
-            font-size: 1.2rem;
-            color: var(--text-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-        .history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            min-height: 100px;
-        }
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 10px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .history-item:last-child {
-            border-bottom: none;
-        }
-        .history-info .duration, .history-info .type {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--text-color);
-        }
-        .history-info .period, .history-info .details {
-            font-size: 0.8rem;
-            color: var(--text-light);
-            margin-top: 4px;
-        }
-        .history-percentage, .history-calories {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-        .history-calories .unit {
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-light);
-        }
-        
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 20px;
-            gap: 15px;
-        }
-        .pagination button {
-            background: none;
-            border: 1px solid var(--border-color);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .pagination button:hover:not(:disabled) {
-            background-color: #f0f0f0;
-        }
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .pagination span {
-            font-weight: 500;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 10px;
-        }
-
-        .tab-button {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background-color: transparent;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-light);
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s ease-in-out;
-            position: relative; /* 점(dot)의 위치 기준점 */
-
-        }
-
-        .tab-button.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-            font-weight: 700;
-        }
-
-        /* 'New' 알림 점 스타일 */
-.tab-button.new-indicator::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    right: 8px;
-    width: 6px; /* 4px보다 조금 더 잘보이게 6px로 조정 */
-    height: 6px;
-    background-color: var(--gauge-start-color); /* 정의된 노란색 */
-    border-radius: 50%;
-    box-shadow: 0 0 3px var(--gauge-start-color);
-}
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 0 5px;
-        }
-        
-        .chart-info {
-            font-size: 0.8rem;
-            color: var(--text-light);
-        }
-
-        .chart-header select {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 40vh;
-            max-height: 400px;
-        }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        /* mypage.html의 <style> 안에 추가 */
-.history-item {
-    align-items: flex-start; /* 버튼이 위로 가도록 정렬 변경 */
-}
-.history-actions {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    text-align: right;
-}
-.delete-btn {
-    background: #fde2e2;
-    color: #c53030;
-    border: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 24px; /* X 아이콘 중앙 정렬 */
-    transition: all 0.2s;
-}
-.delete-btn:hover {
-    background: #c53030;
-    color: white;
-}
-
-/* --- 데이터 코치 스타일 --- */
-.data-coach {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    background-color: var(--primary-light);
-    border-radius: 12px;
-    padding: 15px;
-    margin-top: 20px;
-    border: 1px solid #d1e7dd;
-}
-.coach-icon {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-.coach-text h4 {
-    margin: 0 0 5px;
-    font-weight: 700;
-    color: var(--primary-color);
-}
-.coach-text p {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: var(--text-color);
-}
-
-    </style>
+ 
 </head>
 <body>
 
@@ -676,31 +416,27 @@ function renderFastingHistory() {
 
     // --- Charting Functions ---
    const newIconPlugin = {
-    id: 'newIconPlugin',
-    afterDraw: (chart) => {
-        const ctx = chart.ctx;
+        id: 'newIconPlugin',
+        afterDatasetsDraw: (chart) => {
+            // 이 플러그인은 더 이상 차트에 직접 아이콘을 그리지 않습니다.
+        }
+    };
+
+    // [수정] 'New' 알림 점 업데이트 함수 (CSS 클래스 토글 방식)
+    function updateTabIndicators() {
         const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-        
-        chart.data.datasets.forEach((dataset, i) => {
-            const meta = chart.getDatasetMeta(i);
-            if (!dataset.data) return;
-            
-            meta.data.forEach((element, index) => {
-                const dataPoint = dataset.data[index];
-                // 'createdAt' 속성이 있고, 6시간 이내인 데이터에만 (N) 아이콘을 그립니다.
-                if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
-                    ctx.save();
-                    ctx.font = 'bold 10px Noto Sans KR';
-                    ctx.fillStyle = 'red';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillText('(N)', element.x, element.y - 8);
-                    ctx.restore();
-                }
-            });
-        });
+        const isNew = (data) => data && data.length > 0 && data.some(item => item.createdAt && item.createdAt > sixHoursAgo);
+
+        document.querySelector('.tab-button.active')?.classList.remove('new-indicator'); // Clear active tab indicator
+
+        const weightTab = document.querySelector('.tab-button:nth-child(1)');
+        const bloodSugarTab = document.querySelector('.tab-button:nth-child(2)');
+        const ketoneTab = document.querySelector('.tab-button:nth-child(3)');
+
+        weightTab?.classList.toggle('new-indicator', isNew(allData.weight));
+        bloodSugarTab?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
+        ketoneTab?.classList.toggle('new-indicator', isNew(allData.ketone));
     }
-};
 
         // [수정] 차트 생성 함수 (요청하신 색상 테마 적용)
     function createChart(canvasId, label, data) {
