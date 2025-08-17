@@ -896,8 +896,8 @@ function updateUIState() {
 function updateTimer() {
     const now = new Date();
     const elapsed = now - selectedStartTime;
-    const target  = parseFloat(targetHours, 10) * 3600000;
-    const progress = Math.min((elapsed / target) * 100, 100); // <-- 이 줄을 위로 옮겼습니다.
+    const target  = parseFloat(targetHours) * 3600000;
+    const progress = Math.min((elapsed / target) * 100, 100);
 
     if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
 
@@ -907,12 +907,32 @@ function updateTimer() {
     const s = Math.floor((remain % 60000) / 1000);
     if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     
-    if (statusMessage) statusMessage.textContent = (elapsed / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
+    // [수정] statusMessage 업데이트 로직 변경
+    if (statusMessage) {
+        if ((elapsed / 3600000) >= 16) {
+            statusMessage.textContent = "세포 재활용, 오토파지 활성화 중!";
+        } else {
+            // innerHTML을 사용하여 스타일이 적용된 텍스트를 표시합니다.
+            statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
+        }
+    }
     
     checkMilestones(progress);
     
     if (progress >= 100 && !completionFired) {
-        // ... (목표 달성 로직은 그대로)
+        completionFired = true;
+        clearInterval(fastingInterval);
+
+        if (completionOverlay) {
+            completionOverlay.classList.add('show');
+        }
+
+        setTimeout(() => {
+            if (completionOverlay) {
+                completionOverlay.classList.remove('show');
+            }
+            stopFasting();
+        }, 4000);
     }
 }
    function startFasting() {
