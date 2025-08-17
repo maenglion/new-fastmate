@@ -2,9 +2,9 @@
  * firebase-init.js
  * - 모든 페이지 공통 초기화 스크립트
  * - compat SDK 전제:
- *   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
- *   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
- *   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+ * <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+ * <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+ * <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
  * - 본 파일은 위 3개 다음에 로드함
  * ========================================================= */
 
@@ -30,93 +30,78 @@
 
   
   // 5) 헬퍼: 구글 로그인 (팝업 우선, 실패 시 리다이렉트 폴백)
-window.__authPopupInFlight = null;  // 전역 가드
+  window.__authPopupInFlight = null;  // 전역 가드
 
-window.signInWithGoogle = async () => {
-  // 이미 로그인 상태면 바로 리턴
-  if (auth.currentUser) return auth.currentUser;
+  window.signInWithGoogle = async () => {
+    // 이미 로그인 상태면 바로 리턴
+    if (auth.currentUser) return auth.currentUser;
 
-  // 리다이렉트 복귀 결과 1회 회수
-  try {
-    const redirectRes = await auth.getRedirectResult();
-    if (redirectRes && redirectRes.user) return redirectRes.user;
-  } catch (e) {
-    console.warn('[getRedirectResult]', e?.code || e?.message || e);
-  }
-
-  // 이미 진행 중인 팝업 요청이 있으면 그걸 그대로 기다림(중복 방지)
-  if (window.__authPopupInFlight) return window.__authPopupInFlight;
-
-  const provider = new firebase.auth.GoogleAuthProvider();
-
-  // 하나의 팝업 요청만 떠 있도록 가드 설정
-  window.__authPopupInFlight = (async () => {
+    // 리다이렉트 복귀 결과 1회 회수
     try {
-      const cred = await auth.signInWithPopup(provider);
-      return cred.user;
+      const redirectRes = await auth.getRedirectResult();
+      if (redirectRes && redirectRes.user) return redirectRes.user;
     } catch (e) {
-      // 사용자가 팝업을 닫았거나 충돌 난 경우는 조용히 종료
-      if (e?.code === 'auth/popup-closed-by-user' ||
-          e?.code === 'auth/cancelled-popup-request') {
+      console.warn('[getRedirectResult]', e?.code || e?.message || e);
+    }
+
+    // 이미 진행 중인 팝업 요청이 있으면 그걸 그대로 기다림(중복 방지)
+    if (window.__authPopupInFlight) return window.__authPopupInFlight;
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    // 하나의 팝업 요청만 떠 있도록 가드 설정
+    window.__authPopupInFlight = (async () => {
+      try {
+        const cred = await auth.signInWithPopup(provider);
+        return cred.user;
+      } catch (e) {
+        // 사용자가 팝업을 닫았거나 충돌 난 경우는 조용히 종료
+        if (e?.code === 'auth/popup-closed-by-user' ||
+            e?.code === 'auth/cancelled-popup-request') {
+          return null;
+        }
+
+        // 쿠키/팝업 정책 등으로 막힌 경우 → 리다이렉트 폴백
+        const fallbackCodes = [
+          'auth/popup-blocked',
+          'auth/cookie-policy-restricted',
+          'auth/internal-error'
+        ];
+        if (fallbackCodes.includes(e?.code)) {
+          // 가드 해제 후 리다이렉트로 넘김
+          window.__authPopupInFlight = null;
+          await auth.signInWithRedirect(provider);
+          return null; // 여기서 페이지 떠남
+        }
+
+        console.error(e);
+        alert(e.message || 'Google 로그인 실패');
         return null;
-      }
-
-      // 쿠키/팝업 정책 등으로 막힌 경우 → 리다이렉트 폴백
-      const fallbackCodes = [
-        'auth/popup-blocked',
-        'auth/cookie-policy-restricted',
-        'auth/internal-error'
-      ];
-      if (fallbackCodes.includes(e?.code)) {
-        // 가드 해제 후 리다이렉트로 넘김
+      } finally {
+        // 팝업 플로우가 끝났으면 가드 해제
         window.__authPopupInFlight = null;
-        await auth.signInWithRedirect(provider);
-        return null; // 여기서 페이지 떠남
       }
+    })();
 
-      console.error(e);
-      alert(e.message || 'Google 로그인 실패');
-      return null;
-    } finally {
-      // 팝업 플로우가 끝났으면 가드 해제
-      window.__authPopupInFlight = null;
-    }
-  })();
+    return window.__authPopupInFlight;
+  };
 
-  return window.__authPopupInFlight;
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  // 1) Google 버튼이 실제로 로그인 호출하도록
-  document.getElementById('googleLoginBtn')?.addEventListener('click', async () => {
-    try { await signInWithGoogle(); } catch (_) {}
-  });
-  document.getElementById('googleSignupBtn')?.addEventListener('click', async () => {
-    try { await signInWithGoogle(); } catch (_) {}
-  });
-
-  // 2) 리다이렉트로 돌아온 경우 처리
-  auth.getRedirectResult().then(async (res) => {
-    if (res.user) {
-      await ensureUserProfile();
-      window.location.replace('./fastmate.html');
-    }
-  }).catch(console.error);
-
-  // 3) 팝업/리다이렉트 모두 공통: 유저가 생기면 보내기
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      await ensureUserProfile();
-      window.location.replace('./fastmate.html');
-    }
-  });
-});
+  /*
+   * ===================================================================
+   * [수정] 아래의 전역 리디렉션 로직을 모두 삭제했습니다.
+   * 각 페이지(signup.html, fastmate.html)가 자신의 상황에 맞게
+   * 화면 전환을 처리하는 것이 훨씬 안정적이기 때문입니다.
+   * ===================================================================
+   */
+  // document.addEventListener('DOMContentLoaded', () => { ... }); <- 기존 블록 삭제
 
   
   // 6) 헬퍼: 로그아웃
   window.appSignOut = async () => {
     try {
       await auth.signOut();
+      // 로그아웃 후 로그인 페이지로 이동
+      window.location.href = './login.html';
     } catch (e) {
       console.error(e);
       alert(e.message);
