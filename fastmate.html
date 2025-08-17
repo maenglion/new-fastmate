@@ -864,17 +864,24 @@ let fastingInterval  = null;
     if (startTimeValue) startTimeValue.textContent = fmt(start);
     if (endTimeValue)   endTimeValue.textContent   = fmt(end);
   }
-  function updateUIState() {
+  // fastmate.html의 <script> 안에서 updateUIState 함수를 찾아 교체
+function updateUIState() {
     const running = fastingState === 'running';
     if (startBtn) {
-      startBtn.disabled = running;
-      startBtn.textContent = running ? '단식중' : '단식 시작';
-      startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
-      startBtn.style.color = running ? 'var(--text-color)' : '#fff';
+        startBtn.disabled = running;
+        startBtn.textContent = running ? '단식중' : '단식 시작';
+        startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
+        startBtn.style.color = running ? 'var(--text-color)' : '#fff';
     }
-    if (stopBtn) { stopBtn.disabled = !running; stopBtn.style.opacity = running ? '1' : '0.5'; }
-    if (startTimeBox) { startTimeBox.style.pointerEvents = running ? 'none' : 'auto'; }
-  }
+    if (stopBtn) { 
+        stopBtn.disabled = !running; 
+        stopBtn.style.opacity = running ? '1' : '0.5'; 
+    }
+    // [추가] 단식 중에는 시작 시간 박스를 클릭할 수 없도록 비활성화
+    if (startTimeBox) { 
+        startTimeBox.style.pointerEvents = running ? 'none' : 'auto'; 
+    }
+}
   function checkMilestones(progress) {
     const messages = { 10:"시작이 반! 💧", 25:"25% 달성!", 50:"절반! 대단해요. 💧", 70:"거의 다 왔습니다!", 90:"90% 돌파! 화이팅! 💧" };
     Object.keys(milestones).forEach((p) => {
@@ -882,28 +889,27 @@ let fastingInterval  = null;
       if (progress >= pi && !milestones[p]) { showToast(messages[p]); milestones[p] = true; }
     });
   }
-  function updateTimer() {
-    // ... (기존의 now, elapsed, target, progress 등 계산 로직은 그대로) ...
+  // fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
+function updateTimer() {
+    const now = new Date();
+    const elapsed = now - selectedStartTime;
+    const target  = parseFloat(targetHours, 10) * 3600000;
+    const progress = Math.min((elapsed / target) * 100, 100); // <-- 이 줄을 위로 옮겼습니다.
+
+    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
+
+    const remain = Math.max(0, target - elapsed);
+    const h = Math.floor(remain / 3600000);
+    const m = Math.floor((remain % 3600000) / 60000);
+    const s = Math.floor((remain % 60000) / 1000);
+    if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    
+    if (statusMessage) statusMessage.textContent = (elapsed / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
     
     checkMilestones(progress);
-
-    // [수정] 아래 if문을 통째로 교체해주세요.
+    
     if (progress >= 100 && !completionFired) {
-        completionFired = true; // 이벤트가 중복 실행되지 않도록 깃발을 세움
-        clearInterval(fastingInterval); // 타이머 즉시 정지
-
-        // 축하 화면 표시
-        if (completionOverlay) {
-            completionOverlay.classList.add('show');
-        }
-
-        // 4초 후에 축하 화면을 숨기고 앱을 초기화(단식 종료)
-        setTimeout(() => {
-            if (completionOverlay) {
-                completionOverlay.classList.remove('show');
-            }
-            stopFasting(); // 기존의 단식 종료 및 초기화 함수 호출
-        }, 4000); // 4초 동안 애니메이션 표시
+        // ... (목표 달성 로직은 그대로)
     }
 }
    function startFasting() {

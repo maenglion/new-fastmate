@@ -309,6 +309,33 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        /* mypage.html의 <style> 안에 추가 */
+.history-item {
+    align-items: flex-start; /* 버튼이 위로 가도록 정렬 변경 */
+}
+.history-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-align: right;
+}
+.delete-btn {
+    background: #fde2e2;
+    color: #c53030;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 24px; /* X 아이콘 중앙 정렬 */
+    transition: all 0.2s;
+}
+.delete-btn:hover {
+    background: #c53030;
+    color: white;
+}
 
     </style>
 </head>
@@ -448,17 +475,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return [];
         }
     }
-    async function fetchFastingHistory() {
-        const user = firebase.auth().currentUser;
-        if (!user) return [];
-        try {
-            const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
-            return snap.docs.map(doc => ({ ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
-        } catch (error) {
-            console.error("단식 기록 로딩 실패:", error);
-            return [];
-        }
+   // mypage.html의 <script> 안에서 fetchFastingHistory 함수를 찾아 교체
+async function fetchFastingHistory() {
+    const user = firebase.auth().currentUser;
+    if (!user) return [];
+    try {
+        const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
+        // [수정] 각 문서의 고유 id를 함께 반환하도록 변경
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
+    } catch (error) {
+        console.error("단식 기록 로딩 실패:", error);
+        return [];
     }
+}
 
     // --- Main Data Loading and Rendering Function ---
     async function loadAndRenderAllData() {
@@ -534,23 +563,36 @@ document.addEventListener('DOMContentLoaded', () => {
         container.querySelector('.next-page')?.addEventListener('click', () => onPageChange(currentPage + 1));
     }
 
-    function renderFastingHistory() {
-        renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            const hours = Math.floor(item.actualDurationHours);
-            const minutes = Math.round((item.actualDurationHours - hours) * 60);
-            const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
-            
-            let color = 'var(--primary-color)'; // 60% 이상: 초록색 (기본)
-            if (percentage < 1) color = '#FAAD14'; // 0%: 주황색
-            else if (percentage <= 60) color = 'var(--gauge-start-color)'; // 60% 이하: 노란색
+    // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체
+function renderFastingHistory() {
+    renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.dataset.docId = item.id; // [추가] 리스트 항목에 문서 ID를 저장
 
-            const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-            li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분</div><div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div></div><div class="history-percentage" style="color: ${color};">${percentage}%</div>`;
-            return li;
-        }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
-    }
+        const hours = Math.floor(item.actualDurationHours);
+        const minutes = Math.round((item.actualDurationHours - hours) * 60);
+        const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
+        
+        let color = 'var(--primary-color)';
+        if (percentage < 1) color = '#FAAD14';
+        else if (percentage <= 60) color = 'var(--gauge-start-color)';
+
+        const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+        
+        // [수정] 삭제 버튼(x)을 HTML에 추가
+        li.innerHTML = `
+            <div class="history-info">
+                <div class="duration">${hours}시간 ${minutes}분</div>
+                <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
+            </div>
+            <div class="history-actions">
+                <div class="history-percentage" style="color: ${color};">${percentage}%</div>
+                <button class="delete-btn" title="기록 삭제">×</button>
+            </div>`;
+        return li;
+    }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
+}
 
     function renderExerciseHistory() {
         renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
@@ -664,5 +706,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     dateRangeSelector.addEventListener('change', renderAllCharts);
+});
+
+// 단식 기록 리스트에서 클릭 이벤트 처리 (이벤트 위임)
+fastingHistoryList.addEventListener('click', async (e) => {
+    // 삭제 버튼(delete-btn)을 클릭한 경우에만 동작
+    if (e.target.classList.contains('delete-btn')) {
+        const li = e.target.closest('.history-item');
+        const docId = li.dataset.docId;
+
+        if (docId && confirm('이 단식 기록을 정말로 삭제하시겠습니까?')) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+                
+                // Firestore에서 해당 문서 삭제
+                await db.collection('users').doc(user.uid).collection('fastingHistory').doc(docId).delete();
+
+                // 화면에서 해당 항목 즉시 제거
+                li.remove();
+                
+                // allData에서도 제거하여 페이지네이션 오류 방지
+                allData.fasting = allData.fasting.filter(item => item.id !== docId);
+
+                alert('기록이 삭제되었습니다.');
+            } catch (error) {
+                console.error("기록 삭제 실패:", error);
+                alert('기록 삭제에 실패했습니다.');
+            }
+        }
+    }
 });
 </script>
