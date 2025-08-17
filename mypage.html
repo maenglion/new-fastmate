@@ -383,432 +383,250 @@
 
    <script>
 document.addEventListener('DOMContentLoaded', () => {
-  let bootstrapped = false;
+    // --- DOM Elements ---
+    const homeBtn = document.getElementById('homeBtn');
+    const pfNickname = document.getElementById('pfNickname');
+    const pfEmail = document.getElementById('pfEmail');
+    const pfGoals = document.getElementById('pfGoals');
+    const userNicknameHeader = document.getElementById('userNickname');
+    const fastingHistoryList = document.getElementById('fastingHistoryList');
+    const fastingPaginationControls = document.getElementById('fastingPaginationControls');
+    const exerciseHistoryList = document.getElementById('exerciseHistoryList');
+    const exercisePaginationControls = document.getElementById('exercisePaginationControls');
+    const tabs = document.querySelectorAll('.tab-button');
+    const dateRangeSelector = document.getElementById('dateRangeSelector');
+    
+    // --- State Variables ---
+    let allCharts = {}; // 생성된 차트 객체들을 저장
+    let allData = {};   // Firestore에서 불러온 모든 데이터를 저장
+    let fastingCurrentPage = 1;
+    let exerciseCurrentPage = 1;
+    const itemsPerPage = 7;
 
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) { window.location.href = './login.html'; return; }
+    const db = firebase.firestore();
 
-    if (sessionStorage.getItem('onboardingLock') === '1') {
-      if (!bootstrapped) {
-        bootstrapped = true;
-        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
-      }
-      return;
+    // --- Firebase Auth Listener (Main Entry Point) ---
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            loadAllData(); // 로그인 확인 후 모든 데이터 로딩 시작
+        } else {
+            window.location.href = './login.html';
+        }
+    });
+
+    // --- Data Fetching Functions ---
+    async function fetchFromFirestore(collectionPath, orderBy = 'date') {
+        const user = firebase.auth().currentUser;
+        if (!user) return [];
+        const snap = await db.collection('users').doc(user.uid).collection('measurements').doc(collectionPath).collection('items').orderBy(orderBy, 'desc').limit(200).get();
+        return snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                date: data.date?.toDate?.() || new Date(),
+                createdAt: data.createdAt?.toDate?.() || new Date()
+            };
+        });
+    }
+    async function fetchFastingHistory() {
+        const user = firebase.auth().currentUser;
+        if (!user) return [];
+        const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
+        return snap.docs.map(doc => ({ ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
     }
 
-    try {
-      const prof = await getUserDoc().catch(() => null);
-      const completed   = !!prof?.onboarding?.completed;
-      const hasNickname = !!prof?.nickname;
-      const hasGoals    = Array.isArray(prof?.onboarding?.reasons) && prof.onboarding.reasons.length > 0;
+    // --- Main Data Loading and Rendering Function ---
+    async function loadAllData() {
+        try {
+            const [profile, weight, bloodSugar, ketone, fasting, exercise] = await Promise.all([
+                getUserDoc(),
+                fetchFromFirestore('weight'),
+                fetchFromFirestore('bloodSugar'),
+                fetchFromFirestore('ketone'),
+                fetchFastingHistory(),
+                fetchFromFirestore('exercise')
+            ]);
 
-      if (!completed || !hasNickname || !hasGoals) {
-        sessionStorage.setItem('onboardingLock', '1');
-        window.location.href = './signup.html?step=2&from=fastmate';
-        return;
-      }
+            allData = { profile, weight, bloodSugar, ketone, fasting, exercise };
 
-      sessionStorage.removeItem('onboardingLock');
+            renderProfileCard();
+            renderFastingHistory();
+            renderExerciseHistory();
+            renderAllCharts();
 
-      if (!bootstrapped) {
-        bootstrapped = true;
-        const chip = document.getElementById('userChip');
-        const chipName = document.getElementById('userChipName');
-        const nickname = prof?.nickname || user.displayName || (user.email ? user.email.split('@')[0] : '회원');
-        if (chip && chipName) {
-          chipName.textContent = nickname;
-          chip.style.display = 'flex';
-          chip.onclick = () => (window.location.href = './mypage.html');
+        } catch (error) {
+            console.error("모든 데이터를 불러오는 중 오류 발생:", error);
+        }
+    }
+
+    // --- Rendering Functions ---
+    function renderProfileCard() {
+        const profile = allData.profile;
+        const user = firebase.auth().currentUser;
+        if (!profile || !user) return;
+        
+        // 상단 프로필 카드 닉네임/이메일 설정
+        const nickname = profile?.nickname || user.displayName || '사용자';
+        pfNickname.textContent = `${nickname}님`;
+        pfEmail.textContent = user.email || '이메일 정보 없음';
+        
+        // 프로필 카드 아래에 있던 h2는 숨김 처리
+        if (userNicknameHeader) {
+            userNicknameHeader.parentElement.style.display = 'none';
         }
 
-        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
-      }
-    } catch (e) {
-      console.error(e);
-      if (!bootstrapped) {
-        bootstrapped = true;
-        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
-      }
-    }
-  });
-
-  /* =========================
-   * 1) DOM 캐시
-   * ========================= */
-  const progressArc      = document.getElementById('progressArc');
-  const remainingTimeEl  = document.getElementById('remainingTime');
-  const statusMessage    = document.getElementById('status-message');
-  const saltTip          = document.getElementById('salt-tip');
-  const startBtn         = document.getElementById('startBtn');
-  const stopBtn          = document.getElementById('stopBtn');
-  const modelSelect      = document.getElementById('fastingModelSelect');
-  const startTimeBox     = document.getElementById('startTimeBox');
-  const startTimeValue   = document.getElementById('startTimeValue');
-  const endTimeValue     = document.getElementById('endTimeValue');
-  const timePickerModal  = document.getElementById('timePickerModal');
-  const dayBeforeBtn     = document.getElementById('dayBeforeBtn');
-  const todayBtn         = document.getElementById('todayBtn');
-  const hourSelect       = document.getElementById('hourSelect');
-  const minuteSelect     = document.getElementById('minuteSelect');
-  const ampmSelect       = document.getElementById('ampmSelect');
-  const saveTimeBtn      = document.getElementById('saveTimeBtn');
-  const confirmChangeModal = document.getElementById('confirmChangeModal');
-  const confirmMessage     = document.getElementById('confirmMessage');
-  const confirmYesBtn      = document.getElementById('confirmYesBtn');
-  const confirmNoBtn       = document.getElementById('confirmNoBtn');
-  const bloodSugarBtn    = document.getElementById('bloodSugarBtn');
-  const ketoneBtn        = document.getElementById('ketoneBtn');
-  const exerciseBtn      = document.getElementById('exerciseBtn');
-  const bloodSugarModal  = document.getElementById('bloodSugarModal');
-  const saveBloodSugarBtn= document.getElementById('saveBloodSugarBtn');
-  const bloodSugarInput  = document.getElementById('bloodSugarInput');
-  const ketoneModal      = document.getElementById('ketoneModal');
-  const saveKetoneBtn    = document.getElementById('saveKetoneBtn');
-  const ketoneInput      = document.getElementById('ketoneInput');
-  const exerciseModal    = document.getElementById('exerciseModal');
-  const exerciseTypeWrap = document.getElementById('exerciseType');
-  const exerciseDuration = document.getElementById('exerciseDuration');
-  const exerciseCalories = document.getElementById('exerciseCalories');
-  const saveExerciseBtn  = document.getElementById('saveExerciseBtn');
-  const privacyPolicyLink= document.getElementById('privacyPolicyLink');
-  const toast            = document.getElementById('toast');
-  const weightBtn        = document.getElementById('weightBtn');
-  const weightModal      = document.getElementById('weightModal');
-  const saveWeightBtn    = document.getElementById('saveWeightBtn');
-  const weightInput      = document.getElementById('weightInput');
-
-  /* =========================
-   * 2) 상태/유틸
-   * ========================= */
-  let fastingInterval  = null;
-  let targetHours      = 16;
-  let fastingState     = 'idle';
-  let selectedStartTime= new Date();
-  let pendingTargetHours = null;
-  let toastTimeout     = null;
-  const milestones = { 10:false, 25:false, 50:false, 70:false, 80:false, 90:false };
-  const db = firebase.firestore();
-
-  function showToast(msg) {
-    if (!toast) return;
-    clearTimeout(toastTimeout);
-    toast.textContent = msg;
-    toast.classList.add('show');
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
-  }
-  function saveLocalList(key, data) {
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    arr.unshift(data);
-    localStorage.setItem(key, JSON.stringify(arr));
-  }
-  function ensureSignedIn() {
-    const user = auth?.currentUser;
-    if (!user) {
-      showToast('로그인이 필요합니다.');
-      window.location.href = './login.html';
-      return null;
-    }
-    return user;
-  }
-
-  /* =========================
-   * 3) 단식 타이머
-   * ========================= */
-  function updateTimeDisplays() {
-    const start = selectedStartTime;
-    const duration = parseInt(modelSelect.value || targetHours, 10);
-    const end = new Date(start.getTime() + duration * 3600000);
-    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
-    if (startTimeValue) startTimeValue.textContent = fmt(start);
-    if (endTimeValue)   endTimeValue.textContent   = fmt(end);
-  }
-  function updateUIState() {
-    const running = fastingState === 'running';
-    if (startBtn) {
-      startBtn.disabled = running;
-      startBtn.textContent = running ? '단식중' : '단식 시작';
-      startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
-      startBtn.style.color = running ? 'var(--text-color)' : '#fff';
-    }
-    if (stopBtn) { stopBtn.disabled = !running; stopBtn.style.opacity = running ? '1' : '0.5'; }
-    if (startTimeBox) { startTimeBox.style.pointerEvents = running ? 'none' : 'auto'; }
-  }
-  function checkMilestones(progress) {
-    const messages = { 10:"시작이 반! 💧", 25:"25% 달성!", 50:"절반! 대단해요. 💧", 70:"거의 다 왔습니다!", 90:"90% 돌파! 화이팅! 💧" };
-    Object.keys(milestones).forEach((p) => {
-      const pi = parseInt(p,10);
-      if (progress >= pi && !milestones[p]) { showToast(messages[p]); milestones[p] = true; }
-    });
-  }
-  function updateTimer() {
-    const now = new Date();
-    const elapsed = now - selectedStartTime;
-    const target  = targetHours * 3600000;
-    const progress = Math.min((elapsed / target) * 100, 100);
-    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
-    const remain = Math.max(0, target - elapsed);
-    const h = Math.floor(remain / 3600000);
-    const m = Math.floor((remain % 3600000) / 60000);
-    const s = Math.floor((remain % 60000) / 1000);
-    if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    if (statusMessage) statusMessage.textContent = (elapsed / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
-    checkMilestones(progress);
-    if (progress >= 100) showToast("목표 달성! 축하합니다!");
-  }
-  function startFasting() {
-    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
-    fastingState = 'running';
-    targetHours = parseInt(modelSelect.value, 10);
-    localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
-    localStorage.setItem('fastingTargetHours', targetHours);
-    Object.keys(milestones).forEach(k=> milestones[k]=false);
-    if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-    fastingInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-    updateUIState();
-  }
-  async function stopFasting() {
-    if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
-    clearInterval(fastingInterval);
-    fastingState = 'idle';
-    const record = { startTime: selectedStartTime.toISOString(), endTime: new Date().toISOString(), targetHours, actualDurationHours: (new Date() - selectedStartTime) / 3600000 };
-    saveLocalList('fastingHistoryData', record);
-    try {
-      const user = ensureSignedIn(); if (!user) return;
-      await db.collection('users').doc(user.uid).collection('fastingHistory').add({ startTime: new Date(record.startTime), endTime: new Date(record.endTime), targetHours: record.targetHours, actualDurationHours: record.actualDurationHours, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    } catch (e) { console.error('save fasting history failed:', e); }
-    localStorage.removeItem('fastingStartTime');
-    localStorage.removeItem('fastingTargetHours');
-    if (progressArc) progressArc.style.strokeDasharray = '0 100';
-    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
-    if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-    if (saltTip) saltTip.style.display = 'none';
-    if (endTimeValue) endTimeValue.textContent = '-';
-    selectedStartTime = new Date();
-    updateTimeDisplays();
-    updateUIState();
-    showToast("단식을 종료했습니다. 수고하셨습니다!");
-  }
-  function handleModelChange(e) {
-    const newTarget = parseInt(e.target.value, 10);
-    if (fastingState === 'running' && newTarget !== targetHours) {
-      pendingTargetHours = newTarget;
-      if (confirmChangeModal && confirmMessage) {
-        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
-        confirmChangeModal.style.display = 'flex';
-      }
-      e.target.value = targetHours;
-    } else if (fastingState !== 'running') {
-      targetHours = newTarget;
-      updateTimeDisplays();
-    }
-  }
-
-  /* =========================
-   * 4) 시간 선택 초기화
-   * ========================= */
-  function initializeTimePicker() {
-    if (!timePickerModal) return;
-    hourSelect.innerHTML = '';
-    for (let i=1;i<=12;i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
-    minuteSelect.innerHTML = '';
-    for (let i=0;i<60;i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2,'0')}</option>`;
-    startTimeBox?.addEventListener('click', () => {
-      if (fastingState === 'running') return;
-      const now = selectedStartTime;
-      let h = now.getHours();
-      const ampm = h>=12 ? 'PM' : 'AM';
-      h = h%12; h = h ? h : 12;
-      hourSelect.value = h;
-      minuteSelect.value = now.getMinutes();
-      ampmSelect.value = ampm;
-      timePickerModal.style.display = 'flex';
-    });
-    dayBeforeBtn?.addEventListener('click', () => { dayBeforeBtn.classList.add('active'); todayBtn.classList.remove('active'); });
-    todayBtn?.addEventListener('click', () => { todayBtn.classList.add('active'); dayBeforeBtn.classList.remove('active'); });
-    saveTimeBtn?.addEventListener('click', () => {
-      let hour = parseInt(hourSelect.value,10);
-      const minute = parseInt(minuteSelect.value,10);
-      const isPM = ampmSelect.value === 'PM';
-      if (isPM && hour < 12) hour += 12;
-      if (!isPM && hour === 12) hour = 0;
-      const newDate = new Date();
-      if (dayBeforeBtn?.classList.contains('active')) newDate.setDate(newDate.getDate()-1);
-      newDate.setHours(hour, minute, 0, 0);
-      selectedStartTime = newDate;
-      updateTimeDisplays();
-      timePickerModal.style.display = 'none';
-    });
-  }
-  function initializeTime() {
-    selectedStartTime = new Date();
-    updateTimeDisplays();
-  }
-  function loadState() {
-    const savedStart = localStorage.getItem('fastingStartTime');
-    const savedHours = localStorage.getItem('fastingTargetHours');
-    if (savedStart && savedHours) {
-      const start = new Date(savedStart);
-      const hrs   = parseInt(savedHours,10);
-      if ((new Date() - start) < hrs*3600000) {
-        selectedStartTime = start;
-        targetHours = hrs;
-        modelSelect.value = hrs;
-        fastingState = 'running';
-        if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-        fastingInterval = setInterval(updateTimer,1000);
-        updateTimer();
-      } else {
-        localStorage.removeItem('fastingStartTime');
-        localStorage.removeItem('fastingTargetHours');
-      }
-    }
-    updateTimeDisplays();
-    updateUIState();
-  }
-
-  /* =========================
-   * 5) 이벤트 바인딩 (1회)
-   * ========================= */
-  let eventsWired = false;
-  function wireEventsOnce() {
-    if (eventsWired) return;
-    eventsWired = true;
-
-    startBtn?.addEventListener('click', startFasting);
-    stopBtn?.addEventListener('click', stopFasting);
-    modelSelect?.addEventListener('change', handleModelChange);
-
-    confirmYesBtn?.addEventListener('click', () => {
-      if (pendingTargetHours == null) return;
-      targetHours = pendingTargetHours; pendingTargetHours = null;
-      modelSelect.value = targetHours;
-      localStorage.setItem('fastingTargetHours', targetHours);
-      updateTimeDisplays(); updateTimer();
-      if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-      showToast("단식 목표가 변경되었습니다.");
-      confirmChangeModal.style.display = 'none';
-    });
-    confirmNoBtn?.addEventListener('click', () => {
-      modelSelect.value = targetHours;
-      confirmChangeModal.style.display = 'none';
-    });
-    
-    // --- 체중 기록 ---
-    weightBtn?.addEventListener('click', () => weightModal && (weightModal.style.display='flex'));
-    saveWeightBtn?.addEventListener('click', async () => {
-      const v = parseFloat(weightInput?.value);
-      if (!v || v <= 0) return showToast("올바른 체중을 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('weight').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } catch (e) {
-        console.error('save weight failed:', e);
-        showToast('서버 저장 실패(체중)… 잠시 후 다시 시도해주세요.');
-      }
-      weightInput.value = '';
-      weightModal.style.display = 'none';
-      showToast("체중이 저장되었습니다.");
-    });
-    
-    // --- 혈당 기록 ---
-    bloodSugarBtn?.addEventListener('click', () => {
-      if (bloodSugarModal) {
-        bloodSugarModal.style.display = 'flex';
-      } else {
-        const v = parseFloat(prompt('혈당 수치 (mg/dL)를 입력하세요:') || '');
-        if (v > 0) {
-          saveLocalList('bloodSugarData', { date:new Date().toISOString(), value:v });
-          showToast('혈당 수치가 저장되었습니다.');
+        const goals = profile?.onboarding?.reasons || [];
+        pfGoals.innerHTML = '';
+        if (goals.length > 0) {
+            goals.forEach(goalText => {
+                const tag = document.createElement('div');
+                tag.className = 'goal-tag';
+                tag.textContent = goalText;
+                pfGoals.appendChild(tag);
+            });
+        } else {
+            pfGoals.textContent = '설정된 목표가 없습니다.';
         }
-      }
-    });
-    saveBloodSugarBtn?.addEventListener('click', async () => {
-      const v = parseFloat(bloodSugarInput?.value);
-      if (!v || v<=0) return showToast("올바른 혈당 수치를 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
-      saveLocalList('bloodSugarData', { date:new Date().toISOString(), value:v });
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } catch (e) {
-        console.error('save blood sugar failed:', e);
-        showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
-      }
-      bloodSugarInput.value = '';
-      bloodSugarModal.style.display = 'none';
-      showToast("혈당 수치가 저장되었습니다.");
-    });
-
-    // --- 케톤 기록 ---
-    ketoneBtn?.addEventListener('click', () => ketoneModal && (ketoneModal.style.display='flex'));
-    saveKetoneBtn?.addEventListener('click', async () => {
-      const v = parseFloat(ketoneInput?.value);
-      if (v == null || isNaN(v) || v < 0) return showToast("올바른 케톤 수치를 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
-      saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('ketone').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } catch (e) {
-        console.error('save ketone failed:', e);
-        showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
-      }
-      ketoneInput.value = '';
-      ketoneModal.style.display = 'none';
-      showToast("케톤 수치가 저장되었습니다.");
-    });
-
-    // --- 운동 기록 ---
-    exerciseBtn?.addEventListener('click', () => exerciseModal && (exerciseModal.style.display='flex'));
-    exerciseTypeWrap?.addEventListener('click', (e) => {
-      if (!e.target.classList.contains('tag')) return;
-      const prev = exerciseTypeWrap.querySelector('.tag.active');
-      if (prev) prev.classList.remove('active');
-      e.target.classList.add('active');
-    });
-    saveExerciseBtn?.addEventListener('click', async () => {
-      const sel = exerciseTypeWrap?.querySelector('.tag.active');
-      const duration = parseInt(exerciseDuration?.value,10);
-      const calories = exerciseCalories?.value === '' ? null : parseInt(exerciseCalories.value,10);
-      if (!sel) return showToast("운동 종류를 선택하세요.");
-      if (!duration || duration<=0) return showToast("올바른 운동 시간을 입력하세요.");
-      if (calories !== null && calories < 0) return showToast("칼로리는 0 이상으로 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
-      const rec = { date:new Date().toISOString(), type: sel.dataset.value, duration, calories };
-      saveLocalList('exerciseData', rec);
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('exercise').collection('items').add({ date: new Date(), type: rec.type, duration: rec.duration, calories: rec.calories ?? 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } catch (e) {
-        console.error('save exercise failed:', e);
-        showToast('서버 저장 실패(운동)… 잠시 후 다시 시도해주세요.');
-      }
-      sel.classList.remove('active');
-      exerciseDuration.value = '';
-      exerciseCalories.value = '';
-      exerciseModal.style.display = 'none';
-      showToast("운동 기록이 저장되었습니다.");
-    });
-
-    // --- 기타 링크 및 공통 이벤트 ---
-    privacyPolicyLink?.addEventListener('click', (e) => {
-      e.preventDefault();
-      showToast("개인정보처리방침 페이지로 이동합니다. (개발 중)");
-    });
-  }
-
-  // --- 공통 모달 닫기 로직 ---
-  document.addEventListener('click', (e) => {
-    const closeId = e.target?.getAttribute?.('data-close');
-    if (closeId) {
-      const el = document.getElementById(closeId);
-      if (el) el.style.display = 'none';
     }
-  });
 
-  window.addEventListener('click', (e) => {
-    [timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal, weightModal]
-      .filter(Boolean)
-      .forEach(modal => { if (e.target === modal) modal.style.display = 'none'; });
-  });
+    function renderHistory(listEl, paginationEl, data, page, renderItemFn, onPageChange) {
+        listEl.innerHTML = '';
+        if (!data || data.length === 0) {
+            listEl.innerHTML = '<li style="text-align:center; color: var(--text-light); padding: 20px 0;">기록이 없습니다.</li>';
+            paginationEl.innerHTML = '';
+            return;
+        }
+        const totalPages = Math.ceil(data.length / itemsPerPage);
+        const startIndex = (page - 1) * itemsPerPage;
+        const pageItems = data.slice(startIndex, startIndex + itemsPerPage);
+        pageItems.forEach(item => listEl.appendChild(renderItemFn(item)));
+        renderPagination(paginationEl, page, totalPages, onPageChange);
+    }
+    
+    function renderPagination(container, currentPage, totalPages, onPageChange) {
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = `<button class="prev-page" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button><span>${currentPage} / ${totalPages}</span><button class="next-page" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
+        container.querySelector('.prev-page')?.addEventListener('click', () => onPageChange(currentPage - 1));
+        container.querySelector('.next-page')?.addEventListener('click', () => onPageChange(currentPage + 1));
+    }
 
+    function renderFastingHistory() {
+        renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            const hours = Math.floor(item.actualDurationHours);
+            const minutes = Math.round((item.actualDurationHours - hours) * 60);
+            const percentage = Math.round((item.actualDurationHours / item.targetHours) * 100);
+            const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+            li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분</div><div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div></div><div class="history-percentage">${percentage}%</div>`;
+            return li;
+        }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
+    }
+
+    function renderExerciseHistory() {
+        renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            const format = (d) => `${d.getMonth()+1}/${d.getDate()}`;
+            li.innerHTML = `<div class="history-info"><div class="type">${item.type}</div><div class="details">${format(item.date)} / ${item.duration}분</div></div><div class="history-calories">${item.calories || 0} <span class="unit">kcal</span></div>`;
+            return li;
+        }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
+    }
+
+    // --- Charting Functions ---
+    const newIconPlugin = {
+        id: 'newIconPlugin',
+        afterDraw: (chart) => {
+            const ctx = chart.ctx;
+            const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                if (!dataset.data) return;
+                meta.data.forEach((element, index) => {
+                    const dataPoint = dataset.data[index];
+                    if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
+                        ctx.save();
+                        ctx.font = 'bold 10px Noto Sans KR';
+                        ctx.fillStyle = 'red';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText('(N)', element.x, element.y - 8);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    function createChart(canvasId, label, data, color) {
+        if (allCharts[canvasId]) { allCharts[canvasId].destroy(); }
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        allCharts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label,
+                    data: data.map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt })),
+                    borderColor: color,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    pointRadius: 3,
+                    pointBackgroundColor: color,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
+                        grid: { display: true, color: '#f0f0f0' } // 격자 보이도록 수정
+                    },
+                    y: {
+                        beginAtZero: false,
+                        grid: { display: true, color: '#e0e0e0' } // 격자 보이도록 수정
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true, mode: 'index', intersect: false },
+                    zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
+                }
+            },
+            plugins: [newIconPlugin]
+        });
+    }
+
+    function renderAllCharts() {
+        const range = dateRangeSelector.value;
+        const filterFn = (data) => {
+            if (range === 'all' || !data) return data;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
+            return data.filter(d => d.date >= cutoffDate);
+        };
+
+        createChart('weightChart', '체중 (kg)', filterFn(allData.weight), 'rgba(54, 162, 235, 1)');
+        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar), 'rgba(255, 206, 86, 1)');
+        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone), 'rgba(255, 99, 132, 1)');
+    }
+
+    // --- Event Listeners ---
+    homeBtn?.addEventListener('click', () => { window.location.href = './fastmate.html'; });
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
+        });
+    });
+
+    dateRangeSelector.addEventListener('change', renderAllCharts);
 });
 </script>
