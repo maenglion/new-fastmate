@@ -304,7 +304,7 @@
             <button id="homeBtn" class="home-btn" title="홈으로 돌아가기">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             </button>
-            <h1 class="main-title">나의 건강 데이터</h1>
+            <h1 class="main-title">마이페이지</h1>
         </header>
         
         <!-- 개선된 프로필 카드 -->
@@ -325,7 +325,7 @@
                 </div>
             </div>
         </div>
-        <h2><span id="userNickname"></span>님의 마이페이지</h2>
+        <h2><span id="userNickname"></span>나의 건강데이터</h2>
 
         <div class="card">
             <section class="history-section">
@@ -497,6 +497,12 @@
     }
     localStorage.setItem('exerciseData', JSON.stringify(mockExercise));
   } */
+
+  Object.keys(localStorage).forEach(key => {
+    localStorage.removeItem(key);
+});
+
+console.log('localStorage의 모든 데이터가 삭제되었습니다.');
 });
 
             // --- DOM Elements ---
