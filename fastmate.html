@@ -644,8 +644,14 @@
 <div id="bloodSugarModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
   <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
     <h3 class="onb-title" style="margin-bottom:8px;">혈당 기록</h3>
-    <p class="onb-desc">혈당 수치(mg/dL)를 입력해주세요.</p>
+    <p class="onb-desc">혈당 수치와 측정 시간을 입력해주세요.</p>
+    
+    <label class="onb-label" style="margin-top:20px; margin-bottom: 5px; text-align: left;">혈당 (mg/dL)</label>
     <input id="bloodSugarInput" class="onb-input" type="number" step="1" min="1" placeholder="예. 92" />
+
+    <label class="onb-label" style="margin-top:15px; margin-bottom: 5px; text-align: left;">측정 시간</label>
+    <input id="bloodSugarTimestampInput" class="onb-input" type="datetime-local" />
+
     <div class="onb-actions" style="margin-top:20px;">
       <button type="button" data-close="bloodSugarModal" class="onb-btn onb-ghost">취소</button>
       <button id="saveBloodSugarBtn" type="button" class="onb-btn onb-primary">저장</button>
@@ -1139,6 +1145,15 @@ function initializeTime() {
     bloodSugarBtn?.addEventListener('click', () => {
       if (bloodSugarModal) {
         bloodSugarModal.style.display = 'flex';
+   // [추가] 시간 입력창에 현재 시간을 기본값으로 설정
+        const timestampInput = document.getElementById('bloodSugarTimestampInput');
+        if (timestampInput) {
+            const now = new Date();
+            // YYYY-MM-DDTHH:mm 형식에 맞게 시간 오프셋을 조정합니다.
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            timestampInput.value = now.toISOString().slice(0, 16);
+        }
+       
       } else {
         const v = parseFloat(prompt('혈당 수치 (mg/dL)를 입력하세요:') || '');
         if (v > 0) {
@@ -1147,21 +1162,42 @@ function initializeTime() {
         }
       }
     });
-    saveBloodSugarBtn?.addEventListener('click', async () => {
-      const v = parseFloat(bloodSugarInput?.value);
-      if (!v || v<=0) return showToast("올바른 혈당 수치를 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
-      saveLocalList('bloodSugarData', { date:new Date().toISOString(), value:v });
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } catch (e) {
+    // wireEventsOnce 함수 안
+
+saveBloodSugarBtn?.addEventListener('click', async () => {
+    const v = parseFloat(bloodSugarInput?.value);
+    if (!v || v <= 0) return showToast("올바른 혈당 수치를 입력하세요.");
+
+    // [추가] 시간 입력창에서 값 가져오기
+    const timestampInput = document.getElementById('bloodSugarTimestampInput');
+    const timestamp = timestampInput.value;
+
+    if (!timestamp) return showToast("측정 시간을 선택해주세요.");
+    
+    // [수정] 입력된 시간 문자열을 Date 객체로 변환
+    const recordDate = new Date(timestamp);
+
+    const user = ensureSignedIn(); if (!user) return;
+
+    saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
+
+    try {
+        await db.collection('users').doc(user.uid)
+            .collection('measurements').doc('bloodSugar')
+            .collection('items').add({
+                date: recordDate, // [수정] new Date() 대신 선택한 시간으로 저장
+                value: v,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+    } catch (e) {
         console.error('save blood sugar failed:', e);
         showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
-      }
-      bloodSugarInput.value = '';
-      bloodSugarModal.style.display = 'none';
-      showToast("혈당 수치가 저장되었습니다.");
-    });
+    }
+
+    bloodSugarInput.value = '';
+    bloodSugarModal.style.display = 'none';
+    showToast("혈당 수치가 저장되었습니다.");
+});
 
     // --- 케톤 기록 ---
     ketoneBtn?.addEventListener('click', () => ketoneModal && (ketoneModal.style.display='flex'));
