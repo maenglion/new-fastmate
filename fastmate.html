@@ -119,10 +119,13 @@
 
 /* 기존 .timer-display .time 규칙을 아래 코드로 교체 */
 .timer-display .time {
-    font-size: 2.0rem; /* [수정] 2.5rem -> 2.0rem (80% 크기) */
+    /* [수정] clamp()를 사용하여 글씨 크기를 반응형으로 만듭니다. */
+    /* 최소 1.8rem, 최대 2.5rem 크기를 유지하며 화면 너비(vw)에 따라 유연하게 변함 */
+    font-size: clamp(1.8rem, 10vw, 2.5rem); 
+    
     font-weight: 700;
     color: var(--text-color);
-    line-height: 1; /* [수정] 수직 정렬을 위해 줄 간격 조정 */
+    line-height: 1; /* 수직 정렬을 위해 줄 간격 조정 */
 }
 
         .status-message {
