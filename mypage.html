@@ -649,7 +649,12 @@ function renderFastingHistory() {
             scales: {
                 x: {
                     type: 'time',
-                    time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
+                    time: { unit: 'day',// 24시간 형식 (예: 2025.08.18 14:30)
+tooltipFormat: 'yyyy.MM.dd HH:mm', 
+    displayFormats: {
+        day: 'MM/dd'
+    }
+},
                     grid: { display: true, color: '#f0f0f0' }
                 },
                 y: {
