@@ -819,8 +819,22 @@ document.addEventListener('DOMContentLoaded', () => {
     checkMilestones(progress);
     if (progress >= 100) showToast("목표 달성! 축하합니다!");
   }
+   // ############# 여기를 수정했습니다! #############
   function startFasting() {
     if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+
+    // [수정] 사용자가 '시작 시간'을 별도로 선택하지 않았다면,
+    // 시작 버튼을 누른 '지금'을 시작 시간으로 설정합니다.
+    const timeSincePageLoad = new Date() - selectedStartTime;
+    // 페이지 로드 후 5초 이상 지났으면 '지금'으로 간주 (실수 클릭 방지)
+    // 또는 모달에서 시간을 수정한 적이 없다면 '지금'으로 간주
+    if (timeSincePageLoad > 5000) {
+      selectedStartTime = new Date();
+    }
+    
+    // [추가] 시작 시간을 UI에 즉시 반영합니다.
+    updateTimeDisplays(); 
+    
     fastingState = 'running';
     targetHours = parseInt(modelSelect.value, 10);
     localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
@@ -831,6 +845,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTimer();
     updateUIState();
   }
+  // ##########################################
   async function stopFasting() {
     if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
     clearInterval(fastingInterval);
