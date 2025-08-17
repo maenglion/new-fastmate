@@ -21,9 +21,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
- 
-    /* --- 기본 스타일 --- */
-       :root {
+        :root {
             color-scheme: light; 
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
@@ -36,76 +34,310 @@
             --chart-line-color: #7FE89B;
             --chart-bubble-bg: #C8F5D4;
         }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+       .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 제목을 중앙에 배치 */
+    position: relative; /* 홈 버튼의 위치 기준점 */
+    padding: 15px 10px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 25px;
+}
+
+        .main-title {
+            text-align: center;
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.6rem;
+            margin: 0;
+        }
+
+        .home-btn {
+    position: absolute; /* 헤더의 왼쪽 끝에 배치 */
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%); /* 수직 중앙 정렬 */
     
-    body { font-family: 'Noto Sans KR', sans-serif; margin: 0; background-color: #f4f4f4; color: #333; }
-    .container { max-width: 600px; margin: 20px auto; padding: 20px; }
-    .card { background-color: white; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); padding: 20px; }
-    h1, h2, h3, h4, p { margin-bottom: 15px; }
-    h1 { text-align: center; color: var(--primary-color); }
-    h2 { color: #555; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 8px 0; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; align-items: center; }
-    li:last-child { border-bottom: none; }
-    button { background-color: var(--primary-color); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.3s ease; }
-    button:hover { background-color: var(--primary-dark); }
-    select { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; }
-    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-    .button-group { display: flex; gap: 10px; justify-content: center; }
-    .tab-container { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 2px solid #eee; }
-    .tab-button { background: none; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; color: #777; border-bottom: 2px solid transparent; transition: color 0.3s ease, border-bottom-color 0.3s ease; }
-    .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
-    .tab-content { display: none; padding-top: 20px; }
-    .tab-content.active { display: block; }
-    .chart-section { margin-bottom: 30px; }
-    .chart-container { width: 100%; height: 300px; position: relative; }
-    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .chart-info { font-size: 0.8rem; color: #888; }
-    .history-section h2 { margin-top: 0; }
-    .pagination { display: flex; justify-content: center; margin-top: 20px; }
-    .pagination button { margin: 0 5px; }
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%; /* 동그란 배경 효과 */
+    transition: background-color 0.2s;
+}
 
-    /* --- 데이터 코치 스타일 --- */
-    .data-coach {
-        display: flex;
-        align-items: flex-start;
-        gap: 15px;
-        background-color: var(--primary-light);
-        border-radius: 12px;
-        padding: 15px;
-        margin-top: 20px;
-        border: 1px solid #d1e7dd;
-    }
-    .coach-icon {
-        font-size: 1.5rem;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-    .coach-text h4 {
-        margin: 0 0 5px;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-    .coach-text p {
-        margin: 0;
-        font-size: 0.9rem;
-        line-height: 1.6;
-        color: var(--text-color);
-    }
+.home-btn:hover {
+    background-color: #f0f2f5; /* 마우스를 올렸을 때 배경색 */
+}
 
-    /* --- 'New' 알림 스타일 --- */
-    .tab-button.new-indicator::after {
-        content: '';
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background-color: #ffc107; /* 노란색 */
-        border-radius: 50%;
-        margin-left: 5px;
-        vertical-align: middle;
-    }
-</style>
+.home-btn svg {
+    width: 26px;
+    height: 26px;
+    stroke: #333; /* 아이콘 색상 */
+    stroke-width: 2;
+}
 
- 
+.main-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0; /* 불필요한 여백 제거 */
+}
+        
+        /* --- 프로필 카드 스타일 시작 --- */
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .profile-avatar svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--primary-color);
+            stroke-width: 2;
+        }
+        .profile-info h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .profile-info p {
+            margin: 4px 0 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .profile-details {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        .profile-details h3 {
+            margin: 0 0 15px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .goals-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .goal-tag {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        /* --- 프로필 카드 스타일 끝 --- */
+
+        .history-section h2 {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            min-height: 100px;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-info .duration, .history-info .type {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+        .history-info .period, .history-info .details {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        .history-percentage, .history-calories {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .history-calories .unit {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+        .pagination button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination span {
+            font-weight: 500;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+            position: relative; /* 점(dot)의 위치 기준점 */
+
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* 'New' 알림 점 스타일 */
+.tab-button.new-indicator::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 6px; /* 4px보다 조금 더 잘보이게 6px로 조정 */
+    height: 6px;
+    background-color: var(--gauge-start-color); /* 정의된 노란색 */
+    border-radius: 50%;
+    box-shadow: 0 0 3px var(--gauge-start-color);
+}
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 5px;
+        }
+        
+        .chart-info {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .chart-header select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            max-height: 400px;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* mypage.html의 <style> 안에 추가 */
+.history-item {
+    align-items: flex-start; /* 버튼이 위로 가도록 정렬 변경 */
+}
+.history-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-align: right;
+}
+.delete-btn {
+    background: #fde2e2;
+    color: #c53030;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 24px; /* X 아이콘 중앙 정렬 */
+    transition: all 0.2s;
+}
+.delete-btn:hover {
+    background: #c53030;
+    color: white;
+}
+
+    </style>
 </head>
 <body>
 
@@ -145,51 +377,42 @@
             </section>
         </div>
 
-  
-     <section class="chart-section">
-    <div class="tabs">
-        <button class="tab-button active" data-tab="weight">체중</button>
-        <button class="tab-button" data-tab="bloodSugar">혈당</button>
-        <button class="tab-button" data-tab="ketone">케톤</button>
-    </div>
+        <div class="card">
+            <section class="chart-section">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="weight">체중</button>
+                    <button class="tab-button" data-tab="bloodSugar">혈당</button>
+                    <button class="tab-button" data-tab="ketone">케톤</button>
+                </div>
 
-    <div class="chart-header">
-        <p class="chart-info">💡 손가락으로 확대/축소, 좌우로 밀어보세요.</p>
-        <select id="dateRangeSelector">
-            <option value="30">최근 1개월</option>
-            <option value="90">최근 3개월</option>
-            <option value="180">최근 6개월</option>
-            <option value="365">최근 1년</option>
-            <option value="all">전체</option>
-        </select>
-    </div>
-    
-    <div>
-        <div id="weightContent" class="tab-content active">
-            <div class="chart-container">
-                <canvas id="weightChart"></canvas>
-            </div>
+                <div class="chart-header">
+                    <p class="chart-info">💡 손가락으로 확대/축소, 좌우로 밀어보세요.</p>
+                    <select id="dateRangeSelector">
+                        <option value="30">최근 1개월</option>
+                        <option value="90">최근 3개월</option>
+                        <option value="180">최근 6개월</option>
+                        <option value="365">최근 1년</option>
+                        <option value="all">전체</option>
+                    </select>
+                </div>
+
+                <div id="weightContent" class="tab-content active">
+                    <div class="chart-container">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+                <div id="bloodSugarContent" class="tab-content">
+                    <div class="chart-container">
+                        <canvas id="bloodSugarChart"></canvas>
+                    </div>
+                </div>
+                <div id="ketoneContent" class="tab-content">
+                    <div class="chart-container">
+                        <canvas id="ketoneChart"></canvas>
+                    </div>
+                </div>
+            </section>
         </div>
-        <div id="bloodSugarContent" class="tab-content">
-            <div class="chart-container">
-                <canvas id="bloodSugarChart"></canvas>
-            </div>
-        </div>
-        <div id="ketoneContent" class="tab-content">
-            <div class="chart-container">
-                <canvas id="ketoneChart"></canvas>
-            </div>
-        </div>
-        
-        <div id="dataCoach" class="data-coach">
-            <div class="coach-icon">💡</div>
-            <div class="coach-text">
-                <h4 class="coach-title">데이터 코치 한마디</h4>
-                <p id="coachComment">데이터를 분석 중입니다...</p>
-            </div>
-        </div>
-    </div>
-    </section>
 
         <div class="card">
             <section class="history-section">
@@ -198,9 +421,9 @@
                 <div class="pagination" id="exercisePaginationControls"></div>
             </section>
         </div>
-   
+    </div>
 
-<script>
+   <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const homeBtn = document.getElementById('homeBtn');
@@ -242,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return snap.docs.map(doc => {
                 const data = doc.data();
                 return {
-                    id: doc.id, ...data,
+                    ...data,
                     date: data.date?.toDate?.(),
                     createdAt: data.createdAt?.toDate?.()
                 };
@@ -252,35 +475,47 @@ document.addEventListener('DOMContentLoaded', () => {
             return [];
         }
     }
-    async function fetchFastingHistory() {
-        const user = firebase.auth().currentUser;
-        if (!user) return [];
-        try {
-            const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
-            return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
-        } catch (error) {
-            console.error("단식 기록 로딩 실패:", error);
-            return [];
-        }
+   // mypage.html의 <script> 안에서 fetchFastingHistory 함수를 찾아 교체
+async function fetchFastingHistory() {
+    const user = firebase.auth().currentUser;
+    if (!user) return [];
+    try {
+        const snap = await db.collection('users').doc(user.uid).collection('fastingHistory').orderBy('endTime', 'desc').limit(200).get();
+        // [수정] 각 문서의 고유 id를 함께 반환하도록 변경
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), startTime: doc.data().startTime.toDate(), endTime: doc.data().endTime.toDate() }));
+    } catch (error) {
+        console.error("단식 기록 로딩 실패:", error);
+        return [];
     }
+}
 
     // --- Main Data Loading and Rendering Function ---
     async function loadAndRenderAllData() {
         try {
             const [profile, weight, bloodSugar, ketone, fasting, exercise] = await Promise.all([
-                getUserDoc(), fetchFromFirestore('weight'), fetchFromFirestore('bloodSugar'),
-                fetchFromFirestore('ketone'), fetchFastingHistory(), fetchFromFirestore('exercise')
+                getUserDoc(),
+                fetchFromFirestore('weight'),
+                fetchFromFirestore('bloodSugar'),
+                fetchFromFirestore('ketone'),
+                fetchFastingHistory(),
+                fetchFromFirestore('exercise')
             ]);
+
             allData = { profile, weight, bloodSugar, ketone, fasting, exercise };
-            renderProfileCard(); renderFastingHistory(); renderExerciseHistory();
-            renderAllCharts(); updateTabIndicators();
+
+            renderProfileCard();
+            renderFastingHistory();
+            renderExerciseHistory();
+            renderAllCharts();
+            updateTabIndicators();
+
         } catch (error) {
-            console.error("데이터를 불러오는 중 오류 발생:", error);
+            console.error("모든 데이터를 불러오는 중 오류 발생:", error);
         }
     }
 
     // --- Rendering Functions ---
-  function renderProfileCard() {
+    function renderProfileCard() {
         const profile = allData.profile;
         const user = firebase.auth().currentUser;
         if (!profile || !user) return;
@@ -359,39 +594,6 @@ function renderFastingHistory() {
     }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
 }
 
-// mypage.html의 <script> 안에 추가
-
- // [수정] 데이터 코치 함수 (allData.ketone[0] 접근 오류 수정)
-    function updateCoachComment(activeTab) {
-        const commentEl = document.getElementById('coachComment');
-        if (!commentEl) return;
-        let latestData, comment;
-
-        switch (activeTab) {
-            case 'ketone':
-                latestData = (allData.ketone && allData.ketone.length > 0) ? allData.ketone[0] : null;
-                if (!latestData) {
-                    comment = "케톤 데이터를 기록하고 몸의 변화를 관찰해보세요!";
-                } else {
-                    const value = latestData.value;
-                    if (value < 0.5) comment = `현재 케톤 수치는 <strong>${value}mmol/L</strong> 입니다. 아직 케토시스 상태는 아니지만, 몸이 지방을 태울 준비를 시작했다는 긍정적인 신호일 수 있어요. 포기하지 마세요!`;
-                    else if (value <= 3.0) comment = `훌륭해요! 현재 <strong>${value}mmol/L</strong>로, 케토시스 상태에 안정적으로 진입했습니다. 몸이 지방을 주 에너지원으로 효율적으로 사용하고 있다는 증거입니다.`;
-                    else comment = `케톤 수치가 <strong>${value}mmol/L</strong>로 높은 편입니다. 장기 단식 중 나타날 수 있으며, 몸이 지방을 매우 활발히 태우고 있다는 의미입니다. 몸의 컨디션을 주의 깊게 살펴보세요.`;
-                }
-                break;
-            case 'weight':
-                comment = "꾸준한 체중 기록은 건강 관리의 첫걸음입니다. 잘하고 계세요!";
-                break;
-            case 'bloodSugar':
-                comment = "혈당 수치를 기록하며 식단과 몸의 반응을 살펴보세요.";
-                break;
-            default:
-                comment = "데이터를 선택하여 분석 코멘트를 확인하세요.";
-        }
-        commentEl.innerHTML = comment;
-    }
-
-
     function renderExerciseHistory() {
         renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
             const li = document.createElement('li');
@@ -402,103 +604,95 @@ function renderFastingHistory() {
         }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
     }
 
-
-    // [수정] 'New' 알림 점 업데이트 함수
     function updateTabIndicators() {
         const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-        // 최신 데이터는 배열의 첫 번째 항목(내림차순 정렬)
-        const isNew = (data) => data && data.length > 0 && data[0].createdAt && data[0].createdAt > sixHoursAgo;
-
+        const isNew = (data) => data && data.length > 0 && data[0].createdAt > sixHoursAgo;
         document.querySelector('.tab-button[data-tab="weight"]')?.classList.toggle('new-indicator', isNew(allData.weight));
         document.querySelector('.tab-button[data-tab="bloodSugar"]')?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
         document.querySelector('.tab-button[data-tab="ketone"]')?.classList.toggle('new-indicator', isNew(allData.ketone));
     }
 
     // --- Charting Functions ---
-   const newIconPlugin = {
-        id: 'newIconPlugin',
-        afterDatasetsDraw: (chart) => {
-            // 이 플러그인은 더 이상 차트에 직접 아이콘을 그리지 않습니다.
-        }
-    };
+    const newIconPlugin = { id: 'newIconPlugin', afterDraw: (chart) => { /* ... (이전과 동일) */ } };
 
-    // [수정] 'New' 알림 점 업데이트 함수 (CSS 클래스 토글 방식)
-    function updateTabIndicators() {
-        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-        const isNew = (data) => data && data.length > 0 && data.some(item => item.createdAt && item.createdAt > sixHoursAgo);
-
-        document.querySelector('.tab-button.active')?.classList.remove('new-indicator'); // Clear active tab indicator
-
-        const weightTab = document.querySelector('.tab-button:nth-child(1)');
-        const bloodSugarTab = document.querySelector('.tab-button:nth-child(2)');
-        const ketoneTab = document.querySelector('.tab-button:nth-child(3)');
-
-        weightTab?.classList.toggle('new-indicator', isNew(allData.weight));
-        bloodSugarTab?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
-        ketoneTab?.classList.toggle('new-indicator', isNew(allData.ketone));
+    function createChart(canvasId, label, data) { // color 파라미터는 더 이상 필요 없으므로 삭제
+    if (allCharts[canvasId]) {
+        allCharts[canvasId].destroy();
     }
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    const chartData = (data || [])
+        .filter(d => d && typeof d.value === 'number' && !isNaN(d.value))
+        .map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
-        // [수정] 차트 생성 함수 (요청하신 색상 테마 적용)
-    function createChart(canvasId, label, data) {
-        if (allCharts[canvasId]) allCharts[canvasId].destroy();
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
-
-        allCharts[canvasId] = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: label,
-                    data: chartData,
-                    borderColor: '#7FE89B', // [수정] 선 색상
-                    borderWidth: 2.5,
-                    tension: 0.2,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#7FE89B', // [수정] 점 색상
-                    pointHoverRadius: 6,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { /* ... 이전과 동일 ... */ },
-                plugins: {
-                    legend: { display: false },
-                    zoom: { /* ... 이전과 동일 ... */ },
-                    tooltip: {
-                        enabled: true, mode: 'index', intersect: false,
-                        backgroundColor: '#E1FDC5', // [수정] 버블 배경색
-                        titleColor: '#333',         // [수정] 버블 제목 글자색
-                        bodyColor: '#333',          // [수정] 버블 본문 글자색
-                        padding: 10, cornerRadius: 8,
-                        callbacks: {
-                            title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
-                            footer: (tooltipItems) => {
-                                const rawData = tooltipItems[0].raw;
-                                if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
-                                return '';
-                            }
-                        },
-                        footerColor: 'var(--primary-color)',
-                        footerFont: { weight: 'bold' }
-                    }
+    allCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: label,
+                data: chartData,
+                // [수정] 선 색상 (줄)
+                borderColor: '#7FE89B', 
+                borderWidth: 2.5,
+                tension: 0.2,
+                // [수정] 점 색상
+                pointRadius: 4,
+                pointBackgroundColor: '#7FE89B',
+                pointHoverRadius: 6,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
+                    grid: { display: true, color: '#f0f0f0' }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { display: true, color: '#e0e0e0' }
                 }
             },
-            plugins: [newIconPlugin]
-        });
-    }
-
+            plugins: {
+                legend: { display: false },
+                // [수정] 툴팁(버블) 스타일
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: '#E1FDC5', // 버블 배경색
+                    titleColor: '#333',         // 제목 글자색 (어둡게)
+                    bodyColor: '#333',          // 본문 글자색 (어둡게)
+                    titleFont: { weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 10,
+                    cornerRadius: 8,
+                    boxPadding: 4
+                },
+                zoom: {
+                    pan: { enabled: true, mode: 'x' },
+                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+                }
+            }
+        },
+        plugins: [newIconPlugin]
+    });
+}
     function renderAllCharts() {
         const range = dateRangeSelector.value;
         const filterFn = (data) => {
             if (range === 'all' || !data) return data;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-            return data.filter(d => d && d.date >= cutoffDate);
+            return data.filter(d => d.date >= cutoffDate);
         };
-        // createChart 호출 시 더 이상 색상 파라미터를 넘기지 않습니다.
-        createChart('weightChart', '체중 (kg)', filterFn(allData.weight));
-        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar));
-        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone));
+        createChart('weightChart', '체중 (kg)', filterFn(allData.weight), 'var(--primary-color)');
+        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar), '#FFC107');
+        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone), 'var(--primary-color)');
     }
 
     // --- Event Listeners ---
@@ -512,5 +706,35 @@ function renderFastingHistory() {
         });
     });
     dateRangeSelector.addEventListener('change', renderAllCharts);
+});
+
+// 단식 기록 리스트에서 클릭 이벤트 처리 (이벤트 위임)
+fastingHistoryList.addEventListener('click', async (e) => {
+    // 삭제 버튼(delete-btn)을 클릭한 경우에만 동작
+    if (e.target.classList.contains('delete-btn')) {
+        const li = e.target.closest('.history-item');
+        const docId = li.dataset.docId;
+
+        if (docId && confirm('이 단식 기록을 정말로 삭제하시겠습니까?')) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+                
+                // Firestore에서 해당 문서 삭제
+                await db.collection('users').doc(user.uid).collection('fastingHistory').doc(docId).delete();
+
+                // 화면에서 해당 항목 즉시 제거
+                li.remove();
+                
+                // allData에서도 제거하여 페이지네이션 오류 방지
+                allData.fasting = allData.fasting.filter(item => item.id !== docId);
+
+                alert('기록이 삭제되었습니다.');
+            } catch (error) {
+                console.error("기록 삭제 실패:", error);
+                alert('기록 삭제에 실패했습니다.');
+            }
+        }
+    }
 });
 </script>
