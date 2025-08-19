@@ -1014,7 +1014,7 @@ let fastingInterval  = null;
   let pendingTargetHours = null;
   let toastTimeout     = null;
   let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
-  const milestones = { 10:false, 25:false, 50:false, 70:false, 80:false, 90:false };
+ const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
   const db = firebase.firestore();
 
   
@@ -1073,18 +1073,27 @@ function updateUIState() {
 }
 
 function checkMilestones(progress) {
-    // [수정] 모든 메시지를 채우고 milestones 객체와 일치시켰습니다.
     const messages = {
       10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
       25: "25% 달성! 순조롭게 진행 중이에요.",
-      50: "절반이나 왔어요! 정말 대단해요. 다짐 유지하기! 💧",
+      50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧",
       75: "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
-      90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧"
+      90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧",
+      110: "110% 초과 달성! 몸이 보내는 신호에 귀를 기울여 주세요.",
+      120: "120% 초과 달성! 정말 대단한 의지입니다!",
+      150: "150% 초과 달성! 새로운 기록을 쓰고 계시는군요!",
+      200: "200% 달성! 컨디션 조절은 필수입니다. 충분한 휴식을 잊지 마세요."
     };
+
+    // [수정] 이제 progress가 아닌 실제 경과 시간 비율로 계산합니다.
+    const now = new Date();
+    const elapsed = now - selectedStartTime;
+    const target  = parseFloat(targetHours) * 3600000;
+    const actualProgress = (elapsed / target) * 100;
 
     Object.keys(milestones).forEach((p) => {
       const pi = parseInt(p, 10);
-      if (progress >= pi && !milestones[p]) {
+      if (actualProgress >= pi && !milestones[p]) {
         showToast(messages[p]);
         milestones[p] = true;
       }
@@ -1182,55 +1191,54 @@ function startFasting() {
 
 // fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
 
+// stopFasting 함수를 이 코드로 통째로 교체해주세요.
 async function stopFasting() {
-    // 1. 이미 단식이 종료된 상태면, 함수를 바로 중단합니다.
     if (fastingState === 'idle') {
         return showToast("시작된 단식이 없습니다.");
     }
-    
-    // 2. 타이머를 멈추고, 앱의 상태를 'idle'(대기)로 변경합니다.
+
     clearInterval(fastingInterval);
     fastingState = 'idle';
 
     const record = {
-      startTime: selectedStartTime,
-      endTime: new Date(),
-      targetHours: parseFloat(targetHours),
-      actualDurationHours: (new Date() - selectedStartTime) / 3600000
+        startTime: selectedStartTime,
+        endTime: new Date(),
+        targetHours: parseFloat(targetHours),
+        actualDurationHours: (new Date() - selectedStartTime) / 3600000
     };
 
-    // 3. 최종 단식 기록을 Firestore에 저장합니다.
+    // --- [핵심 수정] Firestore에 최종 기록 저장 및 상태 삭제 ---
     try {
-      const user = ensureSignedIn();
-      if (user) {
-        // 'fastingHistory' 컬렉션에 최종 기록 저장
-        await db.collection('users').doc(user.uid).collection('fastingHistory').add({
-            startTime: record.startTime,
-            endTime: record.endTime,
-            targetHours: record.targetHours,
-            actualDurationHours: record.actualDurationHours,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // 'currentFasting' 상태 필드 삭제
-        await db.collection('users').doc(user.uid).update({
-            currentFasting: firebase.firestore.FieldValue.delete()
-        });
-      }
+        const user = ensureSignedIn();
+        if (user) {
+            // 1. 'fastingHistory'에 최종 기록 저장
+            await db.collection('users').doc(user.uid).collection('fastingHistory').add({
+                startTime: record.startTime,
+                endTime: record.endTime,
+                targetHours: record.targetHours,
+                actualDurationHours: record.actualDurationHours,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // 2. 'currentFasting' 상태 필드 삭제
+            await db.collection('users').doc(user.uid).update({
+                currentFasting: firebase.firestore.FieldValue.delete()
+            });
+        }
     } catch (e) {
-      console.error('단식 기록 저장 또는 상태 삭제 실패:', e);
+        console.error('단식 기록 저장 또는 상태 삭제 실패:', e);
     }
 
-    // 4. [핵심] 화면 UI를 모두 초기 상태로 되돌립니다.
+    // --- [핵심 수정] 화면 UI를 모두 초기 상태로 되돌립니다. ---
     if (progressArc)      progressArc.style.strokeDasharray = '0 100';
     if (remainingTimeEl)  remainingTimeEl.textContent = '00:00:00';
     if (statusMessage)    statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
     if (saltTip)          saltTip.style.display = 'none';
     
-    selectedStartTime = new Date(); // 시작 시간을 현재 시간으로 리셋
-    updateTimeDisplays(); // 시작/종료 시간 표시창 업데이트
-    updateUIState();      // 시작/종료 버튼 상태 업데이트
-    resetSelectOptions(); // 선택창 UI 초기화
+    selectedStartTime = new Date();
+    updateTimeDisplays();
+    updateUIState();
+    resetSelectOptions();
 
     showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
