@@ -76,20 +76,20 @@
             }
         });
 
-        // --- 구글 로그인 버튼 이벤트 리스너 ---
-         googleLoginBtn?.addEventListener('click', async () => {
+googleLoginBtn?.addEventListener('click', async () => {
     googleLoginBtn.disabled = true;
     try {
-      await signInWithGoogle(); // ← 전역 헬퍼 사용 (모바일=리다이렉트, 데스크톱=팝업)
-      // 이후 이동은 onAuthStateChanged가 처리(이미 fastmate.html로 보냄)
+        // [수정] 모든 기기에서 알아서 팝업/리디렉션을 처리하는 공용 헬퍼 함수를 사용합니다.
+        await signInWithGoogle(); 
+        // 성공 후의 페이지 이동은, login.html에 이미 있는 다른 onAuthStateChanged가 처리합니다.
     } catch (error) {
-      if (error.code !== 'auth/popup-closed-by-user') {
-        alert(mapAuthErrorToKo(error));
-      }
+        if (error.code !== 'auth/popup-closed-by-user') {
+            alert(mapAuthErrorToKo(error));
+        }
     } finally {
-      googleLoginBtn.disabled = false;
+        googleLoginBtn.disabled = false;
     }
-  });
+});
 
         // document.addEventListener('DOMContentLoaded', () => { ... }); 안쪽에 추가
 

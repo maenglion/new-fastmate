@@ -482,34 +482,37 @@ firebase.auth().onAuthStateChanged(async (user) => {
     const url = new URL(location.href);
     const stepParam = url.searchParams.get('step');
 
-    // 1) 미로그인 → step1
+    // 1) 미로그인 상태면, step 파라미터가 있든 없든 1단계부터 시작합니다.
     if (!user) {
-      navigateTo(stepParam ? parseInt(stepParam) : 1);
+      navigateTo(1);
       return;
     }
 
-    // 2) 로그인됨 → 이메일 채워주기
+    // 2) 로그인된 사용자라면, 이메일을 미리 채워줍니다.
     if (user.email && emailInput) {
       emailInput.value = user.email;
       emailInput.readOnly = true;
     }
 
-    // 3) 프로필 조회해 온보딩 완료면 앱으로
-    const profile = await getUserDoc();         // firebase-init.js 제공
+    // 3) [핵심] Firestore 프로필을 조회해서, 온보딩(초기설정)을 마쳤는지 확인합니다.
+    const profile = await getUserDoc(); // firebase-init.js에 있는 함수
     const completed = !!profile?.onboarding?.completed;
 
     if (completed) {
+      // 3-1) 온보딩을 마친 사용자는 더 이상 여기에 있을 이유가 없으므로, 메인 앱으로 보냅니다.
       window.location.replace('./fastmate.html');
       return;
     }
 
-    // 4) 미완료면 회원가입 계속 (step 쿼리 우선)
+    // 4) 온보딩을 마치지 않은 사용자만 회원가입 절차를 계속 진행합니다.
     if (stepParam && ['2','3','4'].includes(stepParam)) {
       navigateTo(parseInt(stepParam));
     } else {
-      navigateTo(2); // 구글 로그인 직후 기본은 닉네임 단계
+      // 구글 로그인 직후 등, 특별한 step 정보가 없으면 2단계(닉네임)부터 시작합니다.
+      navigateTo(2);
     }
-  });
+});
+
 
   /* =============== 약관 모달 열고/닫기 =============== */
   document.querySelectorAll('a[data-modal]').forEach(link => {
