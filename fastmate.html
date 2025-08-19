@@ -530,11 +530,14 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        /* ... 다른 다크 모드 변수들 ... */
-        --gauge-track-color: #333; /* [추가] 게이지 배경 트랙을 어두운 색으로 */
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-color: #e0e0e0;
+        --text-light: #888;
+        --border-color: #333;
+        --gauge-track-color: #333; /* [수정] 다크 모드용 어두운 트랙 색상 */
     }
 }
-
     </style>
 </head>
 <body>
@@ -551,18 +554,16 @@
         <div class="ring-wrap">
             <svg class="ring" viewBox="0 0 120 120">
      <defs>
-            <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
-            
-            <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="var(--gauge-start-color)"/>
-                <stop offset="100%" stop-color="var(--primary-color)"/>
-            </linearGradient>
-        
-            <linearGradient id="overtimeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#FF690B"/>
-                <stop offset="100%" stop-color="var(--gauge-start-color)"/>
-                    </linearGradient>
-                </defs>
+    <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
+    <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="var(--gauge-start-color)"/>
+        <stop offset="100%" stop-color="var(--primary-color)"/>
+    </linearGradient>
+    <linearGradient id="overtimeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#FF690B"/>
+        <stop offset="100%" stop-color="var(--gauge-start-color)"/>
+    </linearGradient>
+</defs>
                 <circle cx="60" cy="60" r="54" stroke="url(#trackGrad)" stroke-width="12" fill="none"/>
                 <circle id="progressArc" cx="60" cy="60" r="54" stroke="url(#progGrad)" stroke-width="12" fill="none" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
             </svg>
