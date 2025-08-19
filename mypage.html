@@ -110,6 +110,16 @@
     margin: 0;
 }
 
+
+.chart-header select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background-color: #f8f9fa; /* [추가] 라이트 모드 배경색 */
+    color: var(--text-color);   /* [추가] 라이트 모드 글씨색 */
+}
+
         /* --- 프로필 카드 스타일 시작 --- */
         .profile-card {
             display: flex;
@@ -173,17 +183,23 @@
     font-weight: 500;
 }
 
-/* 로그아웃 버튼 스타일을 바깥으로 꺼냅니다 */
+/* .logout-container 규칙을 찾아 교체 */
+.logout-container {
+    /* 기존 스타일을 모두 지우고 아래 한 줄만 남깁니다 */
+    margin-top: 8px; 
+}
+
+/* .logout-btn 규칙을 찾아 교체 */
 .logout-btn {
     background: none;
     border: none;
     color: var(--text-light);
-    font-size: 0.9rem;
+    font-size: 0.8rem; /* [수정] 글씨 더 작게 */
     font-weight: 500;
     text-decoration: underline;
     cursor: pointer;
-    transition: opacity 0.2s;
-    opacity: 0.6;
+    padding: 0; /* [추가] 불필요한 여백 제거 */
+    opacity: 0.7; /* [수정] 투명도 살짝 조정 */
 }
 .logout-btn:hover {
     opacity: 1;
@@ -210,28 +226,28 @@
     text-align: right;
 }
 
+/* .delete-btn 규칙을 찾아 아래 코드로 교체해주세요 */
 .delete-btn {
-    background: #a3a3a3;
-    color: #e2e2e2;
+    background: #e9ecef;  /* [수정] 흐린 회색 배경 */
+    color: #868e96;       /* [수정] 흐린 회색 X 아이콘 */
     border: none;
-    width: 24px;
-    height: 24px;
+    width: 22px;          /* [수정] 크기 살짝 줄임 */
+    height: 22px;
     border-radius: 50%;
-    font-size: 16px;
+    font-size: 14px;      /* [수정] X 크기 살짝 줄임 */
     font-weight: bold;
     cursor: pointer;
-    line-height: 24px; /* X 아이콘 중앙 정렬 */
+    line-height: 22px;    /* X 아이콘 중앙 정렬 */
     transition: all 0.2s;
 }
 .delete-btn:hover {
     background: #c53030;
     color: white;
 }
-
 /* 3. .history-percentage 규칙을 찾아 아래 코드로 교체 */
 .history-percentage {
     font-size: 1.2rem;
-    font-weight: 700; /* [수정] 글씨를 굵게 만듭니다. */
+    font-weight: 500; /* [수정] 글씨를 굵게 만듭니다. */
 }
 
        
@@ -439,19 +455,7 @@
         background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
     }
 
-   /* 로그아웃 버튼 컨테이너 스타일 */
-.logout-container {
-    text-align: center;
-    /* [수정] 마이너스 마진을 제거하고 일반적인 여백으로 변경합니다. */
-    margin: 15px 0 0; 
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color); /* 구분선 추가 */
-}
-   
-    .logout-btn {
-        color: #999; /* 기본 --text-light 보다 살짝 밝은 회색 */
-    }
-}
+
 
     /* --- 차트 섹션 --- */
     .chart-header select {
@@ -469,7 +473,11 @@
         background: #c53030;
         color: white;
     }
-
+    /* [추가] 다크 모드일 때 로그아웃 버튼 글씨를 더 밝게 */
+    .logout-btn {
+        color: #999; /* 기본 --text-light 보다 살짝 밝은 회색 */
+    }
+}
 
 
     </style>
@@ -491,16 +499,15 @@
                 <div class="profile-info">
                     <h2 id="pfNickname">-</h2>
                     <p id="pfEmail">-</p>
+                     <div class="logout-container">
+            <button id="logoutBtn" class="logout-btn">로그아웃</button>
                 </div>
             </div>
             <div class="profile-details">
                 <h3>나의 가입 목적</h3>
                 <div id="pfGoals" class="goals-container">
-                    <!-- JavaScript로 태그가 채워집니다 -->
-                </div>
-                 <div style="text-align: center; margin: -10px 0 20px;">
-            <button id="logoutBtn" class="logout-btn">로그아웃</button>
-        </div>
+                                 </div>
+             
             </div>
         </div>
       
