@@ -615,15 +615,25 @@ function renderFastingHistory() {
     // --- Charting Functions ---
     const newIconPlugin = { id: 'newIconPlugin', afterDraw: (chart) => { /* ... (이전과 동일) */ } };
 
-    function createChart(canvasId, label, data) { // color 파라미터는 더 이상 필요 없으므로 삭제
+// mypage.html의 <script> 안에서
+// createChart와 renderAllCharts 함수를 찾아 아래 코드로 교체해주세요.
+
+// [수정] 차트 생성 함수 (축 설정 및 다크모드 색상 감지)
+function createChart(canvasId, label, data, customScaleOptions = {}) {
     if (allCharts[canvasId]) {
         allCharts[canvasId].destroy();
     }
     const ctx = document.getElementById(canvasId).getContext('2d');
     
-    const chartData = (data || [])
-        .filter(d => d && typeof d.value === 'number' && !isNaN(d.value))
-        .map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+    // 다크모드인지 확인
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // 다크모드일 때와 아닐 때의 색상 설정
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const gridColor = isDarkMode ? '#444' : '#e0e0e0';
+    const tooltipBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
+
+    const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
     allCharts[canvasId] = new Chart(ctx, {
         type: 'line',
@@ -631,70 +641,74 @@ function renderFastingHistory() {
             datasets: [{
                 label: label,
                 data: chartData,
-                // [수정] 선 색상 (줄)
-                borderColor: '#7FE89B', 
+                borderColor: '#7FE89B',
                 borderWidth: 2.5,
                 tension: 0.2,
-                // [수정] 점 색상
                 pointRadius: 4,
                 pointBackgroundColor: '#7FE89B',
-                pointHoverRadius: 6,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
+                pointHoverRadius: 6
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             scales: {
                 x: {
                     type: 'time',
                     time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
-                    grid: { display: true, color: '#f0f0f0' }
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
                 },
                 y: {
                     beginAtZero: false,
-                    grid: { display: true, color: '#e0e0e0' }
+                    grid: { color: gridColor },
+                    ticks: { color: textColor },
+                    // [수정] 외부에서 전달된 커스텀 축 옵션을 여기에 적용
+                    ...customScaleOptions 
                 }
             },
             plugins: {
                 legend: { display: false },
-                // [수정] 툴팁(버블) 스타일
+                zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
                 tooltip: {
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: '#E1FDC5', // 버블 배경색
-                    titleColor: '#333',         // 제목 글자색 (어둡게)
-                    bodyColor: '#333',          // 본문 글자색 (어둡게)
-                    titleFont: { weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    padding: 10,
-                    cornerRadius: 8,
-                    boxPadding: 4
-                },
-                zoom: {
-                    pan: { enabled: true, mode: 'x' },
-                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+                    backgroundColor: tooltipBgColor,
+                    titleColor: textColor, bodyColor: textColor,
+                    padding: 10, cornerRadius: 8,
+                    callbacks: {
+                        title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                        footer: (tooltipItems) => {
+                            const rawData = tooltipItems[0].raw;
+                            if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            return '';
+                        }
+                    },
+                    footerColor: 'var(--primary-color)', footerFont: { weight: 'bold' }
                 }
             }
         },
         plugins: [newIconPlugin]
     });
 }
-    function renderAllCharts() {
-        const range = dateRangeSelector.value;
-        const filterFn = (data) => {
-            if (range === 'all' || !data) return data;
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-            return data.filter(d => d.date >= cutoffDate);
-        };
-        createChart('weightChart', '체중 (kg)', filterFn(allData.weight), 'var(--primary-color)');
-        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar), '#FFC107');
-        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone), 'var(--primary-color)');
-    }
 
+// [수정] 차트 렌더링 함수 (각 차트별 축 옵션 전달)
+function renderAllCharts() {
+    const range = dateRangeSelector.value;
+    const filterFn = (data) => {
+        if (range === 'all' || !data) return data;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
+        return data.filter(d => d && d.date >= cutoffDate);
+    };
+
+    // 각 차트별 y축 옵션을 정의합니다.
+    const weightScaleOptions = { ticks: { stepSize: 5 } };
+    const bloodSugarScaleOptions = { ticks: { stepSize: 10 } };
+    const ketoneScaleOptions = { max: 5, ticks: { stepSize: 0.5 } };
+
+    // createChart 함수를 호출할 때, 마지막 인자로 각 차트에 맞는 옵션을 전달합니다.
+    createChart('weightChart', '체중 (kg)', filterFn(allData.weight), weightScaleOptions);
+    createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar), bloodSugarScaleOptions);
+    createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone), ketoneScaleOptions);
+}
     // --- Event Listeners ---
     homeBtn?.addEventListener('click', () => { window.location.href = './fastmate.html'; });
     tabs.forEach(tab => {

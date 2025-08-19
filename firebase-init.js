@@ -10,10 +10,14 @@
 
 (() => {
   // 1) 프로젝트 설정값 (필수: 본인 값으로 교체)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-    authDomain: "fasting-b4ccb.firebaseapp.com",
-    projectId: "fasting-b4ccb"
+const firebaseConfig = {
+  apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
+  authDomain: "fasting-b4ccb.firebaseapp.com",
+  projectId: "fasting-b4ccb",
+  storageBucket: "fasting-b4ccb.firebasestorage.app",
+  messagingSenderId: "879518503068",
+  appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
+  measurementId: "G-EX5HR2CB35"
   };
 
   // 2) 중복 초기화 가드

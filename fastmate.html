@@ -3,8 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fastmate - 당신의 단식 동반자</title>
+    <title>Fastmate - 관리하는 단식 </title>
     <link rel="icon" href="/favicon.ico" sizes="any">
+        <script>
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isIOS) {
+            document.documentElement.classList.add('is-ios');
+        }
+    </script>
+    
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
@@ -12,7 +19,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-    <script src="./firebase-init.js"></script>
+    <script defer src="./firebase-init.js"></script>
+    <link rel="stylesheet" href="./styles.css">
   
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -96,15 +104,31 @@
         .ring { width: 100%; height: 100%; }
         
         .timer-display {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* [수정] Y축(세로) 위치를 -50% -> -70%로 변경하여 블록 전체를 위로 올립니다. */
+    transform: translate(-50%, -70%); 
+    text-align: center;
+}
         
-        .timer-display .label { font-size: 1rem; color: var(--text-light); }
-        .timer-display .time { font-size: 2.5rem; font-weight: 700; color: var(--text-color); line-height: 1.2; }
+/* 기존 .timer-display .label 규칙을 아래 코드로 교체 */
+.timer-display .label {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 5px; /* [추가] 시간과의 간격을 살짝 줍니다. */
+}
+
+/* 기존 .timer-display .time 규칙을 아래 코드로 교체 */
+.timer-display .time {
+    /* [수정] clamp()를 사용하여 글씨 크기를 반응형으로 만듭니다. */
+    /* 최소 1.8rem, 최대 2.5rem 크기를 유지하며 화면 너비(vw)에 따라 유연하게 변함 */
+    font-size: clamp(1.8rem, 10vw, 2.5rem); 
+    
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1; /* 수직 정렬을 위해 줄 간격 조정 */
+}
 
         .status-message {
             text-align: center;
@@ -158,7 +182,30 @@
         .salt-tip { background-color: #fffbe6; border: 1px solid #ffe58f; color: #d46b08; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin: 0 auto 20px auto; max-width: 90%; text-align: center; display: none; }
 
         .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; }
-        select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 1rem; background-color: #f8f9fa; }
+      
+ select {
+    /* --- 기본 스타일 --- */
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    
+    /* --- 요청사항 반영 --- */
+    font-weight: 400;
+    color: var(--dark-gray-color);
+    
+    /* [수정] border 속성을 올바른 형식으로 변경 */
+    border: 1px solid var(--border-color);
+
+    /* --- 커스텀 화살표 --- */
+    appearance: none; /* 브라우저 기본 화살표 숨기기 */
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23777777' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+}
         .button-group { display: flex; gap: 10px; width: 100%; }
         .button-group button {
             flex-grow: 1;
@@ -450,6 +497,7 @@
     animation: fade-in 0.5s 0.5s ease forwards;
 }
 
+
 @keyframes text-pop-in {
     0% { transform: scale(0.5); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
@@ -481,6 +529,13 @@
     100% { top: 110vh; transform: rotate(720deg); }
 }
 
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* ... 다른 다크 모드 변수들 ... */
+        --gauge-track-color: #333; /* [추가] 게이지 배경 트랙을 어두운 색으로 */
+    }
+}
+
     </style>
 </head>
 <body>
@@ -496,11 +551,17 @@
         
         <div class="ring-wrap">
             <svg class="ring" viewBox="0 0 120 120">
-                <defs>
-                    <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
-                    <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stop-color="var(--gauge-start-color)"/>
-                        <stop offset="100%" stop-color="var(--primary-color)"/>
+     <defs>
+            <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
+            
+            <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="var(--gauge-start-color)"/>
+                <stop offset="100%" stop-color="var(--primary-color)"/>
+            </linearGradient>
+        
+            <linearGradient id="overtimeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#FF690B"/>
+                <stop offset="100%" stop-color="var(--gauge-start-color)"/>
                     </linearGradient>
                 </defs>
                 <circle cx="60" cy="60" r="54" stroke="url(#trackGrad)" stroke-width="12" fill="none"/>
@@ -565,13 +626,13 @@
 
         <div class="controls">
             <select id="fastingModelSelect">
-              <option value="8">8:16(8시간 단식,야식끊기)</option>  
-              <option value="12">12:12(12시간 단식,초보)</option>  
+              <option value="8">8:16 (8시간 단식,야식끊기)</option>  
+              <option value="12">12:12 (12시간 단식,초보)</option>  
               <option value="16">16:8 (16시간 단식,인기)</option>
                 <option value="18">18:6 (18시간 단식,인기)</option>
                 <option value="20">20:4 (20시간 단식,고급)</option>
                 <option value="24">24시간 (1일 단식,고급)</option>
-                <option value="36">36시간 (1.5일 단식,고급)</option>
+                <option value="36">36시간(1.5일 단식,고급)</option>
                 <option value="48">48시간 (2일 단식,고급)</option>
                 <option value="72">72시간 (3일 단식,고급)</option>
             </select>
@@ -612,7 +673,7 @@
 
        
         <!-- 체중 기록 모달 -->
-      <div id="weightModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+<div id="weightModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
   <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
     <h3 class="onb-title" style="margin-bottom:8px;">체중 기록</h3>
     <p class="onb-desc">현재 체중(kg)을 입력해주세요.</p>
@@ -622,7 +683,8 @@
       <button id="saveWeightBtn" type="button" class="onb-btn onb-primary">저장</button>
     </div>
   </div>
-</div> 
+</div>
+
        
        
         <!-- 케톤 기록 모달 -->
@@ -638,24 +700,31 @@
   </div>
 </div>
 
-<!-- 운동 기록 모달 -->
-<div id="exerciseModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
-    <h3 class="onb-title" style="margin-bottom:8px;">운동 기록</h3>
-    <p class="onb-desc">운동 종류와 시간을 입력해주세요.</p>
 
     <!-- 혈당 기록 모달 -->
 <div id="bloodSugarModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
   <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
     <h3 class="onb-title" style="margin-bottom:8px;">혈당 기록</h3>
-    <p class="onb-desc">혈당 수치(mg/dL)를 입력해주세요.</p>
+    <p class="onb-desc">혈당 수치와 측정 시간을 입력해주세요.</p>
+    
+    <label class="onb-label" style="margin-top:20px; margin-bottom: 5px; text-align: left;">혈당 (mg/dL)</label>
     <input id="bloodSugarInput" class="onb-input" type="number" step="1" min="1" placeholder="예. 92" />
+
+    <label class="onb-label" style="margin-top:15px; margin-bottom: 5px; text-align: left;">측정 시간</label>
+    <input id="bloodSugarTimestampInput" class="onb-input" type="datetime-local" />
+
     <div class="onb-actions" style="margin-top:20px;">
       <button type="button" data-close="bloodSugarModal" class="onb-btn onb-ghost">취소</button>
       <button id="saveBloodSugarBtn" type="button" class="onb-btn onb-primary">저장</button>
     </div>
   </div>
 </div>
+
+<!-- 운동 기록 모달 -->
+<div id="exerciseModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">운동 기록</h3>
+    <p class="onb-desc">운동 종류와 시간을 입력해주세요.</p>
 
     <!-- 기존 태그 스타일 재사용 -->
     <div id="exerciseType" class="tag-cloud" style="margin-bottom:12px;">
@@ -684,6 +753,7 @@
     </div>
   </div>
 </div>
+
 
         <footer class="app-footer">
             <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
@@ -890,26 +960,57 @@ function updateUIState() {
     });
   }
   // fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
+// fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
 function updateTimer() {
     const now = new Date();
     const elapsed = now - selectedStartTime;
-    const target  = parseFloat(targetHours, 10) * 3600000;
-    const progress = Math.min((elapsed / target) * 100, 100); // <-- 이 줄을 위로 옮겼습니다.
+    const target  = parseFloat(targetHours) * 3600000;
+    const progress = Math.min((elapsed / target) * 100, 100);
 
+    const timerLabel = document.querySelector('.timer-display .label');
+
+    if (elapsed < target) {
+        // --- 목표 달성 전 (기존 로직) ---
+        if(timerLabel) timerLabel.textContent = '남은 시간';
+        progressArc.setAttribute('stroke', 'url(#progGrad)'); // 기본 그라데이션 적용
+
+        const remain = target - elapsed;
+        const h = Math.floor(remain / 3600000);
+        const m = Math.floor((remain % 3600000) / 60000);
+        const s = Math.floor((remain % 60000) / 1000);
+        if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+        if (statusMessage) {
+            statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
+        }
+
+    } else {
+        // --- 목표 달성 후 (초과 시간 로직) ---
+        if(timerLabel) timerLabel.textContent = '초과 시간';
+        progressArc.setAttribute('stroke', 'url(#overtimeGrad)'); // 초과 시간용 그라데이션 적용
+
+        const overtime = elapsed - target;
+        const h = Math.floor(overtime / 3600000);
+        const m = Math.floor((overtime % 3600000) / 60000);
+        const s = Math.floor((overtime % 60000) / 1000);
+        if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        
+        if (statusMessage) statusMessage.textContent = "목표 달성! 대단해요!";
+    }
+
+    // --- 공통 로직 ---
     if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
-
-    const remain = Math.max(0, target - elapsed);
-    const h = Math.floor(remain / 3600000);
-    const m = Math.floor((remain % 3600000) / 60000);
-    const s = Math.floor((remain % 60000) / 1000);
-    if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    
-    if (statusMessage) statusMessage.textContent = (elapsed / 3600000) >= 16 ? "세포 재활용, 오토파지 활성화 중!" : "단식 진행 중...";
-    
     checkMilestones(progress);
     
+    // 목표 달성 애니메이션은 1회만 실행, 단식은 계속 진행
     if (progress >= 100 && !completionFired) {
-        // ... (목표 달성 로직은 그대로)
+        completionFired = true;
+        if (completionOverlay) {
+            completionOverlay.classList.add('show');
+            setTimeout(() => {
+                completionOverlay.classList.remove('show');
+            }, 4000); // 4초 후 애니메이션 숨김
+        }
     }
 }
    function startFasting() {
@@ -1116,6 +1217,15 @@ function initializeTime() {
     bloodSugarBtn?.addEventListener('click', () => {
       if (bloodSugarModal) {
         bloodSugarModal.style.display = 'flex';
+   // [추가] 시간 입력창에 현재 시간을 기본값으로 설정
+        const timestampInput = document.getElementById('bloodSugarTimestampInput');
+        if (timestampInput) {
+            const now = new Date();
+            // YYYY-MM-DDTHH:mm 형식에 맞게 시간 오프셋을 조정합니다.
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            timestampInput.value = now.toISOString().slice(0, 16);
+        }
+       
       } else {
         const v = parseFloat(prompt('혈당 수치 (mg/dL)를 입력하세요:') || '');
         if (v > 0) {
@@ -1124,21 +1234,42 @@ function initializeTime() {
         }
       }
     });
-    saveBloodSugarBtn?.addEventListener('click', async () => {
-      const v = parseFloat(bloodSugarInput?.value);
-      if (!v || v<=0) return showToast("올바른 혈당 수치를 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
-      saveLocalList('bloodSugarData', { date:new Date().toISOString(), value:v });
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } catch (e) {
+    // wireEventsOnce 함수 안
+
+saveBloodSugarBtn?.addEventListener('click', async () => {
+    const v = parseFloat(bloodSugarInput?.value);
+    if (!v || v <= 0) return showToast("올바른 혈당 수치를 입력하세요.");
+
+    // [추가] 시간 입력창에서 값 가져오기
+    const timestampInput = document.getElementById('bloodSugarTimestampInput');
+    const timestamp = timestampInput.value;
+
+    if (!timestamp) return showToast("측정 시간을 선택해주세요.");
+    
+    // [수정] 입력된 시간 문자열을 Date 객체로 변환
+    const recordDate = new Date(timestamp);
+
+    const user = ensureSignedIn(); if (!user) return;
+
+    saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
+
+    try {
+        await db.collection('users').doc(user.uid)
+            .collection('measurements').doc('bloodSugar')
+            .collection('items').add({
+                date: recordDate, // [수정] new Date() 대신 선택한 시간으로 저장
+                value: v,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+    } catch (e) {
         console.error('save blood sugar failed:', e);
         showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
-      }
-      bloodSugarInput.value = '';
-      bloodSugarModal.style.display = 'none';
-      showToast("혈당 수치가 저장되었습니다.");
-    });
+    }
+
+    bloodSugarInput.value = '';
+    bloodSugarModal.style.display = 'none';
+    showToast("혈당 수치가 저장되었습니다.");
+});
 
     // --- 케톤 기록 ---
     ketoneBtn?.addEventListener('click', () => ketoneModal && (ketoneModal.style.display='flex'));
