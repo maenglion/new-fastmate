@@ -99,22 +99,27 @@
             box-sizing: border-box;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-        }
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+}
 
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+.btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* ▼▼▼▼▼▼ 바로 여기에 추가하시면 됩니다 ▼▼▼▼▼▼ */
+.button-group .btn {
+    flex: 1; /* 자식 요소들이 공간을 균등하게 차지하도록 함 */
+}
 
         .btn-primary {
             background-color: var(--primary-color);
@@ -128,6 +133,7 @@
             color: var(--text-color);
             border: 1px solid var(--border-color);
         }
+
 
         .tag-cloud {
             display: flex;
