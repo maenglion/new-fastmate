@@ -528,6 +528,8 @@
     100% { top: 110vh; transform: rotate(720deg); }
 }
 
+/* fastmate.html의 <style> 태그 안에서 이 블록 전체를 교체해주세요. */
+
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-color: #121212;
@@ -535,7 +537,33 @@
         --text-color: #e0e0e0;
         --text-light: #888;
         --border-color: #333;
-        --gauge-track-color: #333; /* [수정] 다크 모드용 어두운 트랙 색상 */
+        --gauge-track-color: #333;
+    }
+
+    /* [수정 1] 닉네임 버튼 어둡게 */
+    .user-chip {
+        background: #2a2a2a;
+        border-color: #444;
+    }
+
+    /* [수정 2] 시작/종료 시간 카드 어둡게 */
+    .time-box {
+        background-color: #2a2a2a;
+    }
+    #startTimeBox:hover {
+        background-color: #333;
+    }
+
+    /* [수정 3] 단식 모델 선택창 어둡게 */
+    select {
+        background-color: #2a2a2a;
+        color: var(--text-color);
+        border-color: #444;
+    }
+
+    /* [수정 4] '단식중' 버튼 글씨만 어둡게 */
+    .start-btn[disabled] {
+        color: #333 !important; /* JavaScript 스타일을 덮어쓰기 위해 !important 사용 */
     }
 }
     </style>
