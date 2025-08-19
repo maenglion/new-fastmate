@@ -47,22 +47,23 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const introContainer = document.querySelector('.intro-container');
+    document.addEventListener('DOMContentLoaded', () => {
+        const introContainer = document.querySelector('.intro-container');
 
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    // 로그인된 사용자는 즉시 환영 화면으로 이동
-                    window.location.replace('./welcome.html');
-                } else {
-                    // [수정] 로그인되지 않은 사용자일 때만 내용을 보여줌
-                    if (introContainer) {
-                        introContainer.classList.add('show');
-                    }
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                // 로그인된 사용자는 즉시 메인 앱으로 이동시킵니다.
+                // 최종 판단은 fastmate.html이 알아서 할 것입니다.
+                window.location.replace('./fastmate.html');
+            } else {
+                // 로그인되지 않은 사용자일 때만 내용을 보여줍니다.
+                if (introContainer) {
+                    introContainer.classList.add('show');
                 }
-            });
+            }
         });
-    </script>
+    });
+</script>
     
 </body>
 </html>

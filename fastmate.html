@@ -880,42 +880,40 @@ option.is-running {
 document.addEventListener('DOMContentLoaded', () => {
     let bootstrapped = false;
 
-    // [최종 수정] onAuthStateChanged를 한 번만 사용하여 모든 로직을 순서대로 처리합니다.
-    firebase.auth().onAuthStateChanged(async (user) => {
-        // 1. 로그인되어 있지 않으면 로그인 페이지로 보냅니다.
-        if (!user) {
-            window.location.href = './login.html';
+   / fastmate.html의 스크립트 최상단, document.addEventListener 안에 있는
+// firebase.auth().onAuthStateChanged(...) 블록 전체를 이 코드로 교체해주세요.
+
+firebase.auth().onAuthStateChanged(async (user) => {
+    // 1. Firebase Auth에 유저 정보가 없으면, 무조건 로그인 페이지로 보냅니다.
+    if (!user) {
+        window.location.replace('./login.html');
+        return;
+    }
+
+    try {
+        // 2. Firestore DB에서 실제 프로필 정보를 가져옵니다.
+        const prof = await getUserDoc();
+
+        // 3. [핵심] DB에 프로필이 없으면 (삭제된 사용자), 유령 세션을 정리하고 로그인 페이지로 보냅니다.
+        if (!prof) {
+            await firebase.auth().signOut(); // Firebase Auth에서 로그아웃시켜 상태를 동기화
+            window.location.replace('./login.html');
             return;
         }
 
-        // 2. [추가] 1회성 데이터 이사(마이그레이션) 로직을 먼저 실행합니다.
-        await migrateLegacyFast(user.uid);
-
-        // 3. 온보딩(닉네임/목표 설정)을 완료했는지 Firestore에서 직접 확인합니다.
-        try {
-            const prof = await getUserDoc();
-            const completed = !!prof?.onboarding?.completed;
-
-            // 온보딩이 완료되지 않았다면, signup 페이지로 보냅니다.
-            if (!completed) {
-                // 재진입 방지를 위해 임시 락을 걸 수 있습니다 (선택사항이지만 안정적)
-                sessionStorage.setItem('onboardingRedirected', 'true');
-                window.location.href = './signup.html?step=2&from=fastmate';
-                return; // 온보딩이 끝날 때까지 아래 코드는 실행되지 않습니다.
-            }
-        } catch (e) {
-            console.error("온보딩 확인 중 오류:", e);
+        // 4. 온보딩(초기 설정)을 완료했는지 확인합니다.
+        const completed = !!prof?.onboarding?.completed;
+        if (!completed) {
+            window.location.replace('./signup.html?step=2&from=fastmate');
+            return;
         }
-        
-        // 4. 모든 확인이 끝났고, 아직 앱이 시작되지 않았다면 앱을 완전히 초기화합니다.
+
+        // 5. 모든 관문을 통과한 정상 사용자만 앱을 초기화합니다.
         if (!bootstrapped) {
             bootstrapped = true;
             
-            const prof = await getUserDoc(); // 최신 프로필 정보 다시 가져오기
             const chip = document.getElementById('userChip');
             const chipName = document.getElementById('userChipName');
-
-            // [핵심] 이제 이 부분이 항상 실행되어 닉네임 버튼이 표시됩니다.
             if (chip && chipName) {
                 chipName.textContent = prof?.nickname || '회원';
                 chip.style.display = 'flex';
@@ -924,10 +922,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             initializeTimePicker();
             initializeTime();
-            loadState(); // Firestore에서 데이터를 불러옵니다.
+            loadState();
             wireEventsOnce();
         }
-    });
+    } catch (error) {
+        console.error("인증 처리 중 오류 발생:", error);
+        // 문제가 생기면 안전하게 로그아웃시키고 로그인 페이지로 보냅니다.
+        await firebase.auth().signOut();
+        window.location.replace('./login.html');
+    }
+});
 
     /* =========================
      * [추가] 1회성 데이터 이사 함수
