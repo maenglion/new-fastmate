@@ -843,54 +843,58 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  let bootstrapped = false;
+    let bootstrapped = false;
 
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) { window.location.href = './login.html'; return; }
-
-    if (sessionStorage.getItem('onboardingLock') === '1') {
-      if (!bootstrapped) {
-        bootstrapped = true;
-        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
-      }
-      return;
-    }
-
-    try {
-      const prof = await getUserDoc().catch(() => null);
-      const completed   = !!prof?.onboarding?.completed;
-      const hasNickname = !!prof?.nickname;
-      const hasGoals    = Array.isArray(prof?.onboarding?.reasons) && prof.onboarding.reasons.length > 0;
-
-      if (!completed || !hasNickname || !hasGoals) {
-        sessionStorage.setItem('onboardingLock', '1');
-        window.location.href = './signup.html?step=2&from=fastmate';
-        return;
-      }
-
-      sessionStorage.removeItem('onboardingLock');
-
-      if (!bootstrapped) {
-        bootstrapped = true;
-        const chip = document.getElementById('userChip');
-        const chipName = document.getElementById('userChipName');
-        const nickname = prof?.nickname || user.displayName || (user.email ? user.email.split('@')[0] : '회원');
-        if (chip && chipName) {
-          chipName.textContent = nickname;
-          chip.style.display = 'flex';
-          chip.onclick = () => (window.location.href = './mypage.html');
+    // [최종 수정] onAuthStateChanged를 한 번만 사용하여 모든 로직을 순서대로 처리합니다.
+    firebase.auth().onAuthStateChanged(async (user) => {
+        // 1. 로그인되어 있지 않으면 로그인 페이지로 보냅니다.
+        if (!user) {
+            window.location.href = './login.html';
+            return;
         }
 
-        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
-      }
-    } catch (e) {
-      console.error(e);
-      if (!bootstrapped) {
-        bootstrapped = true;
-        initializeTimePicker(); initializeTime(); loadState(); wireEventsOnce();
-      }
-    }
-  });
+        // 2. [추가] 1회성 데이터 이사(마이그레이션) 로직을 먼저 실행합니다.
+        // 이렇게 해야 loadState가 복구된 데이터를 바로 읽을 수 있습니다.
+        await migrateLegacyFast(user.uid);
+
+        // 3. 온보딩(닉네임/목표 설정)을 완료했는지 확인합니다.
+        //    (이미 확인했다면 같은 세션에서는 다시 확인하지 않습니다.)
+        if (sessionStorage.getItem('onboardingLock') !== '1') {
+            try {
+                const prof = await getUserDoc();
+                const completed = !!prof?.onboarding?.completed;
+
+                if (!completed) {
+                    sessionStorage.setItem('onboardingLock', '1'); // 재진입 방지
+                    window.location.href = './signup.html?step=2&from=fastmate';
+                    return; // 온보딩이 끝날 때까지 아래 코드는 실행되지 않습니다.
+                }
+            } catch (e) {
+                console.error("온보딩 확인 중 오류:", e);
+            }
+        }
+        
+        // 4. 모든 확인이 끝났고, 아직 앱이 시작되지 않았다면 앱을 초기화합니다.
+        if (!bootstrapped) {
+            bootstrapped = true;
+            
+            const prof = await getUserDoc(); // 최신 프로필 정보 다시 가져오기
+            const chip = document.getElementById('userChip');
+            const chipName = document.getElementById('userChipName');
+            if (chip && chipName) {
+                chipName.textContent = prof?.nickname || '회원';
+                chip.style.display = 'flex';
+                chip.onclick = () => (window.location.href = './mypage.html');
+            }
+
+            initializeTimePicker();
+            initializeTime();
+            loadState(); // Firestore에서 데이터를 불러옵니다.
+            wireEventsOnce();
+        }
+    });
+
+    // ... (이 아래로 DOM 캐시, 상태/유틸, 단식 타이머 함수 등 나머지 코드는 그대로 둡니다) ...
 
   /* =========================
    * 1) DOM 캐시
@@ -952,6 +956,8 @@ let fastingInterval  = null;
   const milestones = { 10:false, 25:false, 50:false, 70:false, 80:false, 90:false };
   const db = firebase.firestore();
 
+  
+
   function showToast(msg) {
     if (!toast) return;
     clearTimeout(toastTimeout);
@@ -973,6 +979,7 @@ let fastingInterval  = null;
     }
     return user;
   }
+  
 
   /* =========================
    * 3) 단식 타이머
@@ -1096,62 +1103,58 @@ function updateTimer() {
 // fastmate.html의 <script> 안에서
 // startFasting과 loadState 함수를 찾아 아래 코드로 교체해주세요.
 
-// [수정] 단식 시작 시 Firestore에도 상태를 저장합니다.
 async function startFasting() {
-    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+        if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
 
-    if (!timePickerUsed) {
-        selectedStartTime = new Date();
-    }
-    updateTimeDisplays();
-    
-    fastingState = 'running';
-    targetHours = parseFloat(modelSelect.value, 10);
-    
-    // Firestore에 현재 단식 상태 저장
-    try {
-        const user = ensureSignedIn();
-        if (user) {
-            await db.collection('users').doc(user.uid).set({
-                currentFasting: {
-                    startTime: selectedStartTime,
-                    targetHours: targetHours
-                }
-            }, { merge: true }); // 기존 프로필에 덮어쓰지 않고 병합
+        if (!timePickerUsed) {
+            selectedStartTime = new Date();
         }
-    } catch (error) {
-        console.error("Firestore에 단식 상태 저장 실패:", error);
-    }
-
-    Object.keys(milestones).forEach(k => milestones[k] = false);
-    if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-    fastingInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-    updateUIState();
-    timePickerUsed = false;
-}
-
-// [수정] 단식 종료 시 Firestore의 상태를 삭제합니다.
-async function stopFasting() {
-    if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
-    
-    // Firestore에서 현재 단식 상태 삭제
-    try {
-        const user = ensureSignedIn();
-        if (user) {
-            await db.collection('users').doc(user.uid).update({
-                currentFasting: firebase.firestore.FieldValue.delete()
-            });
+        updateTimeDisplays();
+        
+        fastingState = 'running';
+        targetHours = parseFloat(modelSelect.value, 10);
+        
+        try {
+            const user = ensureSignedIn();
+            if (user) {
+                await db.collection('users').doc(user.uid).set({
+                    currentFasting: {
+                        startTime: selectedStartTime,
+                        targetHours: targetHours
+                    }
+                }, { merge: true });
+            }
+        } catch (error) {
+            console.error("Firestore에 단식 상태 저장 실패:", error);
         }
-    } catch (error) {
-        console.error("Firestore 단식 상태 삭제 실패:", error);
+
+        Object.keys(milestones).forEach(k => milestones[k] = false);
+        fastingInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+        updateUIState();
+        timePickerUsed = false;
     }
 
-    // ... (나머지 stopFasting 코드는 이전과 동일) ...
-    clearInterval(fastingInterval);
-    fastingState = 'idle';
+    async function stopFasting() {
+        if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
+        
+        try {
+            const user = ensureSignedIn();
+            if (user) {
+                await db.collection('users').doc(user.uid).update({
+                    currentFasting: firebase.firestore.FieldValue.delete()
+                });
+            }
+        } catch (error) {
+            console.error("Firestore 단식 상태 삭제 실패:", error);
+        }
+
+        clearInterval(fastingInterval);
+        fastingState = 'idle';
+        const record = { 
     // ... (UI 초기화 및 기록 저장 로직) ...
 }
+    }
 
   function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
@@ -1168,9 +1171,6 @@ async function stopFasting() {
     }
   }
 
-  /* =========================
-   * 4) 시간 선택 초기화
-   * ========================= */
 /* =========================
  * 4) 시간 선택 초기화
  * ========================= */
