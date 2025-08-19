@@ -128,3 +128,18 @@ body {
 .reasons-list input[type="checkbox"] {
     margin-right: 10px;
 }
+        .app-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        .app-footer a, .app-footer p {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-decoration: none;
+            margin: 5px 0;
+        }
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
