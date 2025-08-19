@@ -274,8 +274,8 @@
     position: absolute;
     top: 6px;
     right: 8px;
-    width: 6px; /* 4px보다 조금 더 잘보이게 6px로 조정 */
-    height: 6px;
+    width: 2x; /* 4px보다 조금 더 잘보이게 6px로 조정 */
+    height: 2px;
     background-color: var(--gauge-start-color); /* 정의된 노란색 */
     border-radius: 50%;
     box-shadow: 0 0 3px var(--gauge-start-color);
@@ -619,19 +619,23 @@ function renderFastingHistory() {
 // createChart와 renderAllCharts 함수를 찾아 아래 코드로 교체해주세요.
 
 // [수정] 차트 생성 함수 (축 설정 및 다크모드 색상 감지)
+
+
+// [수정] 차트 렌더링 함수 (각 차트별 축 옵션 전달)
+// mypage.html의 <script> 안에서
+// createChart와 renderAllCharts 함수를 찾아 아래 코드로 교체해주세요.
+
+// [수정] 차트 생성 함수 (CSS 변수 사용 및 축 설정)
 function createChart(canvasId, label, data, customScaleOptions = {}) {
     if (allCharts[canvasId]) {
         allCharts[canvasId].destroy();
     }
     const ctx = document.getElementById(canvasId).getContext('2d');
     
-    // 다크모드인지 확인
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    // 다크모드일 때와 아닐 때의 색상 설정
-    const textColor = isDarkMode ? '#e0e0e0' : '#333';
-    const gridColor = isDarkMode ? '#444' : '#e0e0e0';
-    const tooltipBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
+    // [수정] CSS에 정의된 색상 변수 값을 JavaScript로 가져옵니다.
+    const chartLineColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-line-color').trim();
+    const chartBubbleBg = getComputedStyle(document.documentElement).getPropertyValue('--chart-bubble-bg').trim();
+    const gridLineColor = '#f0f0f0'; // 요청하신 아주 연한 회색
 
     const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
@@ -641,11 +645,11 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
             datasets: [{
                 label: label,
                 data: chartData,
-                borderColor: '#7FE89B',
+                borderColor: chartLineColor, // CSS 변수 값 적용
                 borderWidth: 2.5,
                 tension: 0.2,
                 pointRadius: 4,
-                pointBackgroundColor: '#7FE89B',
+                pointBackgroundColor: chartLineColor, // CSS 변수 값 적용
                 pointHoverRadius: 6
             }]
         },
@@ -655,23 +659,20 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
                 x: {
                     type: 'time',
                     time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
-                    grid: { color: gridColor },
-                    ticks: { color: textColor }
+                    grid: { color: gridLineColor } // 연한 회색 그리드
                 },
                 y: {
                     beginAtZero: false,
-                    grid: { color: gridColor },
-                    ticks: { color: textColor },
-                    // [수정] 외부에서 전달된 커스텀 축 옵션을 여기에 적용
-                    ...customScaleOptions 
+                    grid: { color: gridLineColor }, // 연한 회색 그리드
+                    ...customScaleOptions // 외부에서 전달된 축 옵션 적용
                 }
             },
             plugins: {
                 legend: { display: false },
                 zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
                 tooltip: {
-                    backgroundColor: tooltipBgColor,
-                    titleColor: textColor, bodyColor: textColor,
+                    backgroundColor: chartBubbleBg, // CSS 변수 값 적용
+                    titleColor: '#333', bodyColor: '#333',
                     padding: 10, cornerRadius: 8,
                     callbacks: {
                         title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -699,10 +700,19 @@ function renderAllCharts() {
         return data.filter(d => d && d.date >= cutoffDate);
     };
 
-    // 각 차트별 y축 옵션을 정의합니다.
-    const weightScaleOptions = { ticks: { stepSize: 5 } };
-    const bloodSugarScaleOptions = { ticks: { stepSize: 10 } };
-    const ketoneScaleOptions = { max: 5, ticks: { stepSize: 0.5 } };
+    // [수정] 요청하신 y축 옵션을 명확하게 정의합니다.
+    const weightScaleOptions = {
+        max: 120,
+        ticks: { stepSize: 10 }
+    };
+    const bloodSugarScaleOptions = {
+        max: 300,
+        ticks: { stepSize: 10 }
+    };
+    const ketoneScaleOptions = {
+        max: 5,
+        ticks: { stepSize: 0.5 }
+    };
 
     // createChart 함수를 호출할 때, 마지막 인자로 각 차트에 맞는 옵션을 전달합니다.
     createChart('weightChart', '체중 (kg)', filterFn(allData.weight), weightScaleOptions);
