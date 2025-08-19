@@ -1147,34 +1147,6 @@ function updateTimer() {
         }
     }
 }
-   function startFasting() {
-   completionFired = false; // [추가] 다음 단식을 위해 깃발 초기화
-    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
-
-  // [수정] 사용자가 시간 선택 모달을 사용하지 않았을 경우에만 시작 시간을 '지금'으로 설정
-  if (!timePickerUsed) {
-    selectedStartTime = new Date();
-  }
-  
-  updateTimeDisplays();
-  
-  fastingState = 'running';
-  targetHours = parseInt(modelSelect.value, 10);
-  localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
-  localStorage.setItem('fastingTargetHours', targetHours);
-  Object.keys(milestones).forEach(k => milestones[k] = false);
-
-  if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-  fastingInterval = setInterval(updateTimer, 1000);
-  updateTimer();
-  updateUIState();
-  
-  timePickerUsed = false; // 다음 단식을 위해 깃발 초기화
-}
-
-
-// fastmate.html의 <script> 안에서
-// startFasting과 loadState 함수를 찾아 아래 코드로 교체해주세요.
 
 function startFasting() {
     if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
@@ -1208,29 +1180,60 @@ function startFasting() {
     timePickerUsed = false;
 }
 
+// fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
+
 async function stopFasting() {
-    if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
+    // 1. 이미 단식이 종료된 상태면, 함수를 바로 중단합니다.
+    if (fastingState === 'idle') {
+        return showToast("시작된 단식이 없습니다.");
+    }
     
-    // [추가] 선택창 UI 초기화
-    resetSelectOptions();
+    // 2. 타이머를 멈추고, 앱의 상태를 'idle'(대기)로 변경합니다.
+    clearInterval(fastingInterval);
+    fastingState = 'idle';
 
+    const record = {
+      startTime: selectedStartTime,
+      endTime: new Date(),
+      targetHours: parseFloat(targetHours),
+      actualDurationHours: (new Date() - selectedStartTime) / 3600000
+    };
+
+    // 3. 최종 단식 기록을 Firestore에 저장합니다.
     try {
-        const user = ensureSignedIn();
-        if (user) {
-            await db.collection('users').doc(user.uid).update({
-                currentFasting: firebase.firestore.FieldValue.delete()
-            });
-        }
-    } catch (error) {
-        console.error("Firestore 단식 상태 삭제 실패:", error);
+      const user = ensureSignedIn();
+      if (user) {
+        // 'fastingHistory' 컬렉션에 최종 기록 저장
+        await db.collection('users').doc(user.uid).collection('fastingHistory').add({
+            startTime: record.startTime,
+            endTime: record.endTime,
+            targetHours: record.targetHours,
+            actualDurationHours: record.actualDurationHours,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 'currentFasting' 상태 필드 삭제
+        await db.collection('users').doc(user.uid).update({
+            currentFasting: firebase.firestore.FieldValue.delete()
+        });
+      }
+    } catch (e) {
+      console.error('단식 기록 저장 또는 상태 삭제 실패:', e);
     }
 
-        clearInterval(fastingInterval);
-        fastingState = 'idle';
-        const record = { 
-    // ... (UI 초기화 및 기록 저장 로직) ...
+    // 4. [핵심] 화면 UI를 모두 초기 상태로 되돌립니다.
+    if (progressArc)      progressArc.style.strokeDasharray = '0 100';
+    if (remainingTimeEl)  remainingTimeEl.textContent = '00:00:00';
+    if (statusMessage)    statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+    if (saltTip)          saltTip.style.display = 'none';
+    
+    selectedStartTime = new Date(); // 시작 시간을 현재 시간으로 리셋
+    updateTimeDisplays(); // 시작/종료 시간 표시창 업데이트
+    updateUIState();      // 시작/종료 버튼 상태 업데이트
+    resetSelectOptions(); // 선택창 UI 초기화
+
+    showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
-    }
 
   function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
