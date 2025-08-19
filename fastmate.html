@@ -115,8 +115,8 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    /* [수정] Y축(세로) 위치를 미세 조정하여 00:00:00 텍스트를 정중앙에 맞춥니다. */
-    transform: translate(-50%, -45%); 
+    /* [수정] Y축(세로) 위치를 -60%로 변경하여 블록 전체를 더 위로 올립니다. */
+    transform: translate(-50%, -70%); 
     text-align: center;
 }
 
@@ -548,8 +548,13 @@
 
     /* [수정 2] 시작/종료 시간 카드 어둡게 */
     .time-box {
-        background-color: #2a2a2a;
+        background-color: #2a2a2a; 
     }
+
+    .timer-display .label {
+        color: var(--text-light); /* '남은 시간' 글씨를 밝은 회색으로 변경 */
+    }
+    
     #startTimeBox:hover {
         background-color: #333;
     }
@@ -565,6 +570,24 @@
     .start-btn[disabled] {
         color: #333 !important; /* JavaScript 스타일을 덮어쓰기 위해 !important 사용 */
     }
+    /* [추가] 모달 안의 하얀 입력창 어둡게 */
+.onb-input {
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: var(--text-color); /* 입력하는 글씨도 밝게 */
+}
+
+/* [추가] 운동 기록 태그 어둡게 */
+.tag {
+    background-color: #333;
+    border-color: #555;
+    color: #ccc;
+}
+.tag.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
 }
     </style>
 </head>
