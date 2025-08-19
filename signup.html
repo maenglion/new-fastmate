@@ -421,7 +421,22 @@ document.addEventListener('DOMContentLoaded', () => {
       googleBtn.disabled = false;
     }
   }
-  googleBtn?.addEventListener('click', handleGoogleSignup);
+ /* =============== [수정] 구글 간편가입 =============== */
+  googleBtn?.addEventListener('click', async () => {
+    googleBtn.disabled = true;
+    try {
+      // firebase-init.js의 공용 헬퍼 함수를 호출합니다.
+      // 성공 후의 화면 전환은 아래 onAuthStateChanged가 모두 알아서 처리합니다.
+      await signInWithGoogle();
+    } catch (error) {
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+        alertKoreanAuthError(error, 'Google 로그인에 실패했습니다.');
+      }
+    } finally {
+      googleBtn.disabled = false;
+    }
+  });
+
 
   /* =============== Step 이동 =============== */
   nextToStep2Btn?.addEventListener('click', () => {
@@ -443,22 +458,21 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   backToStep3Btn?.addEventListener('click', () => navigateTo(3));
 
-  /* =============== 최종 가입 =============== */
+   /* =============== [수정] 최종 가입 =============== */
   async function onFinishSignup() {
     if (finishSignupBtn.disabled) return;
     finishSignupBtn.disabled = true;
-
     try {
-      if (!termsCheckbox?.checked || !privacyCheckbox?.checked || !document.getElementById('sensitiveData')?.checked) {
-        alert('필수 약관에 모두 동의해주세요.');
-        return; }
+      if (!termsCheckbox?.checked || !privacyCheckbox?.checked || !sensitiveDataCheckbox?.checked) {
+        return alert('필수 약관에 모두 동의해주세요.');
+      }
       const nickname = nicknameInput.value.trim();
       const goals = collectGoals();
       if (!nickname) return alert('닉네임을 입력해주세요.');
       if (!goals.length) return alert('하나 이상의 목표를 선택해주세요.');
 
       let user = auth.currentUser;
-      if (!user) {
+      if (!user) { // 이메일 가입 플로우
         const email = emailInput.value.trim();
         const password = passwordInput.value;
         if (!email || password.length < 6) return alert('이메일/비밀번호(6자 이상)를 다시 확인해주세요.');
@@ -466,11 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
         user = cred.user;
       }
       
-      // 구글/이메일 공통 프로필 저장
+      // 구글/이메일 공통: 프로필 저장
       await ensureUserProfile({ nickname, onboarding: { reasons: goals, completed: true } });
       alert('회원가입이 완료되었습니다!');
-      sessionStorage.setItem('onboardingLock', '1');
-      window.location.href = './fastmate.html';
+      window.location.href = './fastmate.html'; // 가입 완료 후 메인 앱으로
     } catch (e) {
       alertKoreanAuthError(e, '회원가입에 실패했습니다.');
     } finally {
@@ -479,16 +492,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   finishSignupBtn?.addEventListener('click', onFinishSignup);
 
-  /* =============== 인증 상태에 따른 초기 진입 제어 (최종 통합 로직) =============== */
+  /* =============== [핵심 수정] 인증 상태에 따른 초기 진입 제어 =============== */
   let authHandled = false;
-firebase.auth().onAuthStateChanged(async (user) => {
+  firebase.auth().onAuthStateChanged(async (user) => {
     if (authHandled) return;
     authHandled = true;
 
     const url = new URL(location.href);
     const stepParam = url.searchParams.get('step');
 
-    // 1) 미로그인 상태면, step 파라미터가 있든 없든 1단계부터 시작합니다.
+    // 1) 미로그인 상태면, 무조건 1단계부터 시작합니다.
     if (!user) {
       navigateTo(1);
       return;
@@ -500,25 +513,24 @@ firebase.auth().onAuthStateChanged(async (user) => {
       emailInput.readOnly = true;
     }
 
-    // 3) [핵심] Firestore 프로필을 조회해서, 온보딩(초기설정)을 마쳤는지 확인합니다.
-    const profile = await getUserDoc(); // firebase-init.js에 있는 함수
+    // 3) Firestore 프로필을 조회해서, 온보딩(초기설정)을 마쳤는지 확인합니다.
+    const profile = await getUserDoc();
     const completed = !!profile?.onboarding?.completed;
 
     if (completed) {
-      // 3-1) 온보딩을 마친 사용자는 더 이상 여기에 있을 이유가 없으므로, 메인 앱으로 보냅니다.
+      // 3-1) 온보딩을 마친 사용자는 더 이상 여기에 있을 이유가 없으므로, 메인 앱으로 즉시 보냅니다.
       window.location.replace('./fastmate.html');
       return;
     }
 
     // 4) 온보딩을 마치지 않은 사용자만 회원가입 절차를 계속 진행합니다.
-    if (stepParam && ['2','3','4'].includes(stepParam)) {
+    if (stepParam && ['2', '3', '4'].includes(stepParam)) {
       navigateTo(parseInt(stepParam));
     } else {
       // 구글 로그인 직후 등, 특별한 step 정보가 없으면 2단계(닉네임)부터 시작합니다.
       navigateTo(2);
     }
-});
-
+  });
 
   /* =============== 약관 모달 열고/닫기 =============== */
   document.querySelectorAll('a[data-modal]').forEach(link => {
