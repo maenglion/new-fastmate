@@ -205,7 +205,7 @@
             color: var(--text-light);
             margin-top: 4px;
         }
-        .history-percentage, .history-calories {
+        .history-calories {
             font-size: 1.2rem;
             font-weight: 700;
             color: var(--primary-color);
@@ -657,6 +657,8 @@ async function fetchFastingHistory() {
 
 // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
 
+// mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
+
 function renderFastingHistory() {
     renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
         const li = document.createElement('li');
@@ -668,13 +670,13 @@ function renderFastingHistory() {
         const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
         
         // [수정] 달성률에 따라 색상 이름(클래스)을 부여합니다.
-        let percentageClass = 'percentage-high'; // 60% 초과 (기본값)
+        let percentageClass = 'percentage-high'; // 70% 초과 (기본값)
         if (percentage > 100) {
             percentageClass = 'percentage-over-100'; // 100% 초과
         } else if (percentage < 1) {
             percentageClass = 'percentage-low';      // 0%
-        } else if (percentage <= 60) {
-            percentageClass = 'percentage-mid';      // 60% 이하
+        } else if (percentage <= 70) {
+            percentageClass = 'percentage-mid';      // 70% 이하
         }
 
         const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -692,6 +694,8 @@ function renderFastingHistory() {
         return li;
     }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
 }
+
+
     function renderExerciseHistory() {
         renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
             const li = document.createElement('li');
