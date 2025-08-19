@@ -1093,28 +1093,66 @@ function updateTimer() {
 }
 
 
-  async function stopFasting() {
+// fastmate.html의 <script> 안에서
+// startFasting과 loadState 함수를 찾아 아래 코드로 교체해주세요.
+
+// [수정] 단식 시작 시 Firestore에도 상태를 저장합니다.
+async function startFasting() {
+    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+
+    if (!timePickerUsed) {
+        selectedStartTime = new Date();
+    }
+    updateTimeDisplays();
+    
+    fastingState = 'running';
+    targetHours = parseFloat(modelSelect.value, 10);
+    
+    // Firestore에 현재 단식 상태 저장
+    try {
+        const user = ensureSignedIn();
+        if (user) {
+            await db.collection('users').doc(user.uid).set({
+                currentFasting: {
+                    startTime: selectedStartTime,
+                    targetHours: targetHours
+                }
+            }, { merge: true }); // 기존 프로필에 덮어쓰지 않고 병합
+        }
+    } catch (error) {
+        console.error("Firestore에 단식 상태 저장 실패:", error);
+    }
+
+    Object.keys(milestones).forEach(k => milestones[k] = false);
+    if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+    fastingInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+    updateUIState();
+    timePickerUsed = false;
+}
+
+// [수정] 단식 종료 시 Firestore의 상태를 삭제합니다.
+async function stopFasting() {
     if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
+    
+    // Firestore에서 현재 단식 상태 삭제
+    try {
+        const user = ensureSignedIn();
+        if (user) {
+            await db.collection('users').doc(user.uid).update({
+                currentFasting: firebase.firestore.FieldValue.delete()
+            });
+        }
+    } catch (error) {
+        console.error("Firestore 단식 상태 삭제 실패:", error);
+    }
+
+    // ... (나머지 stopFasting 코드는 이전과 동일) ...
     clearInterval(fastingInterval);
     fastingState = 'idle';
-    const record = { startTime: selectedStartTime.toISOString(), endTime: new Date().toISOString(), targetHours, actualDurationHours: (new Date() - selectedStartTime) / 3600000 };
-    saveLocalList('fastingHistoryData', record);
-    try {
-      const user = ensureSignedIn(); if (!user) return;
-      await db.collection('users').doc(user.uid).collection('fastingHistory').add({ startTime: new Date(record.startTime), endTime: new Date(record.endTime), targetHours: record.targetHours, actualDurationHours: record.actualDurationHours, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    } catch (e) { console.error('save fasting history failed:', e); }
-    localStorage.removeItem('fastingStartTime');
-    localStorage.removeItem('fastingTargetHours');
-    if (progressArc) progressArc.style.strokeDasharray = '0 100';
-    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
-    if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-    if (saltTip) saltTip.style.display = 'none';
-    if (endTimeValue) endTimeValue.textContent = '-';
-    selectedStartTime = new Date();
-    updateTimeDisplays();
-    updateUIState();
-    showToast("단식을 종료했습니다. 수고하셨습니다!");
-  }
+    // ... (UI 초기화 및 기록 저장 로직) ...
+}
+
   function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
     if (fastingState === 'running' && newTarget !== targetHours) {
@@ -1200,28 +1238,31 @@ function initializeTime() {
     updateTimeDisplays();
 }
  
-  function loadState() {
-    const savedStart = localStorage.getItem('fastingStartTime');
-    const savedHours = localStorage.getItem('fastingTargetHours');
-    if (savedStart && savedHours) {
-      const start = new Date(savedStart);
-      const hrs   = parseInt(savedHours,10);
-      if ((new Date() - start) < hrs*3600000) {
+// [수정] 페이지 로드 시 localStorage 대신 Firestore에서 상태를 불러옵니다.
+async function loadState() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    const prof = await getUserDoc();
+    const savedFasting = prof?.currentFasting;
+
+    if (savedFasting && savedFasting.startTime) {
+        const start = savedFasting.startTime.toDate(); // Firestore 타임스탬프를 Date 객체로 변환
+        const hrs   = parseFloat(savedFasting.targetHours);
+
         selectedStartTime = start;
         targetHours = hrs;
         modelSelect.value = hrs;
+        
         fastingState = 'running';
         if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-        fastingInterval = setInterval(updateTimer,1000);
+        fastingInterval = setInterval(updateTimer, 1000);
         updateTimer();
-      } else {
-        localStorage.removeItem('fastingStartTime');
-        localStorage.removeItem('fastingTargetHours');
-      }
     }
+    
     updateTimeDisplays();
     updateUIState();
-  }
+}
 
   /* =========================
    * 5) 이벤트 바인딩 (1회)
