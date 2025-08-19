@@ -193,20 +193,47 @@
         /* --- 프로필 카드 스타일 끝 --- */
 
        
-       /* .history-item 규칙을 찾아 align-items 값을 수정해주세요. */
+/* 1. .history-item 규칙을 찾아 아래 코드로 교체 */
 .history-item {
     display: flex;
     justify-content: space-between;
-    align-items: center; /* [수정] flex-start -> center */
+    align-items: center; /* [수정] flex-start -> center 로 변경하여 세로 중앙 정렬 */
     padding: 15px 10px;
     border-bottom: 1px solid var(--border-color);
 }
 
-/* .history-percentage 규칙을 찾아 아래 코드로 교체해주세요. */
+/* 2. .history-actions 규칙을 찾아 아래 코드로 교체 */
+.history-actions {
+    display: flex;
+    align-items: center; /* [수정] X버튼과 글씨를 세로 중앙 정렬합니다. */
+    gap: 15px;
+    text-align: right;
+}
+
+.delete-btn {
+    background: #a3a3a3;
+    color: #e2e2e2;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 24px; /* X 아이콘 중앙 정렬 */
+    transition: all 0.2s;
+}
+.delete-btn:hover {
+    background: #c53030;
+    color: white;
+}
+
+/* 3. .history-percentage 규칙을 찾아 아래 코드로 교체 */
 .history-percentage {
     font-size: 1.2rem;
-    font-weight: 700; /* [수정] 글씨를 굵게 */
-} /* <-- [수정] 빠져있던 닫는 괄호를 추가했습니다. */
+    font-weight: 700; /* [수정] 글씨를 굵게 만듭니다. */
+}
+
        
         .history-section h2 {
             font-size: 1.2rem;
@@ -356,29 +383,8 @@
         .tab-content.active { display: block; }
         /* mypage.html의 <style> 안에 추가 */
 
-.history-actions {
-    display: flex;
-    align-items: center; /* [수정] X버튼과 글씨를 세로 중앙 정렬합니다. */
-    gap: 15px;
-    text-align: right;
-}
-.delete-btn {
-    background: #a3a3a3;
-    color: #e2e2e2;
-    border: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 24px; /* X 아이콘 중앙 정렬 */
-    transition: all 0.2s;
-}
-.delete-btn:hover {
-    background: #c53030;
-    color: white;
-}
+
+
 
 /* mypage.html의 <style> 태그 안에 추가 */
 
@@ -497,8 +503,7 @@
         </div>
             </div>
         </div>
-        <h2 class="section-title"><span id="userNickname"></span>나의 건강데이터</h2>
-
+      
         <div class="card">
             <section class="history-section">
                 <h2>나의 단식 기록</h2>
@@ -711,6 +716,8 @@ async function fetchFastingHistory() {
 
 // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
 
+// mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
+
 function renderFastingHistory() {
     renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
         const li = document.createElement('li');
@@ -721,7 +728,6 @@ function renderFastingHistory() {
         const minutes = Math.round((item.actualDurationHours - hours) * 60);
         const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
         
-        // [수정] 달성률에 따라 색상 이름(클래스)을 부여합니다.
         let percentageClass = 'percentage-high'; // 70% 초과 (기본값)
         if (percentage > 100) {
             percentageClass = 'percentage-over-100'; // 100% 초과
@@ -733,7 +739,7 @@ function renderFastingHistory() {
 
         const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
         
-        // [수정] style="color:..." 부분을 삭제하고, class="${percentageClass}"를 추가합니다.
+        // [수정] HTML 구조를 명확하게 다시 정의합니다.
         li.innerHTML = `
             <div class="history-info">
                 <div class="duration">${hours}시간 ${minutes}분</div>
@@ -746,7 +752,6 @@ function renderFastingHistory() {
         return li;
     }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
 }
-
 
     function renderExerciseHistory() {
         renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
