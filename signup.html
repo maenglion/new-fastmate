@@ -253,16 +253,24 @@
             <h2>약관 동의</h2>
             <p class="step-description">서비스 이용을 위해 약관에 동의해주세요.</p>
             <div class="terms-container">
-                <div class="term-item">
-                    <input type="checkbox" id="termsOfService">
-                    <label for="termsOfService">서비스 이용약관 (필수)</label>
-                    <a href="#" data-modal="termsModal">내용 보기</a>
-                </div>
-                <div class="term-item">
-                    <input type="checkbox" id="privacyPolicy">
-                    <label for="privacyPolicy">개인정보처리방침 (필수)</label>
-                    <a href="#" data-modal="privacyModal">내용 보기</a>
-                </div>
+             <div class="term-item">
+        <input type="checkbox" id="termsOfService">
+        <label for="termsOfService">서비스 이용약관 동의 (필수)</label>
+        <a href="#" data-modal="termsModal">내용 보기</a>
+    </div>
+    <div class="term-item">
+        <input type="checkbox" id="privacyPolicy">
+        <label for="privacyPolicy">개인정보처리방침 동의 (필수)</label>
+        <a href="#" data-modal="privacyModal">내용 보기</a>
+    </div>
+    <div class="term-item">
+        <input type="checkbox" id="sensitiveData">
+        <label for="sensitiveData">건강 정보 수집 및 이용 동의 (필수)</label>
+    </div>
+    <p style="font-size: 0.85rem; color: #777; margin-left: 28px; margin-top: -10px; line-height: 1.5;">
+        서비스 제공을 위해 단식 기록, 체중, 혈당, 케톤, 운동 기록 등의 건강 정보가 수집됩니다.
+    </p>
+</div>
             </div>
             <div class="button-group">
                 <button class="btn btn-secondary" id="backToStep3">이전</button>
@@ -442,7 +450,9 @@ document.addEventListener('DOMContentLoaded', () => {
     finishSignupBtn.disabled = true;
 
     try {
-      if (!termsCheckbox?.checked || !privacyCheckbox?.checked) return alert('필수 약관에 모두 동의해주세요.');
+      if (!termsCheckbox?.checked || !privacyCheckbox?.checked || !document.getElementById('sensitiveData')?.checked) {
+        alert('필수 약관에 모두 동의해주세요.');
+        return; }
       const nickname = nicknameInput.value.trim();
       const goals = collectGoals();
       if (!nickname) return alert('닉네임을 입력해주세요.');
