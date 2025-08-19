@@ -53,14 +53,15 @@
   // document.addEventListener('DOMContentLoaded', () => { ... }); <- 기존 블록 삭제
 
   // 6) 헬퍼: 로그아웃
-  window.appSignOut = async () => {
-    try {
-      await auth.signOut();
-      window.location.href = './login.html';
-    } catch (e) {
-      console.error(e);
-    }
-  };
+window.appSignOut = async () => {
+  try {
+    await auth.signOut();
+    // [수정] 로그아웃 후, 앱의 가장 첫 화면인 index.html로 이동
+    window.location.href = './index.html';
+  } catch (e) {
+    console.error(e);
+  }
+};
 
   // 9) 유틸: 현재 사용자 문서 참조/가져오기
   window.userDocRef = () => {
