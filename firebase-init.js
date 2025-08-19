@@ -13,6 +13,11 @@
  * - 모든 페이지 공통 초기화 스크립트
  * ========================================================= */
 
+/* =========================================================
+ * firebase-init.js
+ * - 모든 페이지 공통 초기화 스크립트
+ * ========================================================= */
+
 (() => {
   // 1) 프로젝트 설정값
   const firebaseConfig = {
@@ -36,6 +41,7 @@
   // 5) 헬퍼: 구글 로그인
   window.signInWithGoogle = async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
+    // 팝업 방식으로 로그인 시도
     return auth.signInWithPopup(provider).then(cred => cred.user);
   };
   
@@ -44,7 +50,8 @@
    * 각 페이지(signup.html, fastmate.html)가 자신의 상황에 맞게
    * 화면 전환을 처리하는 것이 훨씬 안정적이기 때문입니다.
    */
-  
+  // document.addEventListener('DOMContentLoaded', () => { ... }); <- 기존 블록 삭제
+
   // 6) 헬퍼: 로그아웃
   window.appSignOut = async () => {
     try {
