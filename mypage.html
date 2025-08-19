@@ -234,18 +234,24 @@
 
 /* .delete-btn 규칙을 찾아 아래 코드로 교체해주세요 */
 .delete-btn {
-    background: #e9ecef;  /* [수정] 흐린 회색 배경 */
-    color: #868e96;       /* [수정] 흐린 회색 X 아이콘 */
+    background: #e9ecef;
+    color: #868e96;
     border: none;
-    width: 22px;          /* [수정] 크기 살짝 줄임 */
+    width: 22px;
     height: 22px;
     border-radius: 50%;
-    font-size: 14px;      /* [수정] X 크기 살짝 줄임 */
+    font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    line-height: 22px;    /* X 아이콘 중앙 정렬 */
     transition: all 0.2s;
+    
+    /* [수정] flexbox를 이용한 완벽한 중앙 정렬 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1; /* 기존 line-height와의 충돌 방지 */
 }
+
 .delete-btn:hover {
     background: #c53030;
     color: white;
