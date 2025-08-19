@@ -670,73 +670,60 @@
 </button>
         </div>
 
-   <!-- 체중 모달 -->     
-       <div id="weightModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-          <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
-            <h3 class="onb-title" style="margin-bottom:8px;">체중 기록</h3>
-            <p class="onb-desc">현재 체중(kg)을 입력해주세요.</p>
-            <input id="weightInput" class="onb-input" type="number" step="0.1" min="0" placeholder="예. 65.5" />
-            <div class="onb-actions" style="margin-top:20px;">
-              <button type="button" data-close="weightModal" class="onb-btn onb-ghost">취소</button>
-              <button id="saveWeightBtn" type="button" class="onb-btn onb-primary">저장</button>
-            </div>
-          </div>
-        </div>
- <!-- 케톤 모달 -->
-        <div id="ketoneModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-          <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
-            <h3 class="onb-title" style="margin-bottom:8px;">케톤 기록</h3>
-            <p class="onb-desc">케톤 수치(mmOL/L)를 입력해주세요.</p>
-            <input id="ketoneInput" class="onb-input" type="number" step="0.1" min="0" placeholder="예. 1.2" />
-            <div class="onb-actions" style="margin-top:20px;">
-              <button type="button" data-close="ketoneModal" class="onb-btn onb-ghost">취소</button>
-              <button id="saveKetoneBtn" type="button" class="onb-btn onb-primary">저장</button>
-            </div>
-          </div>
-        </div>
- <!-- 혈당 모달 -->
-        <div id="bloodSugarModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-          <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
-            <h3 class="onb-title" style="margin-bottom:8px;">혈당 기록</h3>
-            <p class="onb-desc">혈당 수치(mg/dL)를 입력해주세요.</p>
-            <input id="bloodSugarInput" class="onb-input" type="number" step="1" min="1" placeholder="예. 92" />
-            <div class="onb-actions" style="margin-top:20px;">
-              <button type="button" data-close="bloodSugarModal" class="onb-btn onb-ghost">취소</button>
-              <button id="saveBloodSugarBtn" type="button" class="onb-btn onb-primary">저장</button>
-            </div>
-          </div>
-        </div>
+       
+        <!-- 체중 기록 모달 -->
+<div id="weightModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">체중 기록</h3>
+    <p class="onb-desc">현재 체중(kg)을 입력해주세요.</p>
+    <input id="weightInput" class="onb-input" type="number" step="0.1" min="0" placeholder="예. 65.5" />
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="weightModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveWeightBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
 
-       <!-- 운동 모달 -->
-        <div id="exerciseModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-          <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
-            <h3 class="onb-title" style="margin-bottom:8px;">운동 기록</h3>
-            <p class="onb-desc">운동 종류와 시간을 입력해주세요.</p>
-            
-            <div id="exerciseType" class="tag-cloud" style="margin-bottom:12px;">
-                <button type="button" class="tag" data-value="걷기">걷기</button>
-                <button type="button" class="tag" data-value="달리기">달리기</button>
-                <button type="button" class="tag" data-value="요가">요가</button>
-                <button type="button" class="tag" data-value="근력운동">근력운동</button>
-                <button type="button" class="tag" data-value="수영">수영</button>
-                <button type="button" class="tag" data-value="자전거">자전거</button>
-                <button type="button" class="tag" data-value="등산">등산</button>
-                <button type="button" class="tag" data-value="줄넘기">줄넘기</button>
-                <button type="button" class="tag" data-value="필라테스">필라테스</button>
-                <button type="button" class="tag" data-value="댄스">댄스</button>
-                <button type="button" class="tag" data-value="타바타">타바타</button>
-                <button type="button" class="tag" data-value="기타">기타</button>
-            </div>
-        
-            <input id="exerciseDuration" class="onb-input" type="number" min="1" placeholder="운동 시간(분)" style="margin-bottom:10px;" />
-            <input id="exerciseCalories" class="onb-input" type="number" min="0" placeholder="소모 칼로리(kcal, 선택)" />
-        
-            <div class="onb-actions" style="margin-top:20px;">
-              <button type="button" data-close="exerciseModal" class="onb-btn onb-ghost">취소</button>
-              <button id="saveExerciseBtn" type="button" class="onb-btn onb-primary">저장</button>
-            </div>
-          </div>
-        </div>
+       
+       
+        <!-- 케톤 기록 모달 -->
+<div id="ketoneModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">케톤 기록</h3>
+    <p class="onb-desc">케톤 수치(mmOL/L)를 입력해주세요.</p>
+    <input id="ketoneInput" class="onb-input" type="number" step="0.1" min="0" placeholder="예. 1.2" />
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="ketoneModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveKetoneBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+
+    <!-- 혈당 기록 모달 -->
+<div id="bloodSugarModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">혈당 기록</h3>
+    <p class="onb-desc">혈당 수치와 측정 시간을 입력해주세요.</p>
+    
+    <label class="onb-label" style="margin-top:20px; margin-bottom: 5px; text-align: left;">혈당 (mg/dL)</label>
+    <input id="bloodSugarInput" class="onb-input" type="number" step="1" min="1" placeholder="예. 92" />
+
+    <label class="onb-label" style="margin-top:15px; margin-bottom: 5px; text-align: left;">측정 시간</label>
+    <input id="bloodSugarTimestampInput" class="onb-input" type="datetime-local" />
+
+    <div class="onb-actions" style="margin-top:20px;">
+      <button type="button" data-close="bloodSugarModal" class="onb-btn onb-ghost">취소</button>
+      <button id="saveBloodSugarBtn" type="button" class="onb-btn onb-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 운동 기록 모달 -->
+<div id="exerciseModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="width:100%; max-width:420px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; box-shadow:0 16px 60px rgba(0,0,0,.2); padding:24px;">
+    <h3 class="onb-title" style="margin-bottom:8px;">운동 기록</h3>
+    <p class="onb-desc">운동 종류와 시간을 입력해주세요.</p>
 
     <!-- 기존 태그 스타일 재사용 -->
     <div id="exerciseType" class="tag-cloud" style="margin-bottom:12px;">
