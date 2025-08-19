@@ -364,7 +364,7 @@
 
 /* --- 달성률(%) 색상 정의 (수정된 최종본) --- */
 .history-actions .history-percentage.percentage-high { color: var(--primary-color); }
-.history-actions .history-percentage.percentage-mid { color: #dbbc22; }
+.history-actions .history-percentage.percentage-mid { color: #ceb430; }
 .history-actions .history-percentage.percentage-low { color: #628375; }
 .history-actions .history-percentage.percentage-over-100 { color: #91d8a4; }
 
@@ -666,7 +666,7 @@ function renderFastingHistory() {
             percentageClass = 'percentage-over-100'; // 100% 초과
         } else if (percentage < 1) {
             percentageClass = 'percentage-low';      // 0%
-        } else if (percentage <= 60) {
+        } else if (percentage <= 70) {
             percentageClass = 'percentage-mid';      // 60% 이하
         }
 
