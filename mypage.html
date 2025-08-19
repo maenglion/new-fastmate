@@ -183,29 +183,35 @@
     font-weight: 500;
 }
 
-/* .logout-container 규칙을 찾아 교체 */
-.logout-container {
-    /* 기존 스타일을 모두 지우고 아래 한 줄만 남깁니다 */
-    margin-top: 8px; 
+/* .logout-icon-btn 관련 규칙들을 찾아 아래 코드로 교체해주세요. */
+
+.logout-icon-btn {
+    position: absolute;
+    /* [수정] 오른쪽 위치를 카드 내부 여백과 유사하게 조정합니다. */
+    right: 35px; 
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none; /* [확인] 테두리가 없는 상태입니다. */
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-/* .logout-btn 규칙을 찾아 교체 */
-.logout-btn {
-    background: none;
-    border: none;
-    color: var(--text-light);
-    font-size: 0.8rem; /* [수정] 글씨 더 작게 */
-    font-weight: 500;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0; /* [추가] 불필요한 여백 제거 */
-    opacity: 0.7; /* [수정] 투명도 살짝 조정 */
+.logout-icon-btn svg {
+    width: 24px;
+    height: 24px;
+    /* [수정] 라이트 모드일 때의 흐린 회색 아이콘 */
+    stroke: #adb5bd; 
 }
-.logout-btn:hover {
-    opacity: 1;
-    color: var(--primary-color);
+
+.logout-icon-btn:hover {
+    background-color: #f0f0f0;
 }
-        
+
+
+
         /* --- 프로필 카드 스타일 끝 --- */
 
        
@@ -473,9 +479,13 @@
         background: #c53030;
         color: white;
     }
-    /* [추가] 다크 모드일 때 로그아웃 버튼 글씨를 더 밝게 */
-    .logout-btn {
-        color: #999; /* 기본 --text-light 보다 살짝 밝은 회색 */
+ 
+    .logout-icon-btn svg {
+        /* [수정] 다크 모드일 때의 더 어둡고 흐린 회색 아이콘 */
+        stroke: #555;
+    }
+    .logout-icon-btn:hover {
+        background-color: #333;
     }
 }
 
