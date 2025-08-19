@@ -337,6 +337,56 @@
     color: white;
 }
 
+/* mypage.html의 <style> 태그 안에 추가 */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-color: #e0e0e0;
+        --text-light: #888;
+        --border-color: #333;
+        --primary-light: #2c3e32;
+    }
+
+    /* --- 기본 요소 색상 변경 --- */
+    .home-btn svg {
+        stroke: var(--text-color);
+    }
+    .home-btn:hover {
+        background-color: #333;
+    }
+    .pagination button:hover:not(:disabled) {
+        background-color: #333;
+    }
+
+    /* --- 프로필 카드 --- */
+    .profile-avatar {
+        background-color: var(--primary-light);
+    }
+    .goal-tag {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    /* --- 차트 섹션 --- */
+    .chart-header select {
+        background-color: #2a2a2a;
+        color: var(--text-color);
+        border-color: #444;
+    }
+
+    /* --- 기록 목록 --- */
+    .delete-btn {
+        background: #5c1f1f;
+        color: #ffcccc;
+    }
+    .delete-btn:hover {
+        background: #c53030;
+        color: white;
+    }
+}
+
     </style>
 </head>
 <body>
