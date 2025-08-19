@@ -717,7 +717,7 @@ function renderFastingHistory() {
     // --- Charting Functions ---
     const newIconPlugin = { id: 'newIconPlugin', afterDraw: (chart) => { /* ... (이전과 동일) */ } };
 
-// createChart 함수를 이 코드로 통째로 교체해주세요.
+// mypage.html의 <script> 안에서 createChart 함수를 찾아 교체해주세요.
 
 function createChart(canvasId, label, data, customScaleOptions = {}) {
     if (allCharts[canvasId]) {
@@ -733,7 +733,7 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
     const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
     const gridColor = isDarkMode ? '#333' : '#f0f0f0';
     const textColor = isDarkMode ? '#e0e0e0' : '#333';
-    const textLightColor = isDarkMode ? '#888' : '#777'; // [추가] 연한 회색
+    const textLightColor = isDarkMode ? '#888' : '#777'; // 연한 회색
 
     const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
@@ -770,7 +770,7 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
             plugins: {
                 legend: { display: false },
                 zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
-                // [수정] 툴팁(버블) 전체 스타일 재정의
+                // [최종 수정] 툴팁(버블) 전체 스타일 재정의
                 tooltip: {
                     enabled: true,
                     mode: 'index',
@@ -780,25 +780,43 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
                     cornerRadius: 8,
                     
                     // --- 폰트 및 색상 스타일 ---
-                    titleFont: { weight: 'normal', size: 13 }, // 제목(날짜) 폰트
-                    titleColor: textLightColor,                // 제목(날짜) 색상
+                    titleFont: { weight: 'normal', size: 13 },
+                    titleColor: textLightColor,
                     
-                    bodyFont: { weight: 'bold', size: 14 },     // 본문(수치) 폰트
-                    bodyColor: textColor,                       // 본문(수치) 색상
+                    bodyFont: { weight: 'bold', size: 14 },
+                    bodyColor: textColor,
 
-                    footerFont: { weight: 'normal', size: 12 },// 하단(시간) 폰트
-                    footerColor: textLightColor,               // 하단(시간) 색상
+                    footerFont: { weight: 'normal', size: 12 },
+                    footerColor: textLightColor,
                     
-                    // --- 내용 구성 ---
+                    // [핵심] 네모 상자를 제거하고, 툴팁 내용을 재구성합니다.
                     callbacks: {
-                        // [수정] 네모 상자 제거
+                        // 1. 네모 상자를 완전히 제거합니다.
                         labelPointStyle: function(context) {
                             return false;
                         },
-                        title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
-                        footer: (tooltipItems) => {
+                        // 2. 제목 (날짜)
+                        title: function(tooltipItems) {
+                            const date = new Date(tooltipItems[0].parsed.x);
+                            return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+                        },
+                        // 3. 본문 (핵심 데이터)
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y;
+                            }
+                            return label;
+                        },
+                        // 4. 하단 (기록 시간)
+                        footer: function(tooltipItems) {
                             const rawData = tooltipItems[0].raw;
-                            if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            if (rawData.createdAt) {
+                                return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            }
                             return '';
                         }
                     }
@@ -808,7 +826,6 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
         plugins: [newIconPlugin]
     });
 }
-
 // [수정] 차트 렌더링 함수 (각 차트별 축 옵션 전달)
 function renderAllCharts() {
     const range = dateRangeSelector.value;
