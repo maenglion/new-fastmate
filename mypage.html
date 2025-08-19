@@ -270,19 +270,9 @@
 
         /* mypage.html의 <style> 태그 안에 추가 */
 
-/* --- 달성률(%) 색상 정의 --- */
-.history-percentage.percentage-high { color: var(--primary-color); }       /* 60% 초과: 초록색 */
-.history-percentage.percentage-mid { color: var(--gauge-start-color); }   /* 60% 이하: 노란색 */
-.history-percentage.percentage-low { color: #FAAD14; }                    /* 0%: 주황색 */
-.history-percentage.percentage-over-100 { color: #ff690B; }               /* 100% 초과: 진한 주황색 */
 
 
-/* --- 다크 모드일 때 100% 초과 색상만 변경 --- */
-@media (prefers-color-scheme: dark) {
-    .history-percentage.percentage-over-100 {
-        color: var(--gauge-start-color) !important; /* 100% 초과: 노란색으로 변경 */
-    }
-}
+
 
         /* 'New' 알림 점 스타일 */
 .tab-button.new-indicator::after {
@@ -370,6 +360,24 @@
     .main-title, .profile-details h3, .section-title {
     color: var(--text-light);
 }
+
+/* --- 1. 기본 (라이트 모드) 색상 정의 --- */
+.history-percentage.percentage-high { color: var(--primary-color); }       /* 60% 초과: 초록색 */
+.history-percentage.percentage-mid { color: var(--gauge-start-color); }   /* 60% 이하: 노란색 */
+.history-percentage.percentage-low { color: #FAAD14; }                    /* 0%: 주황색 */
+.history-percentage.percentage-over-100 { color: #ff690B; }               /* 100% 초과: 진한 주황색 */
+
+
+/* --- 2. 다크 모드일 때 덮어 쓸 색상만 정의 --- */
+@media (prefers-color-scheme: dark) {
+    /* ... 다른 다크 모드 스타일들 ... */
+
+    /* [수정] 100% 초과 달성률 글씨를 노란색으로 덮어씁니다. */
+    .history-percentage.percentage-over-100 {
+        color: var(--gauge-start-color) !important; 
+    }
+}
+
 
     /* --- 기본 요소 색상 변경 --- */
     .home-btn svg {
@@ -709,12 +717,6 @@ function renderFastingHistory() {
     // --- Charting Functions ---
     const newIconPlugin = { id: 'newIconPlugin', afterDraw: (chart) => { /* ... (이전과 동일) */ } };
 
-// mypage.html의 <script> 안에서
-// createChart와 renderAllCharts 함수를 찾아 아래 코드로 교체해주세요.
-
-// [수정] 차트 생성 함수 (축 설정 및 다크모드 색상 감지)
-
-
 // createChart 함수를 이 코드로 통째로 교체해주세요.
 
 function createChart(canvasId, label, data, customScaleOptions = {}) {
@@ -723,14 +725,15 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
     }
     const ctx = document.getElementById(canvasId).getContext('2d');
     
-    // [수정] 다크모드 여부 확인
+    // 다크모드 여부 확인
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    // [수정] 다크모드에 따라 다른 색상 변수 설정
-    const lineColor = isDarkMode ? '#888' : getComputedStyle(document.documentElement).getPropertyValue('--chart-line-color').trim();
-    const bubbleBgColor = isDarkMode ? '#2a2a2a' : getComputedStyle(document.documentElement).getPropertyValue('--chart-bubble-bg').trim();
+    // 다크모드에 따라 다른 색상 변수 설정
+    const lineColor = isDarkMode ? '#888888' : '#7FE89B';
+    const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
     const gridColor = isDarkMode ? '#333' : '#f0f0f0';
     const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const textLightColor = isDarkMode ? '#888' : '#777'; // [추가] 연한 회색
 
     const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
@@ -740,11 +743,11 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
             datasets: [{
                 label: label,
                 data: chartData,
-                borderColor: lineColor, // [수정] 다크모드에 따라 결정된 선 색상 적용
+                borderColor: lineColor,
                 borderWidth: 2.5,
                 tension: 0.2,
                 pointRadius: 4,
-                pointBackgroundColor: lineColor, // [수정] 점 색상도 동일하게 적용
+                pointBackgroundColor: lineColor,
                 pointHoverRadius: 6
             }]
         },
@@ -760,32 +763,45 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
                 y: {
                     beginAtZero: false,
                     grid: { color: gridColor },
-                    ticks: {
-                        color: textColor,
-                        font: {
-                            weight: 'bold' // [추가] y축 눈금 글씨 굵게
-                        }
-                    },
+                    ticks: { color: textColor, font: { weight: 'bold' } },
                     ...customScaleOptions
                 }
             },
             plugins: {
                 legend: { display: false },
                 zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
+                // [수정] 툴팁(버블) 전체 스타일 재정의
                 tooltip: {
-                    backgroundColor: bubbleBgColor, // [수정] 다크모드에 따라 결정된 버블 배경색
-                    titleColor: textColor,
-                    bodyColor: textColor,
-                    padding: 10, cornerRadius: 8,
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: bubbleBgColor,
+                    padding: 12,
+                    cornerRadius: 8,
+                    
+                    // --- 폰트 및 색상 스타일 ---
+                    titleFont: { weight: 'normal', size: 13 }, // 제목(날짜) 폰트
+                    titleColor: textLightColor,                // 제목(날짜) 색상
+                    
+                    bodyFont: { weight: 'bold', size: 14 },     // 본문(수치) 폰트
+                    bodyColor: textColor,                       // 본문(수치) 색상
+
+                    footerFont: { weight: 'normal', size: 12 },// 하단(시간) 폰트
+                    footerColor: textLightColor,               // 하단(시간) 색상
+                    
+                    // --- 내용 구성 ---
                     callbacks: {
+                        // [수정] 네모 상자 제거
+                        labelPointStyle: function(context) {
+                            return false;
+                        },
                         title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
                         footer: (tooltipItems) => {
                             const rawData = tooltipItems[0].raw;
                             if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
                             return '';
                         }
-                    },
-                    footerColor: 'var(--primary-color)', footerFont: { weight: 'bold' }
+                    }
                 }
             }
         },
