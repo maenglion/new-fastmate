@@ -346,86 +346,69 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ===== DOM =====
-  const steps = document.querySelectorAll('.signup-step');
-  const progressBar = document.getElementById('progressBar');
-  const googleBtn = document.getElementById('googleSignupBtn');
-
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
-  const confirmPwInput = document.getElementById('confirmPassword');
-  const nicknameInput = document.getElementById('nickname');
-
-  const nextToStep2Btn = document.getElementById('nextToStep2');
-  const backToStep1Btn = document.getElementById('backToStep1');
-  const nextToStep3Btn = document.getElementById('nextToStep3');
-  const backToStep2Btn = document.getElementById('backToStep2');
-  const nextToStep4Btn = document.getElementById('nextToStep4');
-  const backToStep3Btn = document.getElementById('backToStep3');
+  /* =============== DOM 캐시 =============== */
+  const steps           = document.querySelectorAll('.signup-step');
+  const progressBar     = document.getElementById('progressBar');
+  const googleBtn       = document.getElementById('googleSignupBtn');
+  const emailInput      = document.getElementById('email');
+  const passwordInput   = document.getElementById('password');
+  const confirmPwInput  = document.getElementById('confirmPassword');
+  const nicknameInput   = document.getElementById('nickname');
+  const nextToStep2Btn  = document.getElementById('nextToStep2');
+  const backToStep1Btn  = document.getElementById('backToStep1');
+  const nextToStep3Btn  = document.getElementById('nextToStep3');
+  const backToStep2Btn  = document.getElementById('backToStep2');
+  const nextToStep4Btn  = document.getElementById('nextToStep4');
+  const backToStep3Btn  = document.getElementById('backToStep3');
   const finishSignupBtn = document.getElementById('finishSignup');
-
-  const tagCloud = document.getElementById('tagCloud');
-  const termsCheckbox = document.getElementById('termsOfService');
+  const tagCloud        = document.getElementById('tagCloud');
+  const termsCheckbox   = document.getElementById('termsOfService');
   const privacyCheckbox = document.getElementById('privacyPolicy');
 
-  // ===== 네비게이션(재진입 방지) =====
-  let navLock = false;
+  /* =============== 네비게이션 =============== */
   function navigateTo(step) {
-    if (navLock) return;
-    navLock = true;
     steps.forEach(s => s.classList.remove('active'));
     const target = document.getElementById(`step${step}`);
     if (target) target.classList.add('active');
     if (progressBar) progressBar.style.width = `${(step / steps.length) * 100}%`;
+    
     const url = new URL(location.href);
-    url.searchParams.set('step', step);
-    history.replaceState(null, '', url.toString());
-    setTimeout(() => { navLock = false; }, 0); // 다음 틱에 해제
+    if (url.searchParams.get('step') !== String(step)) {
+        url.searchParams.set('step', step);
+        history.replaceState(null, '', url.toString());
+    }
   }
 
-  // ===== 목표 태그 =====
+  /* =============== 목표 수집 =============== */
+  function collectGoals() {
+    const actives = Array.from(document.querySelectorAll('#tagCloud .tag.active'));
+    return actives.map(t => t.dataset.value || t.textContent.trim());
+  }
+
+  /* =============== 태그 토글 =============== */
   tagCloud?.addEventListener('click', (e) => {
     if (e.target.classList.contains('tag')) e.target.classList.toggle('active');
   });
-  function collectGoals() {
-    return Array.from(document.querySelectorAll('#tagCloud .tag.active'))
-      .map(t => t.dataset.value || t.textContent.trim());
-  }
 
-  // ===== 에러 한국어 매핑 =====
-  function alertKoreanAuthError(err, fallback='문제가 발생했습니다. 잠시 후 다시 시도해주세요.') {
+  /* =============== 에러 한국어 매핑 =============== */
+  function alertKoreanAuthError(err, fallback = '문제가 발생했습니다.') {
     const code = err?.code || '';
-    const msg = (err?.message || '').toLowerCase();
-    let text = fallback;
-
-    if (code.includes('email-already-in-use') || msg.includes('email-already-in-use')) {
-      text = '이미 가입된 이메일입니다. 로그인 화면에서 로그인해주세요.';
-    } else if (code.includes('invalid-email') || msg.includes('invalid email')) {
-      text = '이메일 형식이 올바르지 않습니다.';
-    } else if (code.includes('weak-password') || msg.includes('weak-password')) {
-      text = '비밀번호는 최소 6자 이상이어야 합니다.';
-    } else if (code.includes('popup-blocked') || code.includes('popup-closed-by-user')) {
-      text = '브라우저에서 팝업이 차단되었습니다. 팝업 허용 또는 다시 시도해주세요.';
-    } else if (msg.includes('disallowed_useragent')) {
-      text = '현재 브라우저(인앱/웹뷰)에서는 구글 로그인이 제한됩니다. Chrome/Safari 등 외부 브라우저에서 다시 시도해주세요.';
-    }
-    alert(text);
+    if (code === 'auth/email-already-in-use') return alert('이미 가입된 이메일입니다. 로그인 해주세요.');
+    if (code === 'auth/invalid-email') return alert('이메일 형식이 올바르지 않습니다.');
+    if (code === 'auth/weak-password') return alert('비밀번호는 최소 6자 이상이어야 합니다.');
+    if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') return alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.');
+    alert(fallback);
   }
 
-  // ===== 구글 간편가입 =====
+  /* =============== 구글 간편가입 =============== */
   async function handleGoogleSignup() {
-    if (!googleBtn || googleBtn.disabled) return;
+    if (googleBtn.disabled) return;
     googleBtn.disabled = true;
-    // 복귀 시 Step2로 진입하도록 플래그
-    sessionStorage.setItem('postAuth', 'signup:2');
     try {
-      const user = await signInWithGoogle(); // firebase-init.js 헬퍼
-      if (!user) return; // redirect 폴백(복귀 후 onAuthStateChanged에서 처리)
-      await ensureUserProfile?.();
-      if (emailInput && user.email) emailInput.value = user.email;
-      navigateTo(2);
+      // signInWithGoogle 헬퍼 함수가 팝업/리다이렉트를 모두 처리합니다.
+      // 성공 후의 화면 전환은 아래 onAuthStateChanged가 전담합니다.
+      await signInWithGoogle();
     } catch (e) {
-      console.error(e);
       alertKoreanAuthError(e, 'Google 로그인에 실패했습니다.');
     } finally {
       googleBtn.disabled = false;
@@ -433,108 +416,101 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   googleBtn?.addEventListener('click', handleGoogleSignup);
 
-  // ===== 단계 버튼들 =====
+  /* =============== Step 이동 =============== */
   nextToStep2Btn?.addEventListener('click', () => {
-    if (auth.currentUser) { navigateTo(2); return; }
-    const email = (emailInput?.value || '').trim();
-    const pw = passwordInput?.value || '';
-    const pw2 = (confirmPwInput?.value || '');
-    if (!email || pw.length < 6 || pw !== pw2) {
-      alert('이메일/비밀번호(6자 이상) 및 비밀번호 확인을 점검해주세요.');
-      return;
+    if (auth.currentUser) return navigateTo(2);
+    if (!emailInput?.value.trim() || (passwordInput?.value.length || 0) < 6 || passwordInput?.value !== confirmPwInput?.value) {
+      return alert('이메일/비밀번호(6자 이상) 및 비밀번호 확인을 점검해주세요.');
     }
     navigateTo(2);
   });
   backToStep1Btn?.addEventListener('click', () => navigateTo(1));
-
   nextToStep3Btn?.addEventListener('click', () => {
-    const nickname = (nicknameInput?.value || '').trim();
-    if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
+    if (!nicknameInput?.value.trim()) return alert('닉네임을 입력해주세요.');
     navigateTo(3);
   });
   backToStep2Btn?.addEventListener('click', () => navigateTo(2));
-
   nextToStep4Btn?.addEventListener('click', () => {
-    if (!collectGoals().length) { alert('하나 이상의 목표를 선택해주세요.'); return; }
+    if (!collectGoals().length) return alert('하나 이상의 목표를 선택해주세요.');
     navigateTo(4);
   });
   backToStep3Btn?.addEventListener('click', () => navigateTo(3));
 
-  // ===== 최종 가입 =====
-  finishSignupBtn?.addEventListener('click', onFinishSignup);
+  /* =============== 최종 가입 =============== */
   async function onFinishSignup() {
     if (finishSignupBtn.disabled) return;
     finishSignupBtn.disabled = true;
+
     try {
-      if (!termsCheckbox?.checked || !privacyCheckbox?.checked) {
-        alert('필수 약관에 모두 동의해주세요.'); return;
-      }
-      const email = (emailInput?.value || '').trim();
-      const pw = passwordInput?.value || '';
-      const nickname = (nicknameInput?.value || '').trim();
+      if (!termsCheckbox?.checked || !privacyCheckbox?.checked) return alert('필수 약관에 모두 동의해주세요.');
+      const nickname = nicknameInput.value.trim();
       const goals = collectGoals();
-      if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
-      if (!goals.length) { alert('하나 이상의 목표를 선택해주세요.'); return; }
+      if (!nickname) return alert('닉네임을 입력해주세요.');
+      if (!goals.length) return alert('하나 이상의 목표를 선택해주세요.');
 
       let user = auth.currentUser;
       if (!user) {
-        const pw2 = (confirmPwInput?.value || '');
-        if (!email || pw.length < 6 || pw !== pw2) {
-          alert('이메일/비밀번호(6자 이상) 및 비밀번호 확인을 점검해주세요.');
-          return;
-        }
-        try {
-          const cred = await auth.createUserWithEmailAndPassword(email, pw);
-          user = cred.user;
-        } catch (e) {
-          console.error(e);
-          alertKoreanAuthError(e, '회원가입에 실패했습니다.');
-          return;
-        }
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        if (!email || password.length < 6) return alert('이메일/비밀번호(6자 이상)를 다시 확인해주세요.');
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        user = cred.user;
       }
-
-      // 프로필 저장 및 완료 플래그
-      await ensureUserProfile({
-        email: user.email || email || null,
-        nickname,
-        onboarding: { reasons: goals, completed: true }
-      });
-
-      // fastmate가 다시 signup으로 튕기지 않도록 락 해제
-      sessionStorage.removeItem('onboardingLock');
-      sessionStorage.removeItem('postAuth');
-
+      
+      // 구글/이메일 공통 프로필 저장
+      await ensureUserProfile({ nickname, onboarding: { reasons: goals, completed: true } });
       alert('회원가입이 완료되었습니다!');
+      sessionStorage.setItem('onboardingLock', '1');
       window.location.href = './fastmate.html';
+    } catch (e) {
+      alertKoreanAuthError(e, '회원가입에 실패했습니다.');
     } finally {
       finishSignupBtn.disabled = false;
     }
   }
+  finishSignupBtn?.addEventListener('click', onFinishSignup);
 
-  // ===== 인증 상태 기반 초기 진입(단 한 번만) =====
-  let handled = false;
-  auth.onAuthStateChanged((user) => {
-    if (handled) return;
-    handled = true;
+  /* =============== 인증 상태에 따른 초기 진입 제어 (최종 통합 로직) =============== */
+  let authHandled = false;
+  firebase.auth().onAuthStateChanged((user) => {
+    if (authHandled) return;
+    authHandled = true;
 
     const params = new URL(location.href).searchParams;
-    const stepParam = params.get('step'); // 외부에서 step=2로 보낼 수 있음
-    const postAuth = sessionStorage.getItem('postAuth');
+    const stepParam = params.get('step');
+    
+    // 사용자가 로그인되어 있으면 이메일 입력창을 채워줍니다.
+    if (user && emailInput && user.email) {
+        emailInput.value = user.email;
+        emailInput.readOnly = true; // 구글 로그인 시 이메일 변경 불가
+    }
 
-    if (user) {
-      if (emailInput && user.email) emailInput.value = user.email;
-      if (stepParam && ['2','3','4'].includes(stepParam)) { navigateTo(parseInt(stepParam,10)); return; }
-      if (postAuth === 'signup:2') { sessionStorage.removeItem('postAuth'); navigateTo(2); return; }
-      navigateTo(2);
-    } else {
-      navigateTo(1);
+    // 우선순위 1: fastmate에서 ?step=2 와 같이 특정 단계로 보냈다면, 해당 단계를 표시
+    if (stepParam && ['2', '3', '4'].includes(stepParam)) {
+        navigateTo(parseInt(stepParam));
+    } 
+    // 우선순위 2: 그 외 로그인된 사용자가 이 페이지에 온 모든 경우 (ex: 구글 로그인 직후)
+    else if (user) {
+        navigateTo(2);
+    }
+    // 우선순위 3: 로그인되어 있지 않으면 무조건 1단계 표시
+    else {
+        navigateTo(1);
     }
   });
 
-  // URL에 step이 이미 있으면 반영(중복 방지: onAuthStateChanged가 없을 때만)
-  const initialStep = new URL(location.href).searchParams.get('step');
-  if (!handled && initialStep && ['1','2','3','4'].includes(initialStep)) {
-    navigateTo(parseInt(initialStep,10));
-  }
+  /* =============== 약관 모달 열고/닫기 =============== */
+  document.querySelectorAll('a[data-modal]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById(e.currentTarget.dataset.modal).style.display = 'flex';
+    });
+  });
+  document.querySelectorAll('.modal .close-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => e.target.closest('.modal').style.display = 'none');
+  });
+  window.addEventListener('click', (e) => {
+    if (e.target.classList?.contains('modal')) e.target.style.display = 'none';
+  });
 });
 </script>
