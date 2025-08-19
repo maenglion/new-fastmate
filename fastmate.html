@@ -496,6 +496,25 @@
     animation: fade-in 0.5s 0.5s ease forwards;
 }
 
+select.is-fasting {
+    padding-right: 60px; /* 아이콘이 들어갈 공간 확보 */
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(28, 142, 62, 0.12);
+    background-image: 
+        /* 체크 아이콘 (오른쪽) */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231c8e3e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E"),
+        /* 기본 드롭다운 화살표 (더 오른쪽) */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23777777' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-position: right 38px center, right 12px center;
+    background-repeat: no-repeat, no-repeat;
+    background-size: 18px, 20px;
+}
+
+/* 드롭다운 리스트에서 진행 중인 항목 스타일 */
+option.is-running {
+    color: var(--primary-color);
+    font-weight: 700;
+}
 
 @keyframes text-pop-in {
     0% { transform: scale(0.5); opacity: 0; }
@@ -1141,51 +1160,54 @@ function updateTimer() {
 // fastmate.html의 <script> 안에서
 // startFasting과 loadState 함수를 찾아 아래 코드로 교체해주세요.
 
-async function startFasting() {
-        if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+function startFasting() {
+    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
 
-        if (!timePickerUsed) {
-            selectedStartTime = new Date();
-        }
-        updateTimeDisplays();
-        
-        fastingState = 'running';
-        targetHours = parseFloat(modelSelect.value, 10);
-        
-        try {
-            const user = ensureSignedIn();
-            if (user) {
-                await db.collection('users').doc(user.uid).set({
-                    currentFasting: {
-                        startTime: selectedStartTime,
-                        targetHours: targetHours
-                    }
-                }, { merge: true });
-            }
-        } catch (error) {
-            console.error("Firestore에 단식 상태 저장 실패:", error);
-        }
+    if (!timePickerUsed) {
+        selectedStartTime = new Date();
+    }
+    updateTimeDisplays();
+    
+    fastingState = 'running';
+    targetHours = parseFloat(modelSelect.value, 10);
+    
+    // [추가] 선택창 UI 업데이트
+    updateSelectOptions();
 
-        Object.keys(milestones).forEach(k => milestones[k] = false);
-        fastingInterval = setInterval(updateTimer, 1000);
-        updateTimer();
-        updateUIState();
-        timePickerUsed = false;
+    try {
+        const user = ensureSignedIn();
+        if (user) {
+            db.collection('users').doc(user.uid).set({
+                currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
+            }, { merge: true });
+        }
+    } catch (error) {
+        console.error("Firestore에 단식 상태 저장 실패:", error);
     }
 
-    async function stopFasting() {
-        if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
-        
-        try {
-            const user = ensureSignedIn();
-            if (user) {
-                await db.collection('users').doc(user.uid).update({
-                    currentFasting: firebase.firestore.FieldValue.delete()
-                });
-            }
-        } catch (error) {
-            console.error("Firestore 단식 상태 삭제 실패:", error);
+    Object.keys(milestones).forEach(k => milestones[k] = false);
+    fastingInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+    updateUIState();
+    timePickerUsed = false;
+}
+
+async function stopFasting() {
+    if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
+    
+    // [추가] 선택창 UI 초기화
+    resetSelectOptions();
+
+    try {
+        const user = ensureSignedIn();
+        if (user) {
+            await db.collection('users').doc(user.uid).update({
+                currentFasting: firebase.firestore.FieldValue.delete()
+            });
         }
+    } catch (error) {
+        console.error("Firestore 단식 상태 삭제 실패:", error);
+    }
 
         clearInterval(fastingInterval);
         fastingState = 'idle';
@@ -1277,6 +1299,7 @@ function initializeTime() {
 }
  
 // [수정] 페이지 로드 시 localStorage 대신 Firestore에서 상태를 불러옵니다.
+// loadState 함수를 이 코드로 교체해주세요.
 async function loadState() {
     const user = firebase.auth().currentUser;
     if (!user) return;
@@ -1285,7 +1308,7 @@ async function loadState() {
     const savedFasting = prof?.currentFasting;
 
     if (savedFasting && savedFasting.startTime) {
-        const start = savedFasting.startTime.toDate(); // Firestore 타임스탬프를 Date 객체로 변환
+        const start = savedFasting.startTime.toDate();
         const hrs   = parseFloat(savedFasting.targetHours);
 
         selectedStartTime = start;
@@ -1296,10 +1319,48 @@ async function loadState() {
         if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
         fastingInterval = setInterval(updateTimer, 1000);
         updateTimer();
+        
+        // [추가] 페이지 로드 시에도 선택창 UI 업데이트
+        updateSelectOptions();
     }
     
     updateTimeDisplays();
     updateUIState();
+}
+
+// loadState 함수 아래에 이 두 함수를 추가해주세요.
+
+// 선택창 UI를 '단식중' 상태로 업데이트하는 함수
+function updateSelectOptions() {
+    modelSelect.classList.add('is-fasting');
+    const options = modelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        // 원래 텍스트를 저장해둠 (예: "16:8 (16시간 단식)")
+        if (!option.dataset.originalText) {
+            option.dataset.originalText = option.textContent;
+        }
+        if (option.value == targetHours) {
+            option.textContent = `${option.dataset.originalText} (진행중)`;
+            option.classList.add('is-running');
+        } else {
+            option.textContent = option.dataset.originalText;
+            option.classList.remove('is-running');
+        }
+    }
+}
+
+// 선택창 UI를 초기 상태로 되돌리는 함수
+function resetSelectOptions() {
+    modelSelect.classList.remove('is-fasting');
+    const options = modelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        if (option.dataset.originalText) {
+            option.textContent = option.dataset.originalText;
+        }
+        option.classList.remove('is-running');
+    }
 }
 
   /* =========================
