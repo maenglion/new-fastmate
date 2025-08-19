@@ -2,7 +2,7 @@
   "name": "Fastmate: 간헐적 단식 타이머",
   "short_name": "Fastmate",
   "description": "단식 시간을 추적하고 건강 데이터를 관리하는 간편한 앱",
-  "start_url": "./index.html",
+  "start_url": "https://fastmate.kr/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1c8e3e",
