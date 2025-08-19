@@ -612,6 +612,17 @@ option.is-running {
     color: white;
     border-color: var(--primary-color);
 }
+@media (prefers-color-scheme: dark) {
+    /* ... 다른 다크 모드 스타일들 ... */
+
+    /* [추가] 날짜 선택 버튼 다크 모드 스타일 */
+    .date-selector .date-btn {
+        color: var(--text-light); /* 선택되지 않은 버튼 글씨를 밝은 회색으로 */
+    }
+    .date-selector .date-btn.active {
+        color: var(--primary-color); /* 선택된 버튼 글씨는 기존 초록색 유지 */
+    }
+}
 }
     </style>
 </head>
@@ -1080,6 +1091,7 @@ function checkMilestones(progress) {
     });
 }
 // fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
+// updateTimer 함수를 이 코드로 통째로 교체해주세요.
 function updateTimer() {
     const now = new Date();
     const elapsed = now - selectedStartTime;
@@ -1088,8 +1100,9 @@ function updateTimer() {
 
     const timerLabel = document.querySelector('.timer-display .label');
 
+    // --- 목표 달성 전/후 UI 업데이트 ---
     if (elapsed < target) {
-        // --- 목표 달성 전 ---
+        // 목표 달성 전
         if(timerLabel) timerLabel.textContent = '남은 시간';
         if(progressArc) progressArc.setAttribute('stroke', 'url(#progGrad)');
 
@@ -1099,17 +1112,11 @@ function updateTimer() {
         const s = Math.floor((remain % 60000) / 1000);
         if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 
-        // [수정] 이 부분을 innerHTML로 되돌립니다.
         if (statusMessage) {
-            if ((elapsed / 3600000) >= 16) {
-                statusMessage.textContent = "세포 재활용, 오토파지 활성화 중!";
-            } else {
-                statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
-            }
+            statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
         }
-
     } else {
-        // --- 목표 달성 후 (초과 시간) ---
+        // 목표 달성 후 (초과 시간)
         if(timerLabel) timerLabel.textContent = '초과 시간';
         if(progressArc) progressArc.setAttribute('stroke', 'url(#overtimeGrad)');
 
@@ -1126,10 +1133,14 @@ function updateTimer() {
     if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
     checkMilestones(progress);
     
+    // [수정] 목표 달성 시, 애니메이션만 1회 보여주고 단식은 계속 진행합니다.
     if (progress >= 100 && !completionFired) {
-        completionFired = true;
+        completionFired = true; // 중복 실행 방지
+        
+        // 자동으로 stopFasting()을 호출하는 코드를 삭제했습니다.
         if (completionOverlay) {
             completionOverlay.classList.add('show');
+            // 4초 후 애니메이션만 숨깁니다.
             setTimeout(() => {
                 completionOverlay.classList.remove('show');
             }, 4000);

@@ -268,6 +268,22 @@
             font-weight: 700;
         }
 
+        /* mypage.html의 <style> 태그 안에 추가 */
+
+/* --- 달성률(%) 색상 정의 --- */
+.history-percentage.percentage-high { color: var(--primary-color); }       /* 60% 초과: 초록색 */
+.history-percentage.percentage-mid { color: var(--gauge-start-color); }   /* 60% 이하: 노란색 */
+.history-percentage.percentage-low { color: #FAAD14; }                    /* 0%: 주황색 */
+.history-percentage.percentage-over-100 { color: #ff690B; }               /* 100% 초과: 진한 주황색 */
+
+
+/* --- 다크 모드일 때 100% 초과 색상만 변경 --- */
+@media (prefers-color-scheme: dark) {
+    .history-percentage.percentage-over-100 {
+        color: var(--gauge-start-color); /* 100% 초과: 노란색으로 변경 */
+    }
+}
+
         /* 'New' 알림 점 스타일 */
 .tab-button.new-indicator::after {
     content: '';
@@ -627,30 +643,37 @@ async function fetchFastingHistory() {
     }
 
     // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체
+// mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
+
 function renderFastingHistory() {
     renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
         const li = document.createElement('li');
         li.className = 'history-item';
-        li.dataset.docId = item.id; // [추가] 리스트 항목에 문서 ID를 저장
+        li.dataset.docId = item.id;
 
         const hours = Math.floor(item.actualDurationHours);
         const minutes = Math.round((item.actualDurationHours - hours) * 60);
         const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
         
-        let color = 'var(--primary-color)';
-        if (percentage < 1) color = '#FAAD14';
-        else if (percentage <= 60) color = 'var(--gauge-start-color)';
+        // [수정] 달성률에 따라 다른 CSS 클래스를 부여합니다.
+        let percentageClass = 'percentage-high'; // 기본값 (60% 초과)
+        if (percentage > 100) {
+            percentageClass = 'percentage-over-100'; // 100% 초과
+        } else if (percentage < 1) {
+            percentageClass = 'percentage-low';      // 0%
+        } else if (percentage <= 60) {
+            percentageClass = 'percentage-mid';      // 60% 이하
+        }
 
         const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
         
-        // [수정] 삭제 버튼(x)을 HTML에 추가
         li.innerHTML = `
             <div class="history-info">
                 <div class="duration">${hours}시간 ${minutes}분</div>
                 <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
             </div>
             <div class="history-actions">
-                <div class="history-percentage" style="color: ${color};">${percentage}%</div>
+                <div class="history-percentage ${percentageClass}">${percentage}%</div>
                 <button class="delete-btn" title="기록 삭제">×</button>
             </div>`;
         return li;
