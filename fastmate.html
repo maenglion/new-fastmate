@@ -115,14 +115,9 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    /* [수정] Y축(세로) 위치를 -50%로 변경하여 그룹 전체를 정중앙에 맞춥니다. */
-    transform: translate(-50%, -50%); 
+    /* [수정] Y축(세로) 위치를 미세 조정하여 00:00:00 텍스트를 정중앙에 맞춥니다. */
+    transform: translate(-50%, -45%); 
     text-align: center;
-    /* [추가] 내부 요소(label, time) 정렬을 위해 flexbox를 사용합니다. */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
 }
 
 .timer-display .time {
