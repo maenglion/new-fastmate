@@ -43,11 +43,10 @@
         firebase.auth().onAuthStateChanged((user) => {
             // 만약 user 객체가 존재한다면 (즉, 이미 로그인된 상태라면)
             if (user) {
-                // 즉시 fastmate.html 페이지로 이동시킵니다.
-                window.location.replace('./fastmate.html');
+                // [수정] 환영 화면(welcome.html)으로 이동시킵니다.
+                window.location.replace('./welcome.html');
             }
-            // user 객체가 없다면 (로그인되지 않은 상태라면)
-            // 아무것도 하지 않고 현재 index.html 페이지를 그대로 보여줍니다.
+            // user 객체가 없다면 아무것도 하지 않습니다.
         });
     });
 </script>

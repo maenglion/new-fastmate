@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fastmate</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+        :root {
+            --primary-color: #1c8e3e;
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            color: var(--text-color);
+        }
+        .welcome-container {
+            animation: fade-in 0.5s ease-in-out;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .welcome-message {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--primary-color);
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            margin-top: 20px;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+            @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .loader {
+            border-color: var(--primary-color);
+            border-bottom-color: transparent;
+        }    
+    }
+    </style>
+</head>
+<body>
+
+    <div class="welcome-container">
+        <p class="welcome-message">다시 만나 반가워요!</p>
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        // 2초 후에 메인 앱 화면으로 자동으로 이동합니다.
+        setTimeout(() => {
+            window.location.replace('./fastmate.html');
+        }, 2000); // 2초 (2000ms)
+    </script>
+
+</body>
+</html>
