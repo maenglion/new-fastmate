@@ -1036,13 +1036,25 @@ function updateUIState() {
         startTimeBox.style.pointerEvents = running ? 'none' : 'auto'; 
     }
 }
-  function checkMilestones(progress) {
-    const messages = { 10:"시작이 반! 💧", 25:"25% 달성!", 50:"절반! 대단해요. 💧", 70:"거의 다 왔습니다!", 90:"90% 돌파! 화이팅! 💧" };
+
+function checkMilestones(progress) {
+    // [수정] 모든 메시지를 채우고 milestones 객체와 일치시켰습니다.
+    const messages = {
+      10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
+      25: "25% 달성! 순조롭게 진행 중이에요.",
+      50: "절반이나 왔어요! 정말 대단해요. 다짐 유지하기! 💧",
+      75: "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
+      90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧"
+    };
+
     Object.keys(milestones).forEach((p) => {
-      const pi = parseInt(p,10);
-      if (progress >= pi && !milestones[p]) { showToast(messages[p]); milestones[p] = true; }
+      const pi = parseInt(p, 10);
+      if (progress >= pi && !milestones[p]) {
+        showToast(messages[p]);
+        milestones[p] = true;
+      }
     });
-  }
+}
 // fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
 function updateTimer() {
     const now = new Date();
