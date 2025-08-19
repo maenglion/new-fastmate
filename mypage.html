@@ -280,7 +280,7 @@
 /* --- 다크 모드일 때 100% 초과 색상만 변경 --- */
 @media (prefers-color-scheme: dark) {
     .history-percentage.percentage-over-100 {
-        color: var(--gauge-start-color); /* 100% 초과: 노란색으로 변경 */
+        color: var(--gauge-start-color) !important; /* 100% 초과: 노란색으로 변경 */
     }
 }
 
@@ -416,6 +416,14 @@
         background: #c53030;
         color: white;
     }
+    .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 10px;
+    /* [수정] 프로필 구분선과 동일한 색상 변수를 사용합니다. */
+    border-bottom: 1px solid var(--border-color); 
+}
 }
 
     </style>
