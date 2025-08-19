@@ -33,6 +33,7 @@
             --primary-light: #f0f8f2;
             --chart-line-color: #7FE89B;
             --chart-bubble-bg: #C8F5D4;
+           --gauge-start-color: #ffd400; 
         }
 
         body {
@@ -654,6 +655,8 @@ async function fetchFastingHistory() {
     // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체
 // mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
 
+// mypage.html의 <script> 안에서 renderFastingHistory 함수를 찾아 교체해주세요.
+
 function renderFastingHistory() {
     renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
         const li = document.createElement('li');
@@ -664,18 +667,19 @@ function renderFastingHistory() {
         const minutes = Math.round((item.actualDurationHours - hours) * 60);
         const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
         
-        // [수정] 달성률에 따라 다른 CSS 클래스를 부여합니다.
-        let percentageClass = 'percentage-high'; // 기본값 (60% 초과)
+        // [수정] 달성률에 따라 색상 이름(클래스)을 부여합니다.
+        let percentageClass = 'percentage-high'; // 60% 초과 (기본값)
         if (percentage > 100) {
             percentageClass = 'percentage-over-100'; // 100% 초과
         } else if (percentage < 1) {
             percentageClass = 'percentage-low';      // 0%
-        } else if (percentage <= 70) {
+        } else if (percentage <= 60) {
             percentageClass = 'percentage-mid';      // 60% 이하
         }
 
         const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
         
+        // [수정] style="color:..." 부분을 삭제하고, class="${percentageClass}"를 추가합니다.
         li.innerHTML = `
             <div class="history-info">
                 <div class="duration">${hours}시간 ${minutes}분</div>
@@ -688,7 +692,6 @@ function renderFastingHistory() {
         return li;
     }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
 }
-
     function renderExerciseHistory() {
         renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
             const li = document.createElement('li');
@@ -712,7 +715,6 @@ function renderFastingHistory() {
 
 // mypage.html의 <script> 안에서 createChart 함수를 찾아 교체해주세요.
 
-// mypage.html의 <script> 안에서 createChart 함수를 찾아 교체해주세요.
 
 function createChart(canvasId, label, data, customScaleOptions = {}) {
     if (allCharts[canvasId]) {
