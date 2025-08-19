@@ -168,6 +168,23 @@
             border-radius: 999px;
             font-size: 0.9rem;
             font-weight: 500;
+
+            /* mypage.html의 <style> 태그 안에 있는 .logout-btn 수정 */
+.logout-btn {
+    background: none;
+    border: none;
+    color: var(--text-light); /* 기존 색상 유지 */
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: opacity 0.2s; /* 투명도 변화로 변경 */
+    opacity: 0.6; /* 기본 투명도 설정 (60%만 보이게) */
+}
+.logout-btn:hover {
+    opacity: 1; /* 마우스 오버 시 완전히 보이게 */
+    color: var(--primary-color); /* 호버 시 색상 변화 유지 */
+}
         }
         /* --- 프로필 카드 스타일 끝 --- */
 
@@ -401,6 +418,10 @@
         background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
     }
 
+    .logout-btn {
+        color: #999; /* 기본 --text-light 보다 살짝 밝은 회색 */
+    }
+}
 
     /* --- 차트 섹션 --- */
     .chart-header select {
@@ -454,6 +475,9 @@
                 <div id="pfGoals" class="goals-container">
                     <!-- JavaScript로 태그가 채워집니다 -->
                 </div>
+                 <div style="text-align: center; margin: -10px 0 20px;">
+            <button id="logoutBtn" class="logout-btn">로그아웃</button>
+        </div>
             </div>
         </div>
         <h2 class="section-title"><span id="userNickname"></span>나의 건강데이터</h2>
