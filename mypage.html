@@ -719,6 +719,8 @@ function renderFastingHistory() {
 
 // mypage.html의 <script> 안에서 createChart 함수를 찾아 교체해주세요.
 
+// mypage.html의 <script> 안에서 createChart 함수를 찾아 교체해주세요.
+
 function createChart(canvasId, label, data, customScaleOptions = {}) {
     if (allCharts[canvasId]) {
         allCharts[canvasId].destroy();
@@ -770,7 +772,6 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
             plugins: {
                 legend: { display: false },
                 zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
-                // [최종 수정] 툴팁(버블) 전체 스타일 재정의
                 tooltip: {
                     enabled: true,
                     mode: 'index',
@@ -779,6 +780,9 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
                     padding: 12,
                     cornerRadius: 8,
                     
+                    // [핵심 수정] 이 옵션 하나로 네모 상자를 완전히 제거합니다.
+                    displayColors: false,
+
                     // --- 폰트 및 색상 스타일 ---
                     titleFont: { weight: 'normal', size: 13 },
                     titleColor: textLightColor,
@@ -789,34 +793,12 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
                     footerFont: { weight: 'normal', size: 12 },
                     footerColor: textLightColor,
                     
-                    // [핵심] 네모 상자를 제거하고, 툴팁 내용을 재구성합니다.
                     callbacks: {
-                        // 1. 네모 상자를 완전히 제거합니다.
-                        labelPointStyle: function(context) {
-                            return false;
-                        },
-                        // 2. 제목 (날짜)
-                        title: function(tooltipItems) {
-                            const date = new Date(tooltipItems[0].parsed.x);
-                            return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-                        },
-                        // 3. 본문 (핵심 데이터)
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y;
-                            }
-                            return label;
-                        },
-                        // 4. 하단 (기록 시간)
-                        footer: function(tooltipItems) {
+                        title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                        label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+                        footer: (tooltipItems) => {
                             const rawData = tooltipItems[0].raw;
-                            if (rawData.createdAt) {
-                                return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
-                            }
+                            if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
                             return '';
                         }
                     }
