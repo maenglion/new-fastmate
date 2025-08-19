@@ -290,9 +290,13 @@
 
         /* mypage.html의 <style> 태그 안에 추가 */
 
+    .history-percentage {
+    font-size: 1.2rem;
+    font-weight: 700; /*
+
 /* --- 달성률(%) 색상 정의 (수정된 최종본) --- */
 .history-actions .history-percentage.percentage-high { color: #1c8e3e; } 
-.history-actions .history-percentage.percentage-mid { color: #5eb13d; } 
+.history-actions .history-percentage.percentage-mid { color: #448658; } 
 .history-actions .history-percentage.percentage-low { color: #759286; } 
 .history-actions .history-percentage.percentage-over-100 { color: #fc9004; }
 
@@ -345,7 +349,7 @@
 }
 .history-actions {
     display: flex;
-    align-items: center;
+    align-items: center; /* [수정] X버튼과 글씨를 세로 중앙 정렬합니다. */
     gap: 15px;
     text-align: right;
 }
@@ -386,6 +390,11 @@
     color: var(--text-light);
 }
 
+/* --- 달성률(%) 색상 정의 (수정된 최종본) --- */
+.history-actions .history-percentage.percentage-high { color: var(--primary-color); }
+.history-actions .history-percentage.percentage-mid { color: #a7922e; }
+.history-actions .history-percentage.percentage-low { color: #628375; }
+.history-actions .history-percentage.percentage-over-100 { color: #91d8a4; }
 
     /* --- 기본 요소 색상 변경 --- */
     .home-btn svg {
@@ -415,6 +424,15 @@
         background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
     }
 
+   /* 로그아웃 버튼 컨테이너 스타일 */
+.logout-container {
+    text-align: center;
+    /* [수정] 마이너스 마진을 제거하고 일반적인 여백으로 변경합니다. */
+    margin: 15px 0 0; 
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color); /* 구분선 추가 */
+}
+   
     .logout-btn {
         color: #999; /* 기본 --text-light 보다 살짝 밝은 회색 */
     }
@@ -444,7 +462,7 @@
     /* [수정] 프로필 구분선과 동일한 색상 변수를 사용합니다. */
     border-bottom: 1px solid var(--border-color); 
 }
-
+}
 
     </style>
 </head>
