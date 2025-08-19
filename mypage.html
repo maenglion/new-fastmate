@@ -374,6 +374,15 @@
         background-color: var(--primary-light);
         color: var(--primary-color);
     }
+     /* [추가] 닉네임 버튼 클릭 시 애니메이션 효과 */
+    .user-chip {
+        /* 기존 스타일은 그대로 두고 아래 transition만 추가하거나 확인 */
+        transition: background-color 0.2s;
+    }
+    .user-chip:active {
+        background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
+    }
+}
 
     /* --- 차트 섹션 --- */
     .chart-header select {
