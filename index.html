@@ -3,45 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-    <script defer src="./firebase-init.js"></script>
+      <!-- Firebase SDK (compat 버전: 기존 네임스페이스 방식 그대로 사용 가능) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script defer src="./firebase-init.js"></script>
 
     <title>fastmate</title>
     <link rel="stylesheet" href="./styles.css">
-    <style>
-        /* [추가] 로그인된 사용자를 위한 로딩 오버레이 */
-        #loading-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: #000; /* 검은색 배경 */
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out;
-        }
-        #loading-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        .welcome-message {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-    </style>
+    <script src="./app.js" defer></script>
 </head>
+<script>
+        // Firebase Auth의 상태 변경을 감지합니다.
+        firebase.auth().onAuthStateChanged((user) => {
+            // 만약 user 객체가 존재한다면 (즉, 이미 로그인된 상태라면)
+            if (user) {
+                // console.log("이미 로그인된 사용자입니다. fastmate.html로 이동합니다.");
+                // 즉시 fastmate.html 페이지로 이동시킵니다.
+                window.location.replace('./fastmate.html');
+            }
+            // user 객체가 없다면 (로그인되지 않은 상태라면)
+            // 아무것도 하지 않고 현재 index.html 페이지를 그대로 보여줍니다.
+        });
+    </script>
+    </body>
 <body>
-
-    <div id="loading-overlay">
-        <p class="welcome-message">다시 만나 반가워요!</p>
-        </div>
 
     <div class="intro-container">
         <h1 class="logo">fastmate</h1>
@@ -51,24 +37,21 @@
             이미 회원이라면 <a href="./login.html">로그인</a>
         </p>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const loadingOverlay = document.getElementById('loading-overlay');
-            
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    // 로그인된 사용자인 경우, 검은 오버레이를 보여줍니다.
-                    loadingOverlay.classList.add('show');
-                    
-                    // 1초 후에 메인 앱 화면으로 부드럽게 이동합니다.
-                    setTimeout(() => {
-                        window.location.replace('./fastmate.html');
-                    }, 1000); // 1초 (1000ms)
-                }
-                // 로그인되지 않은 사용자는 아무것도 하지 않아, 시작/로그인 버튼이 보입니다.
-            });
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Firebase Auth의 상태 변경을 감지합니다.
+        firebase.auth().onAuthStateChanged((user) => {
+            // 만약 user 객체가 존재한다면 (즉, 이미 로그인된 상태라면)
+            if (user) {
+                // [수정] 환영 화면(welcome.html)으로 이동시킵니다.
+                window.location.replace('./welcome.html');
+            }
+            // user 객체가 없다면 아무것도 하지 않습니다.
         });
-    </script>
+    });
+</script>
+    </body>
+    
+
 </body>
 </html>
