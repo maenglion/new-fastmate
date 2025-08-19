@@ -111,14 +111,20 @@
             text-align: center;
         }
         
-/* 기존 .timer-display .label 규칙을 아래 코드로 교체 */
-.timer-display .label {
-    font-size: 1rem;
-    color: var(--text-light);
-    margin-bottom: 5px; /* [추가] 시간과의 간격을 살짝 줍니다. */
+.timer-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* [수정] Y축(세로) 위치를 -50%로 변경하여 그룹 전체를 정중앙에 맞춥니다. */
+    transform: translate(-50%, -50%); 
+    text-align: center;
+    /* [추가] 내부 요소(label, time) 정렬을 위해 flexbox를 사용합니다. */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-/* 기존 .timer-display .time 규칙을 아래 코드로 교체 */
 .timer-display .time {
     /* [수정] clamp()를 사용하여 글씨 크기를 반응형으로 만듭니다. */
     /* 최소 1.8rem, 최대 2.5rem 크기를 유지하며 화면 너비(vw)에 따라 유연하게 변함 */
@@ -128,7 +134,6 @@
     color: var(--text-color);
     line-height: 1; /* 수직 정렬을 위해 줄 간격 조정 */
 }
-
         .status-message {
             text-align: center;
             font-size: 1.1rem;
