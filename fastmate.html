@@ -854,33 +854,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 2. [추가] 1회성 데이터 이사(마이그레이션) 로직을 먼저 실행합니다.
-        // 이렇게 해야 loadState가 복구된 데이터를 바로 읽을 수 있습니다.
         await migrateLegacyFast(user.uid);
 
-        // 3. 온보딩(닉네임/목표 설정)을 완료했는지 확인합니다.
-        //    (이미 확인했다면 같은 세션에서는 다시 확인하지 않습니다.)
-        if (sessionStorage.getItem('onboardingLock') !== '1') {
-            try {
-                const prof = await getUserDoc();
-                const completed = !!prof?.onboarding?.completed;
+        // 3. 온보딩(닉네임/목표 설정)을 완료했는지 Firestore에서 직접 확인합니다.
+        try {
+            const prof = await getUserDoc();
+            const completed = !!prof?.onboarding?.completed;
 
-                if (!completed) {
-                    sessionStorage.setItem('onboardingLock', '1'); // 재진입 방지
-                    window.location.href = './signup.html?step=2&from=fastmate';
-                    return; // 온보딩이 끝날 때까지 아래 코드는 실행되지 않습니다.
-                }
-            } catch (e) {
-                console.error("온보딩 확인 중 오류:", e);
+            // 온보딩이 완료되지 않았다면, signup 페이지로 보냅니다.
+            if (!completed) {
+                // 재진입 방지를 위해 임시 락을 걸 수 있습니다 (선택사항이지만 안정적)
+                sessionStorage.setItem('onboardingRedirected', 'true');
+                window.location.href = './signup.html?step=2&from=fastmate';
+                return; // 온보딩이 끝날 때까지 아래 코드는 실행되지 않습니다.
             }
+        } catch (e) {
+            console.error("온보딩 확인 중 오류:", e);
         }
         
-        // 4. 모든 확인이 끝났고, 아직 앱이 시작되지 않았다면 앱을 초기화합니다.
+        // 4. 모든 확인이 끝났고, 아직 앱이 시작되지 않았다면 앱을 완전히 초기화합니다.
         if (!bootstrapped) {
             bootstrapped = true;
             
             const prof = await getUserDoc(); // 최신 프로필 정보 다시 가져오기
             const chip = document.getElementById('userChip');
             const chipName = document.getElementById('userChipName');
+
+            // [핵심] 이제 이 부분이 항상 실행되어 닉네임 버튼이 표시됩니다.
             if (chip && chipName) {
                 chipName.textContent = prof?.nickname || '회원';
                 chip.style.display = 'flex';
@@ -893,6 +893,32 @@ document.addEventListener('DOMContentLoaded', () => {
             wireEventsOnce();
         }
     });
+
+    /* =========================
+     * [추가] 1회성 데이터 이사 함수
+     * ========================= */
+    async function migrateLegacyFast(uid) {
+        const legacyStartTime = localStorage.getItem('fastingStartTime');
+        const legacyTargetHours = localStorage.getItem('fastingTargetHours');
+
+        if (legacyStartTime && legacyTargetHours) {
+            console.log("옛날 단식 데이터를 발견했습니다. Firestore로 옮깁니다...");
+            try {
+                await db.collection('users').doc(uid).set({
+                    currentFasting: {
+                        startTime: new Date(legacyStartTime),
+                        targetHours: parseFloat(legacyTargetHours)
+                    }
+                }, { merge: true });
+                localStorage.removeItem('fastingStartTime');
+                localStorage.removeItem('fastingTargetHours');
+                console.log("데이터 이사 완료!");
+            } catch (error) {
+                console.error("데이터 이사 중 오류 발생:", error);
+            }
+        }
+    }
+    
 
     // ... (이 아래로 DOM 캐시, 상태/유틸, 단식 타이머 함수 등 나머지 코드는 그대로 둡니다) ...
 
