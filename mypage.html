@@ -361,20 +361,20 @@
     color: var(--text-light);
 }
 
-/* --- 1. 기본 (라이트 모드) 색상 정의 --- */
-.history-percentage.percentage-high { color: var(--primary-color); }       /* 60% 초과: 초록색 */
-.history-percentage.percentage-mid { color: var(--gauge-start-color); }   /* 60% 이하: 노란색 */
-.history-percentage.percentage-low { color: #FAAD14; }                    /* 0%: 주황색 */
-.history-percentage.percentage-over-100 { color: #ff690B; }               /* 100% 초과: 진한 주황색 */
+/* --- 달성률(%) 색상 정의 (수정된 최종본) --- */
+.history-actions .history-percentage.percentage-high { color: var(--primary-color); }
+.history-actions .history-percentage.percentage-mid { color: var(--gauge-start-color); }
+.history-actions .history-percentage.percentage-low { color: #757575; }
+.history-actions .history-percentage.percentage-over-100 { color: #ff690B; }
 
 
-/* --- 2. 다크 모드일 때 덮어 쓸 색상만 정의 --- */
+/* --- 다크 모드일 때 덮어 쓸 색상만 정의 --- */
 @media (prefers-color-scheme: dark) {
     /* ... 다른 다크 모드 스타일들 ... */
 
     /* [수정] 100% 초과 달성률 글씨를 노란색으로 덮어씁니다. */
-    .history-percentage.percentage-over-100 {
-        color: var(--gauge-start-color) !important; 
+    .history-actions .history-percentage.percentage-over-100 {
+        color: var(--gauge-start-color); 
     }
 }
 
