@@ -381,45 +381,63 @@
       finishSignupBtn?.addEventListener('click', onFinishSignup);
 
       /* ===== 리다이렉트 에러 관찰(구글) ===== */
-      auth.getRedirectResult().catch(e => {
-        console.warn('[redirectError]', e?.code, e?.message);
-      });
+  auth.getRedirectResult()
+  .then((res) => {
+    if (!res || !res.user) return;
+    const isNew = res.additionalUserInfo?.isNewUser === true;
 
-      /* ===== 인증 상태에 따른 초기 진입 제어(단일 버전) ===== */
-      auth.onAuthStateChanged(async (user) => {
-        try{
-          const params = new URL(location.href).searchParams;
-          const stepParam = params.get('step');
+    if (!isNew) {
+      // 기존 가입자: 회원가입 1단계에 남겨두지 말고 바로 로그인 플로우로
+      alert('이미 가입된 계정임. 로그인으로 이동함');
+      location.replace('./fastmate.html'); // 필요시 로그인 페이지로 바꿔도 됨
+      return;
+    }
 
-          if (user){
-            // 이메일 UI 반영
-            if (emailInput && user.email){
-              emailInput.value = user.email;
-              emailInput.readOnly = true;
-            }
+    // 신규 가입자라도 1단계에 머물 필요 없음 → 2단계부터
+    const url = new URL(location.href);
+    url.searchParams.set('step', '2');
+    history.replaceState(null, '', url.toString());
+  })
+  .catch(e => {
+    console.warn('[redirectError]', e?.code, e?.message);
+  });
 
-            // 온보딩 완료 여부 확인
-            const profile = await getUserDoc(); // firebase-init.js 제공
-            const completed = !!profile?.onboarding?.completed;
-            if (completed){
-              return location.replace('./fastmate.html');
-            }
+  
+  auth.onAuthStateChanged(async (user) => {
+  try{
+    const params = new URL(location.href).searchParams;
+    const stepParam = params.get('step');
 
-            // 쿼리 우선, 없으면 2단계부터
-            if (stepParam && ['1','2','3','4'].includes(stepParam)) {
-              navigateTo(parseInt(stepParam, 10));
-            } else {
-              navigateTo(2);
-            }
-          } else {
-            // 미로그인 → 1단계
-            navigateTo(1);
-          }
-        }catch(e){
-          console.warn('[onAuthStateChanged]', e);
-          navigateTo(1);
-        }
-      });
+    if (user){
+      // 이메일 UI 반영
+      if (emailInput && user.email){
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+      }
+
+      // 온보딩 완료 여부
+      const profile = await getUserDoc(); // firebase-init.js 제공
+      const completed = !!profile?.onboarding?.completed;
+      if (completed){
+        return location.replace('./fastmate.html');
+      }
+
+      // ✅ 로그인 사용자는 1단계를 절대 보여주지 않음
+      // URL 파라미터가 2~4면 그걸 존중, 없거나 1이면 2단계로 강제
+      let target = 2;
+      if (['2','3','4'].includes(stepParam)) {
+        target = parseInt(stepParam, 10);
+      }
+      navigateTo(target);
+    } else {
+      // 미로그인 → 1단계
+      navigateTo(1);
+    }
+  }catch(e){
+    console.warn('[onAuthStateChanged]', e);
+    navigateTo(1);
+  }
+});
 
       /* ===== 모달 열기/닫기 ===== */
       document.querySelectorAll('a[data-modal]').forEach(link => {
