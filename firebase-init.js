@@ -127,6 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 6) 인증 플로우
   (async function initAuth() {
+
+function showApp() {
+  const splash = document.getElementById('splash-screen');
+  if (splash) {
+    splash.classList.add('fade-out');
+    setTimeout(() => { 
+      splash.style.display = 'none'; 
+    }, 500);
+  }
+  document.body.classList.add('loaded');
+}
+
     try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
@@ -176,15 +188,28 @@ document.addEventListener('DOMContentLoaded', () => {
             // 이벤트 중복 방지 예시(선택)
             if (!window.__WIRED__) { window.__WIRED__ = true; if (window.wireEventsOnce) try { window.wireEventsOnce(); } catch(e){} }
           }
+            showApp();
+
         } else {
           // 비로그인 상태에서 보호 페이지면 로그인으로
-          if (isProtected()) goOnce('/login.html');
+         if (isProtected()) {
+          // and they are on a protected page, redirect them.
+          return goOnce('/login.html'); // 'return' stops the function here.
         }
-      });
-  
-    } catch (e) {
-      console.error('[auth init]', e);
-      alert(`인증 초기화 오류: ${e.message}`);
-    }
-  })();
-}
+
+        // ▼ 3. Since the user is logged out and allowed to be on this page, we show the page.
+        showApp();
+      }
+    });
+
+  } catch (e) {
+    console.error('[auth init]', e);
+    alert(`인증 초기화 오류: ${e.message}`);
+    
+    // ▼ 4. If any error occurs during initialization, we must still remove the splash screen
+    // so the user can see the error message.
+    showApp(); 
+  }
+})(); }
+
+
