@@ -388,10 +388,6 @@ function updateUIState() {
         stopBtn.disabled = !running; 
         stopBtn.style.opacity = running ? '1' : '0.5'; 
     }
-    // [추가] 단식 중에는 시작 시간 박스를 클릭할 수 없도록 비활성화
-    if (startTimeBox) { 
-        startTimeBox.style.pointerEvents = running ? 'none' : 'auto'; 
-    }
 }
 
 
@@ -468,12 +464,9 @@ function updateTimer() {
 
 // 단식 시작 및 종료
 
-async function startFasting() { // ✅ async 추가!
+async function startFasting() {
     if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
-
-    if (!currentUser) {
-        return showToast("사용자 정보가 확인되지 않았습니다. 잠시 후 다시 시도해주세요.");
-    }
+    if (!currentUser) return showToast("사용자 정보가 확인되지 않았습니다.");
 
     // 시간 선택 모달을 사용하지 않았다면, 시작 시간을 현재로 설정
     if (!timePickerUsed) {
@@ -483,8 +476,12 @@ async function startFasting() { // ✅ async 추가!
     fastingState = 'running';
     targetHours = parseFloat(modelSelect.value);
     
+    // ▼▼▼ [수정] UI 업데이트를 DB 저장 *전*에 먼저 실행합니다. ▼▼▼
+    updateTimeDisplays(); // ✅ 시작/종료 시간 즉시 표시
+    updateUIState();      // ✅ 버튼 상태 즉시 변경
+    updateSelectOptions();
+    
     try {
-        // 이제 await를 문제없이 사용할 수 있습니다.
         await db.collection('users').doc(currentUser.uid).set({
             currentFasting: { 
                 startTime: selectedStartTime, 
@@ -492,26 +489,23 @@ async function startFasting() { // ✅ async 추가!
             }
         }, { merge: true });
         
-        // UI 업데이트 로직
-         // ▼▼▼ [수정] UI 업데이트 함수들을 DB 저장 성공 후에 호출합니다. ▼▼▼
+        // 타이머 시작 및 나머지 로직은 DB 저장 성공 후에 실행
         Object.keys(milestones).forEach(k => milestones[k] = false);
         if(fastingInterval) clearInterval(fastingInterval);
         fastingInterval = setInterval(updateTimer, 1000);
+        updateTimer();
         
-        updateTimeDisplays(); // ✅ 시작/종료 시간 표시 함수 호출
-        updateTimer();        // ✅ 타이머 즉시 갱신
-        updateUIState();      // ✅ 버튼 상태 변경
-        updateSelectOptions();
+        showToast(`${targetHours}시간 단식을 시작합니다!`);
 
     } catch (error) {
         console.error("Firestore에 단식 상태 저장 실패:", error);
         showToast("단식 시작에 실패했습니다.");
         fastingState = 'idle'; // 실패 시 상태를 원상 복구
+        updateUIState(); // UI 상태도 원상 복구
     } finally {
-        timePickerUsed = false; // 시작 후에는 플래그 초기화
+        timePickerUsed = false;
     }
 }
-// fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
 
 // stopFasting 함수를 이 코드로 통째로 교체해주세요.
 async function stopFasting() {
