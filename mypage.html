@@ -649,9 +649,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // 4. 화면 렌더링 함수 (UI 업데이트)
     // =================================================================
-    function renderProfileCard() {
-        if (!currentUser || !allData.profile) return;
-        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
+    function renderProfileCard(user, profile) { 
+    if (!user || !profile) return; // 전달받은 데이터가 있는지 확인
+        const nickname = profile.displayName || user.displayName || '사용자';
         if (pfNickname) pfNickname.textContent = `${nickname}님`;
         if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
     }
@@ -832,11 +832,11 @@ const newIconPlugin = {
     // =================================================================
     // 7. 메인 로직: 데이터 로딩 및 앱 초기화
     // =================================================================
-    async function loadAndRenderAllData() {
-        if (!currentUser) return;
+    async function loadAndRenderAllData(user) { 
+        if (!user) return; 
         try {
             const [profile, fasting, exercise, weight, bloodSugar, ketone] = await Promise.all([
-                getUserDoc(currentUser.uid),
+                getUserDoc(user.uid),
                 fetchHistory('fastingHistory', 'endTime'),
                 fetchHistory('measurements/exercise/items'),
                 fetchHistory('measurements/weight/items'),
@@ -846,12 +846,13 @@ const newIconPlugin = {
             
             allData = { profile, fasting, exercise, weight, bloodSugar, ketone };
 
-            renderProfileCard();
-            renderFastingHistory();
-            renderExerciseHistory();
-            renderAllCharts();
-            
-            wireEventsOnce();
+        renderProfileCard(user, profile);
+        
+        renderFastingHistory();
+        renderExerciseHistory();
+        renderAllCharts();
+        
+        wireEventsOnce();
 
         } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
     }
@@ -861,8 +862,8 @@ const newIconPlugin = {
     // =================================================================
     auth.onAuthStateChanged((user) => {
         if (user) {
-            currentUser = user;
-            loadAndRenderAllData();
+            // 여기서 loadAndRenderAllData에 user 정보를 전달합니다.
+        loadAndRenderAllData(user);
         }
     });
 });
