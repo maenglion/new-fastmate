@@ -6,7 +6,7 @@ if (!window.__AUTH_BOOT__) {
   // 1) Firebase 초기화 (현재 설정 유지)
   const firebaseConfig = {
   apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-  authDomain: "fasting-b4ccb.firebaseapp.com",
+  authDomain: "auth.fastmate.kr",
   projectId: "fasting-b4ccb",
   storageBucket: "fasting-b4ccb.firebasestorage.app",
   messagingSenderId: "879518503068",
