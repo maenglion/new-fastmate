@@ -45,9 +45,25 @@ async function afterAuth(user, additionalUserInfo) {
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   
-  // 안드로이드 크롬 일반 탭인지 확인하는 간단한 방법
-  const isAndroidChromeTab = /Android/i.test(navigator.userAgent) && /Chrome/i.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches;
+  // 사용자 에이전트를 확인하여 모바일 기기인지 판별
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+  if (isMobile) {
+    // 모바일 환경에서는 무조건 리디렉션 사용
+    auth.signInWithRedirect(provider);
+  } else {
+    // PC (데스크톱) 환경에서는 팝업 사용
+    auth.signInWithPopup(provider)
+      .then(result => afterAuth(result.user, result.additionalUserInfo))
+      .catch(error => {
+        console.error("Popup Sign-in Error", error);
+        // PC에서도 팝업이 막히면 리디렉션으로 시도
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+          auth.signInWithRedirect(provider);
+        }
+      });
+  }
+}
   if (isAndroidChromeTab) {
     // 안드로이드 크롬에서는 팝업이 더 안정적
     auth.signInWithPopup(provider)
