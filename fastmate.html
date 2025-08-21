@@ -840,7 +840,7 @@ let bootstrapped = false;
 
     // Firebase 핸들 (v8)
 const auth = firebase.auth();
-const db   = firebase.firestore()
+const db   = firebase.firestore();
 // fastmateApp에 노출된 유틸을 안전하게 프록시
 const getUserDoc = (uid) =>
   (window.fastmateApp && window.fastmateApp.getUserDoc)
@@ -1244,37 +1244,75 @@ function initializeTime() {
     updateTimeDisplays();
 }
  
-// [수정] 페이지 로드 시 localStorage 대신 Firestore에서 상태를 불러옵니다.
-// loadState 함수를 이 코드로 교체해주세요.
 
 auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      // 이 페이지는 보호되고 있으므로 user가 있다는 것이 보장됩니다.
-      console.log(user.displayName, "님 환영합니다.");
+  // 비로그인은 /firebase-init.js에서 라우팅 처리함
+  if (!user) return;
 
-      // ▼▼▼ 여기에 그 로직을 통합합니다 ▼▼▼
-      try {
-        // getUserDoc에 반드시 user.uid를 넘겨주어야 합니다.
-        const profile = await getUserDoc(user.uid); 
-        const savedFasting = profile?.currentFasting;
+  console.log(user.displayName || '사용자', '님 환영함');
 
-        console.log("Firestore에서 불러온 사용자 정보:", profile);
-        
-        if (savedFasting) {
-          // TODO: savedFasting 데이터를 사용해 UI를 업데이트하는 로직을 여기에 작성하세요.
-          // 예시: displayFastingTimer(savedFasting);
-          console.log("저장된 단식 정보가 있습니다:", savedFasting);
-        } else {
-          console.log("저장된 단식 정보가 없습니다.");
-        }
-        
-      } catch (error) {
-        console.error("사용자 프로필을 불러오는 데 실패했습니다:", error);
-        // 사용자에게 오류를 알려주는 UI를 보여줄 수 있습니다.
-      }
-      // ▲▲▲ 여기까지 통합 ▲▲▲
+  // 1) 사용자칩 표시
+  const chip = document.getElementById('userChip');
+  const chipName = document.getElementById('userChipName');
+  if (chip && chipName) {
+    chipName.textContent = user.displayName || '사용자';
+    chip.style.display = 'flex';
+  }
+
+  // 2) 모달/이벤트 1회 초기화
+  try {
+    initializeTimePicker();
+    wireEventsOnce();
+  } catch (e) {
+    console.warn('초기 바인딩 경고:', e);
+  }
+
+  // 3) Firestore에서 진행중 단식 복원
+  try {
+    const profile = await getUserDoc(user.uid); // 없으면 null
+    const saved = profile?.currentFasting;
+
+    if (saved?.startTime && saved?.targetHours) {
+      // Firestore Timestamp / ISO 문자열 모두 대응함
+      const start = saved.startTime?.toDate
+        ? saved.startTime.toDate()
+        : new Date(saved.startTime);
+
+      selectedStartTime = start;
+      targetHours = Number(saved.targetHours) || 16;
+      fastingState = 'running';
+
+      updateTimeDisplays();
+      updateSelectOptions();
+      updateUIState();
+
+      if (fastingInterval) clearInterval(fastingInterval);
+      fastingInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+
+      console.log('진행중 단식 복원함:', { start, targetHours });
+    } else {
+      // 진행중 아님 → 기본 화면
+      fastingState = 'idle';
+      initializeTime();
+      updateUIState();
+      resetSelectOptions();
+      console.log('진행중 단식 없음');
     }
+  } catch (err) {
+    console.error('프로필/복원 로드 실패:', err);
+    initializeTime();
+    updateUIState();
+  }
+
+  // 4) 선택: 예전 localStorage 데이터 1회 이관
+  try {
+    await migrateLegacyFast(user.uid);
+  } catch (e) {
+    console.warn('레거시 이관 경고:', e);
+  }
 });
+
 
 // 선택창 UI를 '단식중' 상태로 업데이트하는 함수
 function updateSelectOptions() {
@@ -1482,6 +1520,17 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
       .filter(Boolean)
       .forEach(modal => { if (e.target === modal) modal.style.display = 'none'; });
   });
+
+  // --- 최소 초기화 3종 세트 (안전망) ---
+try {
+  initializeTimePicker();
+  initializeTime();
+  updateUIState();
+  wireEventsOnce();
+} catch(e) {
+  console.warn('초기화 경고:', e);
+}
+
 
 });
 </script>
