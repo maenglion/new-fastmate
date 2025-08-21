@@ -386,6 +386,81 @@
         }
         /* --- 온보딩 모달 스타일 끝 --- */
         /* --- 시간 선택 모달 스타일 시작 --- */
+
+
+/* =============================================== */
+/* 스플래시 스크린 스타일               */
+/* =============================================== */
+
+#splash-screen {
+  /* 화면 전체를 덮도록 설정 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999; /* 다른 모든 요소보다 위에 표시 */
+
+  /* 사랑스러운 녹색 그라데이션 배경 */
+  background: linear-gradient(135deg, #38ef7d, #11998e);
+
+  /* 콘텐츠(앱 이름, 스피너)를 화면 정중앙에 배치 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  /* 부드럽게 사라지는 효과를 위한 준비 */
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* 스플래시 스크린이 사라질 때 적용될 클래스 */
+#splash-screen.fade-out {
+  opacity: 0;
+}
+
+
+.splash-content {
+  text-align: center;
+}
+
+/* 앱 이름 'fastmate' 스타일 */
+.splash-title {
+  color: white;
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  /* 텍스트가 배경에서 살짝 떠 보이게 하는 그림자 효과 */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 로딩 스피너 스타일 */
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto; /* 수평 중앙 정렬 */
+  
+  /* 스피너 모양 만들기 */
+  border: 4px solid rgba(255, 255, 255, 0.3); /* 연한 회색 테두리 */
+  border-top-color: #ffffff; /* 위쪽만 하얀색으로 강조 */
+  border-radius: 50%;
+  
+  /* 회전 애니메이션 적용 */
+  animation: spin 1s linear infinite;
+}
+
+/* 회전 애니메이션 정의 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
 .time-picker-content {
     width: 100%;
     max-width: 320px;
