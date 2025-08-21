@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // 5. 차트 관련 함수 (전체 코드 포함)
     // =================================================================
-    const newIconPlugin = {
+const newIconPlugin = {
         id: 'newIconPlugin',
         afterDraw: (chart) => {
             const ctx = chart.ctx;
@@ -736,13 +736,56 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function createChart(canvasId, label, data, customScaleOptions = {}) {
-        if (allCharts[canvasId]) allCharts[canvasId].destroy();
+        if (allCharts[canvasId]) {
+            allCharts[canvasId].destroy();
+        }
         const ctx = document.getElementById(canvasId)?.getContext('2d');
         if (!ctx) return;
+
         const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const gridColor = isDarkMode ? '#333' : '#f0f0f0';
+        const textColor = isDarkMode ? '#e0e0e0' : '#333';
         const chartData = (data || []).filter(d => d && typeof d.value === 'number').map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
-        
-        allCharts[canvasId] = new Chart(ctx, { /* ... (이전과 동일한 Chart.js 옵션) ... */ });
+
+        allCharts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: label,
+                    data: chartData,
+                    borderColor: 'var(--chart-line-color, #7FE89B)',
+                    borderWidth: 2.5,
+                    tension: 0.2,
+                    pointRadius: 4,
+                    pointBackgroundColor: 'var(--chart-line-color, #7FE89B)',
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
+                        grid: { color: gridColor },
+                        ticks: { color: textColor }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, font: { weight: 'bold' } },
+                        ...customScaleOptions
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
+                    tooltip: { /* ... (이전과 동일한 tooltip 옵션) ... */ }
+                }
+            },
+            plugins: [newIconPlugin]
+        });
     }
 
     function renderAllCharts() {
