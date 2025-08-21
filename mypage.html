@@ -641,17 +641,20 @@
 
         // 4. 화면 렌더링 함수 (UI 업데이트)
         function renderProfileCard() {
-        const profile = allData.profile;
-        const user = firebase.auth().currentUser;
-        if (!profile || !user) return;
-        
-        const nickname = profile?.nickname || user.displayName || '사용자';
-        pfNickname.textContent = `${nickname}님`;
-        pfEmail.textContent = user.email || '이메일 정보 없음';
-        
-        if (userNicknameHeader) userNicknameHeader.parentElement.style.display = 'none';
+    // 이 함수는 onAuthStateChanged에서 currentUser와 allData가
+    // 준비된 후에 호출되므로 안전합니다.
+    if (!currentUser || !allData.profile) return;
+    
+    const profile = allData.profile;
+    const user = currentUser; // firebase.auth().currentUser 대신 안전한 currentUser를 사용합니다.
 
-        const goals = profile?.onboarding?.reasons || [];
+    const nickname = profile.nickname || profile.displayName || user.displayName || '사용자';
+    if (pfNickname) pfNickname.textContent = `${nickname}님`;
+    if (pfEmail) pfEmail.textContent = user.email || '이메일 정보 없음';
+    
+    // '가입 목적' 렌더링 로직 (사용자님 코드)
+    const goals = profile.onboarding?.reasons || [];
+    if (pfGoals) {
         pfGoals.innerHTML = '';
         if (goals.length > 0) {
             goals.forEach(goalText => {
@@ -664,7 +667,7 @@
             pfGoals.textContent = '설정된 목표가 없습니다.';
         }
     }
-
+}
 
         function renderPagination(container, currentPage, totalPages, onPageChange) {
             if (totalPages <= 1) { container.innerHTML = ''; return; }
