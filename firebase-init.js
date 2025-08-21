@@ -18,43 +18,45 @@ if (!window.__AUTH_BOOT__) {
   const db   = firebase.firestore();
 
   // 2) 전역(필요 시 사용할 수 있게)
-  window.fastmateApp = {
-    auth,
-    db,
-    getUserDoc: async (uid) => {
-      if (!uid) return null;
-      try {
-        const s = await db.collection('users').doc(uid).get();
-        return s.exists ? { id: s.id, ...s.data() } : null;
-      } catch (e) { console.error('[getUserDoc]', e); return null; }
+window.fastmateApp = {
+  auth,
+  db,
+  // 원래 버전이 ID도 함께 반환해서 조금 더 좋습니다.
+  getUserDoc: async (uid) => {
+    if (!uid) return null;
+    try {
+      const s = await db.collection('users').doc(uid).get();
+      return s.exists ? { id: s.id, ...s.data() } : null;
+    } catch (e) { console.error('[getUserDoc]', e); return null; }
+  },
+  // 새로 추가하신 비밀번호 재설정 함수 (완벽합니다)
+  sendPasswordReset: function() {
+    // login.html이 아닌 forgot-password.html의 id를 사용해야 합니다.
+    const emailInput = document.getElementById('reset-email'); 
+    
+    if (!emailInput) {
+      // 이 함수는 forgot-password.html 페이지에서만 호출되므로,
+      // 다른 페이지에서는 버튼이 없어 호출되지 않는 것이 정상입니다.
+      return; 
     }
-  };
 
-      // ▼▼▼ [추가] 비밀번호 재설정 이메일 발송 함수 ▼▼▼
-    sendPasswordReset: function() {
-      const emailInput = document.getElementById('email');
-      if (!emailInput) {
-        console.error('Email input field not found');
-        return;
-      }
-      const email = emailInput.value;
-      if (!email) {
-        alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
-        return;
-      }
-
-      auth.sendPasswordResetEmail(email)
-        .then(() => {
-          alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
-        })
-        .catch((error) => {
-          console.error("Password reset error:", error);
-          // 사용자가 존재하지 않는 이메일을 입력하는 등 다양한 오류가 있을 수 있습니다.
-          alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
-        });
+    const email = emailInput.value;
+    if (!email) {
+      alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
+      return;
     }
-    // ▲▲▲ [추가] 여기까지 ▲▲▲
 
+    auth.sendPasswordResetEmail(email)
+      .then(() => {
+        alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
+      })
+      .catch((error) => {
+        console.error("Password reset error:", error);
+        alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
+      });
+  }
+};
+  
   // 3) 라우팅 가드(필요한 최소만)
   const path = () => location.pathname;
   const isAuthPage = () => /\/(login|signup)\.html$/i.test(path());
@@ -75,6 +77,38 @@ if (!window.__AUTH_BOOT__) {
     const btn = document.getElementById('google-login-btn') || document.querySelector('[data-role="google-login"]');
     if (btn && !btn.__BOUND__) { btn.__BOUND__ = true; btn.addEventListener('click', e => { e.preventDefault(); window.signInWithGoogle(); }); }
   });
+
+// 로그인/비밀번호찾기 버튼 자동 바인딩
+document.addEventListener('DOMContentLoaded', () => {
+    // 구글 로그인 버튼 자동 연결
+    const googleBtn = document.getElementById('google-login-btn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', window.signInWithGoogle);
+    }
+
+    // 비밀번호 재설정 버튼 자동 연결
+    const resetBtn = document.getElementById('send-reset-email-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            const emailInput = document.getElementById('reset-email');
+            const email = emailInput ? emailInput.value : null;
+
+            if (!email) {
+                alert('이메일 주소를 입력해주세요.');
+                return;
+            }
+
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
+                })
+                .catch((error) => {
+                    console.error("Password reset error:", error);
+                    alert(`오류가 발생했습니다: ${error.message}`);
+                });
+        });
+    }
+});
 
   // 6) 인증 플로우
   (async function initAuth() {

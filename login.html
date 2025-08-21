@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="./styles.css">
 
     <style>
-        /* login.html 전용 스타일 (styles.css가 없어도 최소한의 디자인을 보장) */
+        /* login.html 전용 스타일 */
         body {
             display: flex;
             justify-content: center;
@@ -37,14 +37,68 @@
         .login-title {
             font-size: 2rem;
             font-weight: 700;
-            color: #1c8e3e; /* fastmate.html과 동일한 메인 컬러 */
+            color: #1c8e3e;
             margin: 0 0 15px 0;
         }
         .login-subtitle {
             font-size: 1rem;
             color: #777;
-            margin: 0 0 40px 0;
+            margin: 0 0 30px 0;
         }
+        .input-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: #1c8e3e;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .forgot-password {
+            display: block;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #555;
+            text-decoration: none;
+        }
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #aaa;
+            margin: 30px 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
         .google-login-btn {
             display: inline-flex;
             align-items: center;
@@ -59,34 +113,39 @@
             font-weight: 500;
             color: #333;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
-        .google-login-btn:hover {
-            background-color: #f8f9fa;
-        }
-        .google-login-btn svg {
-            width: 20px;
-            height: 20px;
-        }
+        .google-login-btn svg { width: 20px; height: 20px; }
     </style>
 </head>
 <body>
     <main class="login-container">
         <h1 class="login-title">Fastmate</h1>
         <p class="login-subtitle">관리하는 단식의 시작</p>
+
+        <div class="input-group">
+            <label for="email">이메일</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="input-group">
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" name="password" required>
+        </div>
         
+        <button class="login-btn" type="button">로그인</button>
+        
+        <a href="/forgot-password.html" class="forgot-password" onclick="fastmateApp.sendPasswordReset()">비밀번호를 잊으셨나요?</a>
+
+        <div class="divider">OR</div>
+
         <button id="google-login-btn" class="google-login-btn" type="button">
-            <svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 398.2 0 256S111.8 0 244 0c69.8 0 130.8 28.5 173.4 74.5l-68.2 68.2C295.6 110.2 271.6 96 244 96 166.3 96 100 162.2 100 240s66.3 144 144 144c80.4 0 125.1-51.2 130.6-76.8H244v-92h233.9c4.7 26.9 7.1 55.5 7.1 84.8z"></path></svg>
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 398.2 0 256S111.8 0 244 0c69.8 0 130.8 28.5 173.4 74.5l-68.2 68.2C295.6 110.2 271.6 96 244 96 166.3 96 100 162.2 100 240s66.3 144 144 144c80.4 0 125.1-51.2 130.6-76.8H244v-92h233.9c4.7 26.9 7.1 55.5 7.1 84.8z"></path></svg>
             <span>Google로 로그인</span>
         </button>
-
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <script src="/firebase-init.js"></script>
-
 </body>
 </html>
