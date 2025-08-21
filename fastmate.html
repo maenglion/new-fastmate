@@ -396,7 +396,9 @@ function updateUIState() {
    * ========================= */
   function updateTimeDisplays() {
     const start = selectedStartTime;
-    const duration = parseInt(modelSelect.value || targetHours, 10);
+    const duration = fastingState === 'running'
+  ? parseFloat(targetHours)
+  : parseInt(modelSelect.value || targetHours, 10);
     const end = new Date(start.getTime() + duration * 3600000);
     const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
     if (startTimeValue) startTimeValue.textContent = fmt(start);
@@ -464,90 +466,116 @@ function updateTimer() {
 
 // 단식 시작 및 종료
 
-function startFasting() {
-    if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
+async function startFasting() {
+  if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
 
-    if (!timePickerUsed) {
-        selectedStartTime = new Date();
-    }
-    updateTimeDisplays();
-    
-    fastingState = 'running';
-    targetHours = parseFloat(modelSelect.value, 10);
-    
-    // [추가] 선택창 UI 업데이트
-    updateSelectOptions();
+  // 로그인 검증 (ensureSignedIn 안 건드리고 여기서만 안전 체크)
+  const user = currentUser || auth.currentUser;
+  if (!user) return showToast("사용자 정보가 확인되지 않았습니다.");
 
-    try {
-        const user = ensureSignedIn();
-        if (user) {
-            db.collection('users').doc(user.uid).set({
-                currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
-            }, { merge: true });
-        }
-    } catch (error) {
-        console.error("Firestore에 단식 상태 저장 실패:", error);
-    }
+  // 1) 시작 시간 확정
+  if (!timePickerUsed) selectedStartTime = new Date();
 
-    Object.keys(milestones).forEach(k => milestones[k] = false);
-    fastingInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-    updateUIState();
+  // 2) 상태 변수 확정(이 순서가 중요)
+  targetHours  = parseFloat(modelSelect.value, 10);
+  fastingState = 'running';
+
+  // 3) UI 선반영(사라짐 방지 포인트)
+  updateTimeDisplays();
+  updateUIState();
+  updateSelectOptions();
+
+  // 4) 타이머 즉시 가동(백엔드 저장과 분리)
+  Object.keys(milestones).forEach(k => (milestones[k] = false));
+  if (fastingInterval) clearInterval(fastingInterval);
+  fastingInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+
+  // 5) DB 저장은 백그라운드로(실패해도 UI는 유지)
+  try {
+    await db.collection('users').doc(user.uid).set({
+      currentFasting: {
+        startTime: selectedStartTime,
+        targetHours: targetHours
+      }
+    }, { merge: true });
+    showToast(`${targetHours}시간 단식을 시작합니다!`);
+  } catch (error) {
+    console.error("Firestore에 단식 상태 저장 실패:", error);
+    showToast("서버 저장에 일시적 문제가 있음(단식은 계속 진행 중임)");
+    // ※ 여기서 상태 되돌리지 않음 → UI/타이머 유지함
+  } finally {
     timePickerUsed = false;
+  }
 }
+
 
 // fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
 
 // stopFasting 함수를 이 코드로 통째로 교체해주세요.
 async function stopFasting() {
-    if (fastingState === 'idle') {
-        return showToast("시작된 단식이 없습니다.");
-    }
+  if (fastingState === 'idle') {
+    return showToast("시작된 단식이 없습니다.");
+  }
 
-    clearInterval(fastingInterval);
-    fastingState = 'idle';
+  // 타이머 먼저 정지
+  if (fastingInterval) clearInterval(fastingInterval);
+  fastingState = 'idle';
 
-    const record = {
-        startTime: selectedStartTime,
-        endTime: new Date(),
-        targetHours: parseFloat(targetHours),
-        actualDurationHours: (new Date() - selectedStartTime) / 3600000
-    };
+  const user = currentUser || auth.currentUser;
 
-    // --- [핵심 수정] Firestore에 최종 기록 저장 및 상태 삭제 ---
-    try {
-        const user = ensureSignedIn();
-        if (user) {
-            // 1. 'fastingHistory'에 최종 기록 저장
-            await db.collection('users').doc(user.uid).collection('fastingHistory').add({
-                startTime: record.startTime,
-                endTime: record.endTime,
-                targetHours: record.targetHours,
-                actualDurationHours: record.actualDurationHours,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // 2. 'currentFasting' 상태 필드 삭제
-            await db.collection('users').doc(user.uid).update({
-                currentFasting: firebase.firestore.FieldValue.delete()
-            });
-        }
-    } catch (e) {
-        console.error('단식 기록 저장 또는 상태 삭제 실패:', e);
-    }
+  const record = {
+    startTime: selectedStartTime,
+    endTime: new Date(),
+    targetHours: parseFloat(targetHours),
+    actualDurationHours: (new Date() - selectedStartTime) / 3600000
+  };
 
-    // --- [핵심 수정] 화면 UI를 모두 초기 상태로 되돌립니다. ---
-    if (progressArc)      progressArc.style.strokeDasharray = '0 100';
-    if (remainingTimeEl)  remainingTimeEl.textContent = '00:00:00';
-    if (statusMessage)    statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-    if (saltTip)          saltTip.style.display = 'none';
-    
-    selectedStartTime = new Date();
-    updateTimeDisplays();
+  // 사용자 없으면 UI만 초기화하고 안내
+  if (!user) {
+    // UI 초기화
+    if (progressArc)     progressArc.style.strokeDasharray = '0 100';
+    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+    if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+    if (saltTip)         saltTip.style.display = 'none';
+    initializeTime();
     updateUIState();
     resetSelectOptions();
+    return showToast("사용자 정보가 없어 기록을 저장할 수 없습니다.");
+  }
 
-    showToast("단식을 종료했습니다. 수고하셨습니다!");
+  // DB 저장(실패해도 UI는 초기화 유지)
+  try {
+    // 1) 히스토리 기록
+    await db.collection('users').doc(user.uid)
+      .collection('fastingHistory').add({
+        startTime: record.startTime,
+        endTime: record.endTime,
+        targetHours: record.targetHours,
+        actualDurationHours: record.actualDurationHours,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+    // 2) 진행중 상태 제거
+    await db.collection('users').doc(user.uid).update({
+      currentFasting: firebase.firestore.FieldValue.delete()
+    });
+  } catch (e) {
+    console.error('단식 기록 저장 또는 상태 삭제 실패:', e);
+    showToast("서버 저장 실패(기록은 추후 재시도 가능)");
+  }
+
+  // UI 초기화(항상 수행)
+  if (progressArc)     progressArc.style.strokeDasharray = '0 100';
+  if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+  if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+  if (saltTip)         saltTip.style.display = 'none';
+
+  initializeTime();
+  updateUIState();
+  resetSelectOptions();
+
+  showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
 
   function handleModelChange(e) {
