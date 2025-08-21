@@ -933,6 +933,22 @@ firebase.auth().onAuthStateChanged(async (user) => {
     }
 });
 
+
+/**
+ * Firestore에서 사용자 문서를 가져오는 함수
+ * @param {firebase.User} user - Firebase 인증 사용자 객체
+ * @returns {Promise<object|null>} 사용자 문서 데이터 또는 null
+ */
+async function getUserDoc(user) {
+  if (!user) return null;
+  
+  // 'db'는 firestore.firestore()로 초기화된 변수여야 합니다.
+  const userRef = db.collection('users').doc(user.uid);
+  const doc = await userRef.get();
+  
+  return doc.exists ? doc.data() : null;
+}
+
     /* =========================
      * [추가] 1회성 데이터 이사 함수
      * ========================= */
