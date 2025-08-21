@@ -381,7 +381,8 @@ function updateUIState() {
         startBtn.disabled = running;
         startBtn.textContent = running ? '단식중' : '단식 시작';
         startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
-        startBtn.style.color = running ? 'var(--text-color)' : '#fff';
+        // ▼▼▼ [수정] '단식중'일 때 글자색을 어두운 색으로 고정합니다. ▼▼▼
+        startBtn.style.color = running ? '#333' : '#fff';
     }
     if (stopBtn) { 
         stopBtn.disabled = !running; 
@@ -492,14 +493,15 @@ async function startFasting() { // ✅ async 추가!
         }, { merge: true });
         
         // UI 업데이트 로직
+         // ▼▼▼ [수정] UI 업데이트 함수들을 DB 저장 성공 후에 호출합니다. ▼▼▼
         Object.keys(milestones).forEach(k => milestones[k] = false);
         if(fastingInterval) clearInterval(fastingInterval);
         fastingInterval = setInterval(updateTimer, 1000);
-        updateTimer();
-        updateUIState();
+        
+        updateTimeDisplays(); // ✅ 시작/종료 시간 표시 함수 호출
+        updateTimer();        // ✅ 타이머 즉시 갱신
+        updateUIState();      // ✅ 버튼 상태 변경
         updateSelectOptions();
-        updateTimeDisplays();
-        showToast(`${targetHours}시간 단식을 시작합니다!`);
 
     } catch (error) {
         console.error("Firestore에 단식 상태 저장 실패:", error);
