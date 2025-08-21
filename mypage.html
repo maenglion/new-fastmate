@@ -583,320 +583,234 @@
     </footer>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
 
-    // =================================================================
-    // 1. 전역 도구 및 변수 준비
-    // =================================================================
-    const auth = window.fastmateApp.auth;
-    const db = window.fastmateApp.db;
-    const getUserDoc = window.fastmateApp.getUserDoc;
-    const signOutUser = window.fastmateApp.signOutUser;
-    
-    let currentUser = null;
-    let allCharts = {};
-    let allData = {};
-    let fastingCurrentPage = 1;
-    let exerciseCurrentPage = 1;
-    const itemsPerPage = 7;
+        // 1. 전역 도구 및 변수 준비
+        const auth = window.fastmateApp.auth;
+        const db = window.fastmateApp.db;
+        const getUserDoc = window.fastmateApp.getUserDoc;
+        const signOutUser = window.fastmateApp.signOutUser;
+        
+        let currentUser = null;
+        let allCharts = {};
+        let allData = {};
+        let fastingCurrentPage = 1;
+        let exerciseCurrentPage = 1;
+        const itemsPerPage = 7;
 
-    // =================================================================
-    // 2. DOM 요소 캐시
-    // =================================================================
-    const pfNickname = document.getElementById('pfNickname');
-    const pfEmail = document.getElementById('pfEmail');
-    const pfGoals = document.getElementById('pfGoals');
-    const homeBtn = document.getElementById('homeBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const fastingHistoryList = document.getElementById('fastingHistoryList');
-    const fastingPaginationControls = document.getElementById('fastingPaginationControls');
-    const exerciseHistoryList = document.getElementById('exerciseHistoryList');
-    const exercisePaginationControls = document.getElementById('exercisePaginationControls');
-    const tabs = document.querySelectorAll('.tab-button');
-    const dateRangeSelector = document.getElementById('dateRangeSelector');
+        // 2. DOM 요소 캐시
+        const pfNickname = document.getElementById('pfNickname');
+        const pfEmail = document.getElementById('pfEmail');
+        const pfGoals = document.getElementById('pfGoals');
+        const homeBtn = document.getElementById('homeBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const fastingHistoryList = document.getElementById('fastingHistoryList');
+        const fastingPaginationControls = document.getElementById('fastingPaginationControls');
+        const exerciseHistoryList = document.getElementById('exerciseHistoryList');
+        const exercisePaginationControls = document.getElementById('exercisePaginationControls');
+        const tabs = document.querySelectorAll('.tab-button');
+        const dateRangeSelector = document.getElementById('dateRangeSelector');
 
-    // =================================================================
-    // 3. 데이터 조회 함수
-    // =================================================================
-    async function fetchHistory(collectionName, orderByField = 'date') {
-        if (!currentUser) return [];
-        try {
-            const snap = await db.collection('users').doc(currentUser.uid).collection(collectionName).orderBy(orderByField, 'desc').limit(200).get();
-            return snap.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    ...data,
-                    date: data.date?.toDate?.(),
-                    startTime: data.startTime?.toDate?.(),
-                    endTime: data.endTime?.toDate?.(),
-                    createdAt: data.createdAt?.toDate?.()
-                };
-            });
-        } catch (error) { return []; }
-    }
-
-    async function deleteFastingRecord(docId) {
-        if (!currentUser || !docId) return;
-        try {
-            await db.collection('users').doc(currentUser.uid).collection('fastingHistory').doc(docId).delete();
-            allData.fasting = allData.fasting.filter(item => item.id !== docId);
-            renderFastingHistory(); // 목록 다시 그리기
-            alert('기록이 삭제되었습니다.');
-        } catch (error) { alert('기록 삭제에 실패했습니다.'); }
-    }
-
-    // =================================================================
-    // 4. 화면 렌더링 함수 (UI 업데이트)
-    // =================================================================
-    function renderProfileCard(user, profile) { 
-    if (!user) return; 
-        const nickname = profile.displayName || user.displayName || '사용자';
-        if (pfNickname) pfNickname.textContent = `${nickname}님`;
-        if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
-    }
-
-    function renderPagination(container, currentPage, totalPages, onPageChange) {
-        if (totalPages <= 1) { container.innerHTML = ''; return; }
-        container.innerHTML = `<button class="prev-page" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button><span>${currentPage} / ${totalPages}</span><button class="next-page" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
-        container.querySelector('.prev-page')?.addEventListener('click', () => onPageChange(currentPage - 1));
-        container.querySelector('.next-page')?.addEventListener('click', () => onPageChange(currentPage + 1));
-    }
-
-    function renderHistory(listEl, paginationEl, data, page, renderItemFn, onPageChange) {
-        listEl.innerHTML = '';
-        if (!data || data.length === 0) {
-            listEl.innerHTML = '<li style="text-align:center; color: var(--text-light); padding: 20px 0;">기록이 없습니다.</li>';
-            paginationEl.innerHTML = '';
-            return;
-        }
-        const totalPages = Math.ceil(data.length / itemsPerPage);
-        const pageItems = data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-        pageItems.forEach(item => listEl.appendChild(renderItemFn(item)));
-        renderPagination(paginationEl, page, totalPages, onPageChange);
-    }
-
-    function renderFastingHistory() {
-        renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            li.dataset.docId = item.id;
-            const hours = Math.floor(item.actualDurationHours);
-            const minutes = Math.round((item.actualDurationHours - hours) * 60);
-            const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
-            const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-
-            // ▼▼▼ [달성률 색상 문제 해결] 달성률에 따라 CSS 클래스를 부여하는 로직 추가 ▼▼▼
-            let percentageClass = 'percentage-mid';
-            if (percentage > 100) percentageClass = 'percentage-over-100';
-            else if (percentage >= 70) percentageClass = 'percentage-high';
-            else if (percentage <= 30) percentageClass = 'percentage-low';
-
-            li.innerHTML = `
-                <div class="history-info">
-                    <div class="duration">${hours}시간 ${minutes}분</div>
-                    <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
-                </div>
-                <div class="history-actions">
-                    <div class="history-percentage ${percentageClass}">${percentage}%</div>
-                    <button class="delete-btn" title="기록 삭제">×</button>
-                </div>`;
-            return li;
-        }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
-    }
-
-    function renderExerciseHistory() {
-          renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            const format = (d) => `${d.getMonth()+1}/${d.getDate()}`;
-            li.innerHTML = `<div class="history-info"><div class="type">${item.type}</div><div class="details">${format(item.date)} / ${item.duration}분</div></div><div class="history-calories">${item.calories || 0} <span class="unit">kcal</span></div>`;
-            return li;
-        }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
-    }
-
-        function updateTabIndicators() {
-        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-        const isNew = (data) => data && data.length > 0 && data[0].createdAt > sixHoursAgo;
-        document.querySelector('.tab-button[data-tab="weight"]')?.classList.toggle('new-indicator', isNew(allData.weight));
-        document.querySelector('.tab-button[data-tab="bloodSugar"]')?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
-        document.querySelector('.tab-button[data-tab="ketone"]')?.classList.toggle('new-indicator', isNew(allData.ketone));
-        }
-
-    // =================================================================
-    // 5. 차트 관련 함수 (전체 코드 포함)
-    // =================================================================
-const newIconPlugin = {
-        id: 'newIconPlugin',
-        afterDraw: (chart) => {
-            const ctx = chart.ctx;
-            const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-            chart.data.datasets.forEach((dataset, i) => {
-                const meta = chart.getDatasetMeta(i);
-                meta.data.forEach((element, index) => {
-                    const dataPoint = dataset.data[index];
-                    if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
-                        const { x, y } = element.getProps(['x', 'y'], true);
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.arc(x, y - 12, 4, 0, 2 * Math.PI);
-                        ctx.fillStyle = 'var(--gauge-start-color, #ffd400)';
-                        ctx.fill();
-                        ctx.restore();
-                    }
+        // 3. 데이터 조회 함수
+        async function fetchHistory(collectionName, orderByField = 'date') {
+            if (!currentUser) return [];
+            try {
+                const snap = await db.collection('users').doc(currentUser.uid).collection(collectionName).orderBy(orderByField, 'desc').limit(200).get();
+                return snap.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id, ...data,
+                        date: data.date?.toDate?.(), startTime: data.startTime?.toDate?.(),
+                        endTime: data.endTime?.toDate?.(), createdAt: data.createdAt?.toDate?.()
+                    };
                 });
-            });
+            } catch (error) { console.error(`${collectionName} 데이터 로딩 실패:`, error); return []; }
         }
-    };
 
-    function createChart(canvasId, label, data, customScaleOptions = {}) {
-        if (allCharts[canvasId]) {
-            allCharts[canvasId].destroy();
+        async function deleteFastingRecord(docId) {
+            if (!currentUser || !docId) return;
+            if (confirm('이 단식 기록을 정말로 삭제하시겠습니까?')) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('fastingHistory').doc(docId).delete();
+                    allData.fasting = allData.fasting.filter(item => item.id !== docId);
+                    renderFastingHistory();
+                    alert('기록이 삭제되었습니다.');
+                } catch (error) { alert('기록 삭제에 실패했습니다.'); }
+            }
         }
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    
-    // 다크모드 여부 확인
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    // 다크모드에 따라 다른 색상 변수 설정
-    const lineColor = isDarkMode ? '#888888' : '#7FE89B';
-    const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
-    const gridColor = isDarkMode ? '#333' : '#f0f0f0';
-    const textColor = isDarkMode ? '#e0e0e0' : '#333';
-    const textLightColor = isDarkMode ? '#888' : '#777'; // 연한 회색
 
-    const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+        // 4. 화면 렌더링 함수 (UI 업데이트)
+        function renderProfileCard(profile) {
+            if (!currentUser) return;
+            const nickname = profile?.nickname || profile?.displayName || currentUser.displayName || '사용자';
+            if (pfNickname) pfNickname.textContent = `${nickname}님`;
+            if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
+        }
 
-        allCharts[canvasId] = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: label,
-                    data: chartData,
-                    borderColor: 'var(--chart-line-color, #7FE89B)',
-                    borderWidth: 2.5,
-                    tension: 0.2,
-                    pointRadius: 4,
-                    pointBackgroundColor: 'var(--chart-line-color, #7FE89B)',
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
-                        grid: { color: gridColor },
-                        ticks: { color: textColor }
-                    },
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: gridColor },
-                        ticks: { color: textColor, font: { weight: 'bold' } },
-                        ...customScaleOptions
-                    }
-                },
-                plugins: {
-                    legend: { display: false },
-                    zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
-                    // ▼▼▼ [수정] 생략되었던 tooltip 옵션 전체 복원 ▼▼▼
-                    tooltip: {
-                        enabled: true, mode: 'index', intersect: false, backgroundColor: bubbleBgColor, padding: 12,
-                        cornerRadius: 8, displayColors: false, titleFont: { weight: 'normal', size: 13 },
-                        titleColor: textLightColor, bodyFont: { weight: 'bold', size: 14 }, bodyColor: textColor,
-                        footerFont: { weight: 'normal', size: 12 }, footerColor: textLightColor,
-                        callbacks: {
-                            title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
-                            label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
-                            footer: (tooltipItems) => tooltipItems[0].raw.createdAt ? '기록 시간: ' + new Date(tooltipItems[0].raw.createdAt).toLocaleTimeString('ko-KR') : ''
+        function renderPagination(container, currentPage, totalPages, onPageChange) {
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+            container.innerHTML = `<button class="prev-page" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button><span>${currentPage}/${totalPages}</span><button class="next-page" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
+            container.querySelector('.prev-page')?.addEventListener('click', () => onPageChange(currentPage - 1));
+            container.querySelector('.next-page')?.addEventListener('click', () => onPageChange(currentPage + 1));
+        }
+
+        function renderHistory(listEl, paginationEl, data, page, renderItemFn, onPageChange) {
+            listEl.innerHTML = '';
+            if (!data || data.length === 0) {
+                listEl.innerHTML = '<li style="text-align:center;color:var(--text-light);padding:20px 0;">기록이 없습니다.</li>';
+                paginationEl.innerHTML = ''; return;
+            }
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            const pageItems = data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+            pageItems.forEach(item => listEl.appendChild(renderItemFn(item)));
+            renderPagination(paginationEl, page, totalPages, onPageChange);
+        }
+
+        function renderFastingHistory() {
+            renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.dataset.docId = item.id;
+                const hours = Math.floor(item.actualDurationHours);
+                const minutes = Math.round((item.actualDurationHours - hours) * 60);
+                const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
+                const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                let percentageClass = 'percentage-mid';
+                if (percentage > 100) percentageClass = 'percentage-over-100';
+                else if (percentage >= 70) percentageClass = 'percentage-high';
+                else if (percentage <= 30) percentageClass = 'percentage-low';
+                li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분</div><div class="period">${format(item.startTime)}~${format(item.endTime)}</div></div><div class="history-actions"><div class="history-percentage ${percentageClass}">${percentage}%</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
+                return li;
+            }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
+        }
+
+        function renderExerciseHistory() {
+             renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                const format = (d) => `${d.getMonth()+1}/${d.getDate()}`;
+                li.innerHTML = `<div class="history-info"><div class="type">${item.type}</div><div class="details">${format(item.date)} / ${item.duration}분</div></div><div class="history-calories">${item.calories || 0} <span class="unit">kcal</span></div>`;
+                return li;
+            }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
+        }
+
+        // 5. 차트 관련 함수
+        const newIconPlugin = {
+            id: 'newIconPlugin',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((element, index) => {
+                        const dataPoint = dataset.data[index];
+                        if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
+                            const { x, y } = element.getProps(['x', 'y'], true);
+                            ctx.save(); ctx.beginPath();
+                            ctx.arc(x, y - 12, 4, 0, 2 * Math.PI);
+                            ctx.fillStyle = 'var(--gauge-start-color, #ffd400)';
+                            ctx.fill(); ctx.restore();
+                        }
+                    });
+                });
+            }
+        };
+
+        function createChart(canvasId, label, data, customScaleOptions = {}) {
+            if (allCharts[canvasId]) allCharts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            const gridColor = isDarkMode ? '#333' : '#f0f0f0';
+            const textColor = isDarkMode ? '#e0e0e0' : '#333';
+            const textLightColor = isDarkMode ? '#888' : '#777';
+            const lineColor = 'var(--chart-line-color, #7FE89B)';
+            const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
+            const chartData = (data || []).filter(d => d && typeof d.value === 'number').map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+            allCharts[canvasId] = new Chart(ctx, {
+                type: 'line', data: { datasets: [{ label, data: chartData, borderColor: lineColor, borderWidth: 2.5, tension: 0.2, pointRadius: 4, pointBackgroundColor: lineColor, pointHoverRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } }, grid: { color: gridColor }, ticks: { color: textColor } }, y: { beginAtZero: false, grid: { color: gridColor }, ticks: { color: textColor, font: { weight: 'bold' } }, ...customScaleOptions } },
+                    plugins: { legend: { display: false }, zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
+                        tooltip: { enabled: true, mode: 'index', intersect: false, backgroundColor: bubbleBgColor, padding: 12, cornerRadius: 8, displayColors: false, titleFont: { weight: 'normal', size: 13 }, titleColor: textLightColor, bodyFont: { weight: 'bold', size: 14 }, bodyColor: textColor, footerFont: { weight: 'normal', size: 12 }, footerColor: textLightColor,
+                            callbacks: {
+                                title: (items) => new Date(items[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`,
+                                footer: (items) => items[0].raw.createdAt ? '기록 시간: ' + new Date(items[0].raw.createdAt).toLocaleTimeString('ko-KR') : ''
+                            }
                         }
                     }
+                },
+                plugins: [newIconPlugin]
+            });
+        }
+
+        function renderAllCharts() {
+            const range = dateRangeSelector.value;
+            const filterFn = (data) => {
+                if (range === 'all' || !data) return data;
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
+                return data.filter(d => d && d.date >= cutoffDate);
+            };
+            createChart('weightChart', '체중 (kg)', filterFn(allData.weight));
+            createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar));
+            createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone));
+        }
+
+        // 6. 이벤트 핸들러 연결
+        let eventsWired = false;
+        function wireEventsOnce() {
+            if (eventsWired) return;
+            eventsWired = true;
+            homeBtn?.addEventListener('click', () => { window.location.href = '/fastmate.html'; });
+            logoutBtn?.addEventListener('click', () => { if (confirm('정말 로그아웃하시겠습니까?')) signOutUser(); });
+            fastingHistoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const li = e.target.closest('.history-item');
+                    if (li.dataset.docId) deleteFastingRecord(li.dataset.docId);
                 }
-            },
-            plugins: [newIconPlugin]
-        });
-    }
+            });
+            tabs.forEach(tab => tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
+            }));
+            dateRangeSelector.addEventListener('change', renderAllCharts);
+        }
 
-    function renderAllCharts() {
-        const range = dateRangeSelector.value;
-        const filterFn = (data) => {
-            if (range === 'all' || !data) return data;
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-            return data.filter(d => d && d.date >= cutoffDate);
-        };
-        createChart('weightChart', '체중 (kg)', filterFn(allData.weight));
-        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar));
-        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone));
-    }
+        // 7. 메인 로직: 데이터 로딩 및 앱 초기화
+        async function loadAndRenderAllData() {
+            if (!currentUser) return;
+            try {
+                const [profile, fasting, exercise, weight, bloodSugar, ketone] = await Promise.all([
+                    getUserDoc(currentUser.uid),
+                    fetchHistory('fastingHistory', 'endTime'),
+                    fetchHistory('measurements/exercise/items'),
+                    fetchHistory('measurements/weight/items'),
+                    fetchHistory('measurements/bloodSugar/items'),
+                    fetchHistory('measurements/ketone/items')
+                ]);
+                
+                allData = { profile, fasting, exercise, weight, bloodSugar, ketone };
 
-    // =================================================================
-    // 6. 이벤트 핸들러 연결
-    // =================================================================
-    let eventsWired = false;
-    function wireEventsOnce() {
-        if (eventsWired) return;
-        eventsWired = true;
+                renderProfileCard();
+                renderFastingHistory();
+                renderExerciseHistory();
+                renderAllCharts();
+                
+                wireEventsOnce();
+            } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
+        }
 
-        homeBtn?.addEventListener('click', () => { window.location.href = '/fastmate.html'; });
-        logoutBtn?.addEventListener('click', () => { if (confirm('정말 로그아웃하시겠습니까?')) signOutUser(); });
-        
-        fastingHistoryList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('delete-btn')) {
-                const li = e.target.closest('.history-item');
-                if (li.dataset.docId) deleteFastingRecord(li.dataset.docId);
+        // 8. 최종 실행 지점: 인증 상태 리스너
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                loadAndRenderAllData();
             }
         });
-        
-        tabs.forEach(tab => tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
-        }));
-
-        dateRangeSelector.addEventListener('change', renderAllCharts);
-    }
-
-    // =================================================================
-    // 7. 메인 로직: 데이터 로딩 및 앱 초기화
-    // =================================================================
-    async function loadAndRenderAllData(user) { 
-        if (!user) return; 
-        try {
-            const [profile, fasting, exercise, weight, bloodSugar, ketone] = await Promise.all([
-                getUserDoc(user.uid),
-                fetchHistory('fastingHistory', 'endTime'),
-                fetchHistory('measurements/exercise/items'),
-                fetchHistory('measurements/weight/items'),
-                fetchHistory('measurements/bloodSugar/items'),
-                fetchHistory('measurements/ketone/items')
-            ]);
-            
-            allData = { profile, fasting, exercise, weight, bloodSugar, ketone };
-
-        renderProfileCard(user, profile);
-        
-        renderFastingHistory();
-        renderExerciseHistory();
-        renderAllCharts();
-        updateTabIndicators(); //
-        
-        wireEventsOnce();
-
-        } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
-    }
-
-    // =================================================================
-    // 8. 최종 실행 지점: 인증 상태 리스너
-    // =================================================================
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            // 여기서 loadAndRenderAllData에 user 정보를 전달합니다.
-        loadAndRenderAllData(user);
-        }
     });
-});
-</script>
+    </script>
+</body>
+</html>
