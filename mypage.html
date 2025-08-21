@@ -716,42 +716,118 @@
             }
         };
 
-        function createChart(canvasId, label, data, customScaleOptions = {}) {
-            if (allCharts[canvasId]) allCharts[canvasId].destroy();
-            const ctx = document.getElementById(canvasId)?.getContext('2d');
-            if (!ctx) return;
-            const isDarkMode = document.body.classList.contains('dark-mode');
-            const gridColor = isDarkMode ? '#333' : '#f0f0f0';
-            const textColor = isDarkMode ? '#e0e0e0' : '#333';
-            const textLightColor = isDarkMode ? '#888' : '#777';
-            const lineColor = 'var(--chart-line-color, #7FE89B)';
-            const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
-            const chartData = (data || []).filter(d => d && typeof d.value === 'number').map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
-            allCharts[canvasId] = new Chart(ctx, {
-                type: 'line', data: { datasets: [{ label, data: chartData, borderColor: lineColor, borderWidth: 2.5, tension: 0.2, pointRadius: 4, pointBackgroundColor: lineColor, pointHoverRadius: 6 }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } }, grid: { color: gridColor }, ticks: { color: textColor } }, y: { beginAtZero: false, grid: { color: gridColor }, ticks: { color: textColor, font: { weight: 'bold' } }, ...customScaleOptions } },
-                    plugins: { legend: { display: false }, zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
-                        tooltip: { enabled: true, mode: 'index', intersect: false, backgroundColor: bubbleBgColor, padding: 12, cornerRadius: 8, displayColors: false, titleFont: { weight: 'normal', size: 13 }, titleColor: textLightColor, bodyFont: { weight: 'bold', size: 14 }, bodyColor: textColor, footerFont: { weight: 'normal', size: 12 }, footerColor: textLightColor,
-                            callbacks: {
-                                title: (items) => new Date(items[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
-                                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`,
-                                footer: (items) => items[0].raw.createdAt ? '기록 시간: ' + new Date(items[0].raw.createdAt).toLocaleTimeString('ko-KR') : ''
-                            }
+function createChart(canvasId, label, data, customScaleOptions = {}) {
+    if (allCharts[canvasId]) {
+        allCharts[canvasId].destroy();
+    }
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    // 다크모드 여부 확인
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // 다크모드에 따라 다른 색상 변수 설정
+    const lineColor = isDarkMode ? '#888888' : '#7FE89B';
+    const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
+    const gridColor = isDarkMode ? '#333' : '#f0f0f0';
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const textLightColor = isDarkMode ? '#888' : '#777'; // 연한 회색
+
+    const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+
+    allCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: label,
+                data: chartData,
+                borderColor: lineColor,
+                borderWidth: 2.5,
+                tension: 0.2,
+                pointRadius: 4,
+                pointBackgroundColor: lineColor,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: gridColor },
+                    ticks: { color: textColor, font: { weight: 'bold' } },
+                    ...customScaleOptions
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: bubbleBgColor,
+                    padding: 12,
+                    cornerRadius: 8,
+                    
+                    // [핵심 수정] 이 옵션 하나로 네모 상자를 완전히 제거합니다.
+                    displayColors: false,
+
+                    // --- 폰트 및 색상 스타일 ---
+                    titleFont: { weight: 'normal', size: 13 },
+                    titleColor: textLightColor,
+                    
+                    bodyFont: { weight: 'bold', size: 14 },
+                    bodyColor: textColor,
+
+                    footerFont: { weight: 'normal', size: 12 },
+                    footerColor: textLightColor,
+                    
+                    callbacks: {
+                        title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                        label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+                        footer: (tooltipItems) => {
+                            const rawData = tooltipItems[0].raw;
+                            if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            return '';
                         }
                     }
-                },
-                plugins: [newIconPlugin]
-            });
-        }
+                }
+            }
+        },
+        plugins: [newIconPlugin]
+    });
+}
+// [수정] 차트 렌더링 함수 (각 차트별 축 옵션 전달)
+function renderAllCharts() {
+    const range = dateRangeSelector.value;
+    const filterFn = (data) => {
+        if (range === 'all' || !data) return data;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
+        return data.filter(d => d && d.date >= cutoffDate);
+    };
 
-        function renderAllCharts() {
-            const range = dateRangeSelector.value;
-            const filterFn = (data) => {
-                if (range === 'all' || !data) return data;
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-                return data.filter(d => d && d.date >= cutoffDate);
-            };
+    // [수정] 요청하신 y축 옵션을 명확하게 정의합니다.
+    const weightScaleOptions = {
+        max: 120,
+        ticks: { stepSize: 10 }
+    };
+    const bloodSugarScaleOptions = {
+        max: 300,
+        ticks: { stepSize: 10 }
+    };
+    const ketoneScaleOptions = {
+        max: 5,
+        ticks: { stepSize: 0.5 }
+    };
+
+
             createChart('weightChart', '체중 (kg)', filterFn(allData.weight));
             createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar));
             createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone));
