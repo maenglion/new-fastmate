@@ -5,13 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fastmate - 관리하는 단식 </title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-        <script>
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isIOS) {
-            document.documentElement.classList.add('is-ios');
-        }
-    </script>
-    
+     
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
@@ -46,30 +40,21 @@
             margin: 0;
             padding: 20px;
             display: flex;
-           justify-content: center; /* container를 가운데 정렬 */
-  min-height: 100vh;
-  padding: 20px 0;
-  box-sizing: border-box;
-}
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
 
-/* ▼▼▼ 메인 컨테이너 스타일 ▼▼▼ */
-.container {
-  width: 100%;
-  max-width: 420px; /* 스마트폰과 유사한 최대 너비로 고정 */
-  background-color: var(--card-color); /* 컨테이너에 배경색 적용 */
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  box-sizing: border-box;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* 그림자 효과 추가 */
-  border-radius: 10px; /* 모서리 둥글게 */
-  overflow: hidden; /* 내부 요소가 둥근 모서리를 넘지 않도록 */
-}
-
-header {
-  text-align: center;
-  padding: 1.5rem 20px;
-}
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px G30px rgba(0, 0, 0, 0.1);
+            padding: 40px 25px 25px 25px; 
+            box-sizing: border-box;
+            position: relative;
+        }
 
         .user-chip {
             position: absolute;
@@ -99,7 +84,7 @@ header {
             margin-bottom: 20px;
             font-weight: 700;
             font-size: 1.8rem;
-            margin-top: 1rem; /*상단여백*/
+            margin-top: 15px;
         }
 
         .ring-wrap {
@@ -111,7 +96,7 @@ header {
         }
 
         .ring { width: 100%; height: 100%; }
-        
+
         .timer-display {
             position: absolute;
             top: 50%;
@@ -119,7 +104,7 @@ header {
             transform: translate(-50%, -50%);
             text-align: center;
         }
-        
+
 .timer-display {
     position: absolute;
     top: 50%;
@@ -133,7 +118,7 @@ header {
     /* [수정] clamp()를 사용하여 글씨 크기를 반응형으로 만듭니다. */
     /* 최소 1.8rem, 최대 2.5rem 크기를 유지하며 화면 너비(vw)에 따라 유연하게 변함 */
     font-size: clamp(1.8rem, 10vw, 2.5rem); 
-    
+
     font-weight: 700;
     color: var(--text-color);
     line-height: 1; /* 수직 정렬을 위해 줄 간격 조정 */
@@ -146,7 +131,7 @@ header {
             margin: 10px 0 20px 0;
             min-height: 25px;
         }
-        
+
         .time-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -190,7 +175,7 @@ header {
         .salt-tip { background-color: #fffbe6; border: 1px solid #ffe58f; color: #d46b08; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin: 0 auto 20px auto; max-width: 90%; text-align: center; display: none; }
 
         .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; }
-      
+
  select {
     /* --- 기본 스타일 --- */
     width: 100%;
@@ -198,11 +183,11 @@ header {
     font-size: 1rem;
     background-color: #f8f9fa;
     border-radius: 8px;
-    
+
     /* --- 요청사항 반영 --- */
     font-weight: 400;
     color: var(--dark-gray-color);
-    
+
     /* [수정] border 속성을 올바른 형식으로 변경 */
     border: 1px solid var(--border-color);
 
@@ -278,7 +263,7 @@ header {
         .app-footer a:hover {
             text-decoration: underline;
         }
-        
+
         #toast {
             visibility: hidden;
             min-width: 250px;
@@ -338,7 +323,7 @@ header {
             font-size: 1rem;
             line-height: 1.5;
         }
-        
+
         .onb-label {
             display: block;
             margin-bottom: 8px;
@@ -535,69 +520,6 @@ option.is-running {
     100% { opacity: 1; }
 }
 
-/* ▼▼▼ 상단바 및 테마 토글 스위치 스타일 ▼▼▼ */
-.topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 60px; /* 높이 조정 */
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  pointer-events: none; /* ◀ 클릭 이벤트를 통과시키도록 설정 */
-}
-.topbar-inner {
-  width: 100%;
-  max-width: 1024px; /* fastmate의 최대 너비에 맞게 조정 */
-  padding: 0 20px;
-  display: flex;
-  justify-content: flex-start; /* 왼쪽 정렬 */
-  align-items: center;
-  height: 100%;
-}
-.btn-theme {
-  width: 50px;
-  height: 26px;
-  background-color: var(--subtle-bg-color);
-  border-radius: 13px;
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.3s ease;
-  pointer-events: auto; /* ◀ 버튼 자체는 다시 클릭 이벤트를 받도록 설정 */
-}
-.btn-theme-icon {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background-color: white;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23f5c13b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>');
-  background-repeat: no-repeat;
-  background-position: center;
-}
-body.dark-mode .btn-theme {
-  background-color: var(--primary-color);
-}
-body.dark-mode .btn-theme-icon {
-  transform: translateX(24px);
-  background-color: var(--card-color);
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>');
-}
-/* ▲▲▲ 상단바 및 테마 토글 스위치 스타일 ▲▲▲ */
-
-header {
-  margin-top: 60px; /* 상단바 높이만큼 헤더를 내림 */
-  text-align: center;
-  padding: 2rem 0;
-}
-
-
 /* 색종이 조각(Confetti) 애니메이션 */
 .confetti {
     position: absolute;
@@ -645,7 +567,7 @@ header {
     .timer-display .label {
         color: var(--text-light); /* '남은 시간' 글씨를 밝은 회색으로 변경 */
     }
-    
+
     #startTimeBox:hover {
         background-color: #333;
     }
@@ -672,7 +594,7 @@ option.is-running {
     border-color: #444;
     color: var(--text-color); /* 입력하는 글씨도 밝게 */
 }
- 
+
 /* [추가] 운동 기록 태그 어둡게 */
 .tag {
     background-color: #333;
