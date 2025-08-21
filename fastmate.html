@@ -416,6 +416,14 @@ function updateTimer() {
 
     const timerLabel = document.querySelector('.timer-display .label');
 
+    
+  // ✅ [추가] 시작/종료 표시가 비어있을 때 한 번 채워주기
+  if ((startTimeValue?.textContent === '-' || endTimeValue?.textContent === '-') && selectedStartTime) {
+    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+    startTimeValue.textContent = fmt(selectedStartTime);
+    endTimeValue.textContent   = fmt(new Date(selectedStartTime.getTime() + targetMs));
+  }
+
     // --- 목표 달성 전/후 UI 업데이트 ---
     if (elapsed < target) {
         // 목표 달성 전
@@ -910,48 +918,63 @@ if (!user) { showToast('로그인이 필요합니다.'); return; }
     // 6. 메인 로직: 인증 상태 리스너 (모든 작업의 단일 시작점)
     // =================================================================
 auth.onAuthStateChanged(async user => {
-  if (!user) {
-    // 로그아웃 상태: firebase-init.js에서 라우팅 처리하므로 여기선 UI만 초기화 가능
-    currentUser   = null;
-    fastingState  = 'idle';
-    initializeTime();
-    updateUIState();
-    return;
-  }
-
-  currentUser = user; // 로그인된 사용자 전역 변수 갱신
-
-  try {
-    const profile = await getUserDoc(user.uid);
-
-    // (3) 프로필 기반으로 화면 UI 업데이트
-    const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
-    if (userChipName) userChipName.textContent = nickname;
-    if (userChip) userChip.style.display = 'flex';
-
-    // (4) 저장된 단식 정보 복원
-    const savedFasting = profile?.currentFasting;
-    if (savedFasting?.startTime) {
-      selectedStartTime = savedFasting.startTime.toDate(); // Firestore Timestamp → Date
-      targetHours       = savedFasting.targetHours;
-      fastingState      = 'running';
-      if (fastingInterval) clearInterval(fastingInterval);
-      fastingInterval = setInterval(updateTimer, 1000);
-      updateTimer();
-    } else {
-      fastingState = 'idle';
-      initializeTime(); // 현재 시간 기준 초기화
+    if (!user) {
+        // ... (로그아웃 상태 로직은 동일)
+        currentUser   = null;
+        fastingState  = 'idle';
+        initializeTime();
+        resetSelectOptions(); // 로그아웃 시에도 초기화
+        updateUIState();
+        return;
     }
 
-    updateUIState(); // 상태에 맞는 UI 최종 업데이트
+    currentUser = user;
 
-    // (5) 이벤트 핸들러 1회만 연결
-    wireEventsOnce();
+    try {
+        const profile = await getUserDoc(user.uid);
 
-  } catch (error) {
-    console.error("앱 초기화 중 오류:", error);
-    alert("앱 초기화 실패. 새로고침 해주세요.");
-  }
+        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
+        if (userChipName) userChipName.textContent = nickname;
+        if (userChip) userChip.style.display = 'flex';
+
+        const savedFasting = profile?.currentFasting;
+
+        if (savedFasting?.startTime) {
+            // [상태 1] 저장된 단식이 있을 때 (진행 중)
+            fastingState = 'running';
+            selectedStartTime = savedFasting.startTime.toDate();
+            targetHours = Number(savedFasting.targetHours) || 16;
+            
+            if (modelSelect) modelSelect.value = String(targetHours);
+
+            if (fastingInterval) clearInterval(fastingInterval);
+            fastingInterval = setInterval(updateTimer, 1000);
+
+            // [개선 1] UI 업데이트 로직을 이 블록 안으로 이동
+            updateTimer();          // 타이머 UI 즉시 업데이트
+            updateTimeDisplays();   // 시간 표시부 업데이트
+            updateSelectOptions();  // 드롭다운에 '(진행중)' 표시
+            
+        } else {
+            // [상태 2] 저장된 단식이 없을 때 (휴식 중)
+            fastingState = 'idle';
+
+            // [개선 2] UI 초기화 로직을 명확하게 그룹화
+            initializeTime();       // 시간 관련 변수 초기화
+            updateTimeDisplays();   // 시간 표시부 초기화된 값으로 업데이트
+            resetSelectOptions();   // 드롭다운 초기화
+        }
+
+        // [개선 3] 전체적인 UI 상태 (버튼 활성화 등)는 마지막에 한 번만 호출
+        updateUIState();
+        if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+
+        wireEventsOnce();
+
+    } catch (error) {
+        console.error("앱 초기화 중 오류:", error);
+        alert("앱 초기화 실패. 새로고침 해주세요.");
+    }
 });
 
   
