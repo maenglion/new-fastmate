@@ -532,21 +532,20 @@ option.is-running {
   top: 0;
   left: 0;
   width: 100%;
-  height: 60px;
+  height: 60px; /* 높이 조정 */
   z-index: 9999;
   display: flex;
   justify-content: center;
-  pointer-events: none;
+  pointer-events: none; /* ◀ 클릭 이벤트를 통과시키도록 설정 */
 }
 .topbar-inner {
   width: 100%;
-  max-width: 1024px;
+  max-width: 1024px; /* fastmate의 최대 너비에 맞게 조정 */
   padding: 0 20px;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-start; /* 왼쪽 정렬 */
   align-items: center;
   height: 100%;
-  box-sizing: border-box;
 }
 .btn-theme {
   width: 50px;
@@ -557,7 +556,7 @@ option.is-running {
   cursor: pointer;
   position: relative;
   transition: background-color 0.3s ease;
-  pointer-events: auto;
+  pointer-events: auto; /* ◀ 버튼 자체는 다시 클릭 이벤트를 받도록 설정 */
 }
 .btn-theme-icon {
   position: absolute;
@@ -583,22 +582,12 @@ body.dark-mode .btn-theme-icon {
 }
 /* ▲▲▲ 상단바 및 테마 토글 스위치 스타일 ▲▲▲ */
 
-/* ▼▼▼ 메인 컨테이너 스타일 (클래스 이름 수정) ▼▼▼ */
-.container {
-  width: 100%;
-  max-width: 1024px;
-  padding: 20px;
-  margin-top: 60px; /* 상단바 높이만큼 콘텐츠 시작 위치를 내림 */
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1; /* 푸터를 하단에 고정하기 위해 */
-  box-sizing: border-box;
-}
-
 header {
+  margin-top: 60px; /* 상단바 높이만큼 헤더를 내림 */
   text-align: center;
   padding: 2rem 0;
 }
+
 
 /* 색종이 조각(Confetti) 애니메이션 */
 .confetti {
@@ -701,21 +690,12 @@ option.is-running {
     </style>
 </head>
 <body>
-  <!-- ▼ 상단바 영역 ▼ -->
-  <div class="topbar">
-    <div class="topbar-inner">
-      <button id="theme-toggle" class="btn-theme" type="button" aria-label="테마 전환">
-        <span class="btn-theme-icon"></span>
-      </button>
-    </div>
-  </div>
-
-  <!-- ▼ 앱 메인 컨텐츠 (새로운 구조 적용) ▼ -->
-  <div class="container">
-    <div id="userChip" class="user-chip" style="display:none">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span id="userChipName">-</span>님
-    </div>
+    <!-- 앱 메인 컨텐츠 -->
+    <div class="container">
+        <div id="userChip" class="user-chip" style="display:none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="userChipName">-</span>님
+        </div>
 
         <h1 class="main-title">fastmate</h1>
         
@@ -1650,33 +1630,6 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
     }
   });
 
-    // ▼▼▼ 테마 토글 로직 추가 ▼▼▼
-  const themeToggle = document.getElementById('theme-toggle');
-  const body = document.body;
-
-  const applyTheme = (theme) => {
-    if (theme === 'dark') {
-      body.classList.add('dark-mode');
-    } else {
-      body.classList.remove('dark-mode');
-    }
-  };
-
-  themeToggle.addEventListener('click', () => {
-    const isDarkMode = body.classList.contains('dark-mode');
-    const newTheme = isDarkMode ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    applyTheme(newTheme);
-  });
-
-  // 앱 시작 시 저장된 테마가 있으면 적용하고, 없으면 라이트 모드로 시작
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme) {
-    applyTheme(savedTheme); // 이전 방문 기록이 있으면 그걸 따름
-  } else {
-    applyTheme('light'); // 첫 방문 시 무조건 라이트 모드
-  }
-  // ▲▲▲ 테마 토글 로직 추가 ▲▲▲
 
   window.addEventListener('click', (e) => {
     [timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal, weightModal]
