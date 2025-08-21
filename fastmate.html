@@ -533,9 +533,10 @@ option.is-running {
   left: 0;
   width: 100%;
   height: 60px; /* 높이 조정 */
-  z-index: 100;
+  z-index: 9999;
   display: flex;
   justify-content: center;
+  pointer-events: none; /* ◀ 클릭 이벤트를 통과시키도록 설정 */
 }
 .topbar-inner {
   width: 100%;
@@ -555,6 +556,7 @@ option.is-running {
   cursor: pointer;
   position: relative;
   transition: background-color 0.3s ease;
+  pointer-events: auto; /* ◀ 버튼 자체는 다시 클릭 이벤트를 받도록 설정 */
 }
 .btn-theme-icon {
   position: absolute;
@@ -579,6 +581,12 @@ body.dark-mode .btn-theme-icon {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>');
 }
 /* ▲▲▲ 상단바 및 테마 토글 스위치 스타일 ▲▲▲ */
+
+header {
+  margin-top: 60px; /* 상단바 높이만큼 헤더를 내림 */
+  text-align: center;
+  padding: 2rem 0;
+}
 
 
 /* 색종이 조각(Confetti) 애니메이션 */
