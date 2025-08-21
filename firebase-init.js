@@ -80,7 +80,6 @@ function signInWithGoogle() {
     // 그 외 환경(iOS, PWA, 인앱 브라우저 등)에서는 리디렉션 사용
     auth.signInWithRedirect(provider);
   }
-}
 
 
 // 4. 앱 로드 시 항상 실행되는 인증 상태 감지 로직
