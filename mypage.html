@@ -651,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     function renderProfileCard() {
         if (!currentUser || !allData.profile) return;
-        const nickname = allData.profile.displayName || currentUser.displayName || '사용자';
+        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
         if (pfNickname) pfNickname.textContent = `${nickname}님`;
         if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
     }

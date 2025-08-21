@@ -877,7 +877,7 @@ auth.onAuthStateChanged(async (user) => {
                 const profile = await getUserDoc(user.uid);
 
                 // (3) 프로필 기반으로 화면 UI 업데이트
-                const nickname = profile?.displayName || user.displayName || '사용자';
+                const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
                 if (userChipName) userChipName.textContent = nickname;
                 if (userChip) userChip.style.display = 'flex';
                 
