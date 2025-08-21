@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. 화면 렌더링 함수 (UI 업데이트)
     // =================================================================
     function renderProfileCard(user, profile) { 
-    if (!user || !profile) return; // 전달받은 데이터가 있는지 확인
+    if (!user) return; 
         const nickname = profile.displayName || user.displayName || '사용자';
         if (pfNickname) pfNickname.textContent = `${nickname}님`;
         if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
@@ -706,8 +706,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderExerciseHistory() {
-        // ... (이전과 동일)
+          renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            const format = (d) => `${d.getMonth()+1}/${d.getDate()}`;
+            li.innerHTML = `<div class="history-info"><div class="type">${item.type}</div><div class="details">${format(item.date)} / ${item.duration}분</div></div><div class="history-calories">${item.calories || 0} <span class="unit">kcal</span></div>`;
+            return li;
+        }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
     }
+
+        function updateTabIndicators() {
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+        const isNew = (data) => data && data.length > 0 && data[0].createdAt > sixHoursAgo;
+        document.querySelector('.tab-button[data-tab="weight"]')?.classList.toggle('new-indicator', isNew(allData.weight));
+        document.querySelector('.tab-button[data-tab="bloodSugar"]')?.classList.toggle('new-indicator', isNew(allData.bloodSugar));
+        document.querySelector('.tab-button[data-tab="ketone"]')?.classList.toggle('new-indicator', isNew(allData.ketone));
+        }
 
     // =================================================================
     // 5. 차트 관련 함수 (전체 코드 포함)
@@ -739,13 +753,19 @@ const newIconPlugin = {
         if (allCharts[canvasId]) {
             allCharts[canvasId].destroy();
         }
-        const ctx = document.getElementById(canvasId)?.getContext('2d');
-        if (!ctx) return;
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    // 다크모드 여부 확인
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // 다크모드에 따라 다른 색상 변수 설정
+    const lineColor = isDarkMode ? '#888888' : '#7FE89B';
+    const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
+    const gridColor = isDarkMode ? '#333' : '#f0f0f0';
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const textLightColor = isDarkMode ? '#888' : '#777'; // 연한 회색
 
-        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const gridColor = isDarkMode ? '#333' : '#f0f0f0';
-        const textColor = isDarkMode ? '#e0e0e0' : '#333';
-        const chartData = (data || []).filter(d => d && typeof d.value === 'number').map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+    const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
         allCharts[canvasId] = new Chart(ctx, {
             type: 'line',
@@ -781,7 +801,18 @@ const newIconPlugin = {
                 plugins: {
                     legend: { display: false },
                     zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
-                    tooltip: { /* ... (이전과 동일한 tooltip 옵션) ... */ }
+                    // ▼▼▼ [수정] 생략되었던 tooltip 옵션 전체 복원 ▼▼▼
+                    tooltip: {
+                        enabled: true, mode: 'index', intersect: false, backgroundColor: bubbleBgColor, padding: 12,
+                        cornerRadius: 8, displayColors: false, titleFont: { weight: 'normal', size: 13 },
+                        titleColor: textLightColor, bodyFont: { weight: 'bold', size: 14 }, bodyColor: textColor,
+                        footerFont: { weight: 'normal', size: 12 }, footerColor: textLightColor,
+                        callbacks: {
+                            title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                            label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+                            footer: (tooltipItems) => tooltipItems[0].raw.createdAt ? '기록 시간: ' + new Date(tooltipItems[0].raw.createdAt).toLocaleTimeString('ko-KR') : ''
+                        }
+                    }
                 }
             },
             plugins: [newIconPlugin]
