@@ -640,12 +640,31 @@
         }
 
         // 4. 화면 렌더링 함수 (UI 업데이트)
-        function renderProfileCard(profile) {
-            if (!currentUser) return;
-            const nickname = profile?.nickname || profile?.displayName || currentUser.displayName || '사용자';
-            if (pfNickname) pfNickname.textContent = `${nickname}님`;
-            if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
+        function renderProfileCard() {
+        const profile = allData.profile;
+        const user = firebase.auth().currentUser;
+        if (!profile || !user) return;
+        
+        const nickname = profile?.nickname || user.displayName || '사용자';
+        pfNickname.textContent = `${nickname}님`;
+        pfEmail.textContent = user.email || '이메일 정보 없음';
+        
+        if (userNicknameHeader) userNicknameHeader.parentElement.style.display = 'none';
+
+        const goals = profile?.onboarding?.reasons || [];
+        pfGoals.innerHTML = '';
+        if (goals.length > 0) {
+            goals.forEach(goalText => {
+                const tag = document.createElement('div');
+                tag.className = 'goal-tag';
+                tag.textContent = goalText;
+                pfGoals.appendChild(tag);
+            });
+        } else {
+            pfGoals.textContent = '설정된 목표가 없습니다.';
         }
+    }
+
 
         function renderPagination(container, currentPage, totalPages, onPageChange) {
             if (totalPages <= 1) { container.innerHTML = ''; return; }
