@@ -923,6 +923,21 @@ const getUserDoc = (uid) =>
   const saveWeightBtn    = document.getElementById('saveWeightBtn');
   const weightInput      = document.getElementById('weightInput');
 
+
+
+// [설정] 마이페이지 URL(실제 경로로 바꿔도 됨)
+const MY_PAGE_URL = '/mypage.html';
+
+// [헬퍼] 닉네임 칩 업데이트 + 표시
+function setUserChip(name) {
+  const chip = document.getElementById('userChip');
+  const chipName = document.getElementById('userChipName');
+  if (!chip || !chipName) return;
+  chipName.textContent = (name && String(name).trim()) || '사용자';
+  chip.style.display = 'flex';
+}
+
+
   /* =========================
    * 2) 상태/유틸
    * ========================= */
