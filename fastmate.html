@@ -467,38 +467,48 @@ function updateTimer() {
 
 // 단식 시작 및 종료
 
-function startFasting() {
+async function startFasting() { // ✅ async 추가!
     if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
 
+    if (!currentUser) {
+        return showToast("사용자 정보가 확인되지 않았습니다. 잠시 후 다시 시도해주세요.");
+    }
+
+    // 시간 선택 모달을 사용하지 않았다면, 시작 시간을 현재로 설정
     if (!timePickerUsed) {
         selectedStartTime = new Date();
     }
-    updateTimeDisplays();
     
     fastingState = 'running';
-    targetHours = parseFloat(modelSelect.value, 10);
+    targetHours = parseFloat(modelSelect.value);
     
-    // [추가] 선택창 UI 업데이트
-    updateSelectOptions();
-
     try {
-        const user = ensureSignedIn();
-        if (user) {
-            db.collection('users').doc(user.uid).set({
-                currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
-            }, { merge: true });
-        }
+        // 이제 await를 문제없이 사용할 수 있습니다.
+        await db.collection('users').doc(currentUser.uid).set({
+            currentFasting: { 
+                startTime: selectedStartTime, 
+                targetHours: targetHours 
+            }
+        }, { merge: true });
+        
+        // UI 업데이트 로직
+        Object.keys(milestones).forEach(k => milestones[k] = false);
+        if(fastingInterval) clearInterval(fastingInterval);
+        fastingInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+        updateUIState();
+        updateSelectOptions();
+        updateTimeDisplays();
+        showToast(`${targetHours}시간 단식을 시작합니다!`);
+
     } catch (error) {
         console.error("Firestore에 단식 상태 저장 실패:", error);
+        showToast("단식 시작에 실패했습니다.");
+        fastingState = 'idle'; // 실패 시 상태를 원상 복구
+    } finally {
+        timePickerUsed = false; // 시작 후에는 플래그 초기화
     }
-
-    Object.keys(milestones).forEach(k => milestones[k] = false);
-    fastingInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-    updateUIState();
-    timePickerUsed = false;
 }
-
 // fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
 
 // stopFasting 함수를 이 코드로 통째로 교체해주세요.
