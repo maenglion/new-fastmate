@@ -421,7 +421,9 @@ function updateTimer() {
   if ((startTimeValue?.textContent === '-' || endTimeValue?.textContent === '-') && selectedStartTime) {
     const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
     startTimeValue.textContent = fmt(selectedStartTime);
-    endTimeValue.textContent   = fmt(new Date(selectedStartTime.getTime() + targetMs));
+    endTimeValue.textContent = fmt(
+  new Date(selectedStartTime.getTime() + (parseFloat(targetHours) * 3600000))
+);
   }
 
     // --- 목표 달성 전/후 UI 업데이트 ---
