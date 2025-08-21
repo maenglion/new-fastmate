@@ -464,48 +464,39 @@ function updateTimer() {
 
 // 단식 시작 및 종료
 
-async function startFasting() {
+function startFasting() {
     if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
-    if (!currentUser) return showToast("사용자 정보가 확인되지 않았습니다.");
 
-    // 시간 선택 모달을 사용하지 않았다면, 시작 시간을 현재로 설정
     if (!timePickerUsed) {
         selectedStartTime = new Date();
     }
+    updateTimeDisplays();
     
     fastingState = 'running';
-    targetHours = parseFloat(modelSelect.value);
+    targetHours = parseFloat(modelSelect.value, 10);
     
-    // ▼▼▼ [수정] UI 업데이트를 DB 저장 *전*에 먼저 실행합니다. ▼▼▼
-    updateTimeDisplays(); // ✅ 시작/종료 시간 즉시 표시
-    updateUIState();      // ✅ 버튼 상태 즉시 변경
+    // [추가] 선택창 UI 업데이트
     updateSelectOptions();
-    
-    try {
-        await db.collection('users').doc(currentUser.uid).set({
-            currentFasting: { 
-                startTime: selectedStartTime, 
-                targetHours: targetHours 
-            }
-        }, { merge: true });
-        
-        // 타이머 시작 및 나머지 로직은 DB 저장 성공 후에 실행
-        Object.keys(milestones).forEach(k => milestones[k] = false);
-        if(fastingInterval) clearInterval(fastingInterval);
-        fastingInterval = setInterval(updateTimer, 1000);
-        updateTimer();
-        
-        showToast(`${targetHours}시간 단식을 시작합니다!`);
 
+    try {
+        const user = ensureSignedIn();
+        if (user) {
+            db.collection('users').doc(user.uid).set({
+                currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
+            }, { merge: true });
+        }
     } catch (error) {
         console.error("Firestore에 단식 상태 저장 실패:", error);
-        showToast("단식 시작에 실패했습니다.");
-        fastingState = 'idle'; // 실패 시 상태를 원상 복구
-        updateUIState(); // UI 상태도 원상 복구
-    } finally {
-        timePickerUsed = false;
     }
+
+    Object.keys(milestones).forEach(k => milestones[k] = false);
+    fastingInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+    updateUIState();
+    timePickerUsed = false;
 }
+
+// fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
 
 // stopFasting 함수를 이 코드로 통째로 교체해주세요.
 async function stopFasting() {
@@ -559,6 +550,20 @@ async function stopFasting() {
     showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
 
+  function handleModelChange(e) {
+    const newTarget = parseInt(e.target.value, 10);
+    if (fastingState === 'running' && newTarget !== targetHours) {
+      pendingTargetHours = newTarget;
+      if (confirmChangeModal && confirmMessage) {
+        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
+        confirmChangeModal.style.display = 'flex';
+      }
+      e.target.value = targetHours;
+    } else if (fastingState !== 'running') {
+      targetHours = newTarget;
+      updateTimeDisplays();
+    }
+  }
 
 /* =========================
  * 시간 선택 초기화
