@@ -1,51 +1,18 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <!-- Firebase SDK (compat 버전: 기존 네임스페이스 방식 그대로 사용 가능) -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-<script defer src="./firebase-init.js"></script>
-
-    <title>로그인 - fastmate</title>
-    <link rel="stylesheet" href="./styles.css">
-</head>
 <body>
+  <!-- 로그인 UI -->
+  <main>
+    <!-- 중복 버튼 제거하고 이 버튼 하나만 사용 -->
+    <button id="google-login-btn" type="button">구글로 로그인</button>
+  </main>
 
-<div class="login-container">
-    <h2>로그인</h2>
-    <div class="input-group">
-        <input type="email" id="email" placeholder="이메일 주소">
-    </div>
-    <div class="input-group">
-        <input type="password" id="password" placeholder="비밀번호">
-    </div>
-    <button id="emailLoginBtn" type="button" class="main-button">로그인</button>
+  <!-- ✅ 스크립트는 body 끝 직전에, 이 순서로만 로드함 -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 
-    <p class="divider">또는</p>
+  <!-- 공통 마스터 -->
+  <script src="/firebase-init.js"></script>
+</body>
 
-    <button id="googleLoginBtn" type="button" class="social-button google">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png" alt="Google">
-        Google로 로그인
-    </button>
-        
-    <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
-    
-    <p class="forgot-password-link" style="margin-top: 15px; text-align: center; font-size: 0.9rem;">
-        <a href="#" id="forgotPasswordLink" style="color: #555; text-decoration: none;">비밀번호를 잊으셨나요?</a>
-    </p>
-    </div>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<script src="/firebase-init.js"></script>
 
 <button onclick="signInWithGoogle()">구글로 로그인</button>

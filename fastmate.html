@@ -10,11 +10,11 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
     <!-- Firebase SDK -->
- <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- ✅ 스크립트 순서 동일 -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 
-<script src="/firebase-init.js"></script>
     <link rel="stylesheet" href="./styles.css">
   
     <style>
@@ -700,6 +700,68 @@ option.is-running {
             <p>축하합니다! 성공적으로 단식을 마쳤습니다.</p>
         </div>
     </div>
+
+
+  <script src="/firebase-init.js"></script>
+ <script>
+const userChip     = document.getElementById('userChip');
+const userChipName = document.getElementById('userChipName');
+
+// 이벤트 중복 방지용 플래그
+let __WIRED__ = false;
+function wireEventsOnce() {
+  if (__WIRED__) return;
+  __WIRED__ = true;
+  // TODO: 각종 버튼/이벤트 바인딩은 여기서 1회만 실행
+  // 예: document.getElementById('startBtn')?.addEventListener('click', onStart);
+}
+
+// UI 초기화 유틸 (네가 이미 가진 함수 그대로 씀)
+function initializeTime(){ /* ... */ }
+function updateUIState(){ /* ... */ }
+
+fastmateApp.auth.onAuthStateChanged(async (user) => {
+  if (!user) return; // 로그인 안 된 경우는 firebase-init.js 가 /login.html 로 보냄
+
+  console.log(user.displayName || '사용자', '님 환영함');
+
+  // 1. 사용자 칩 UI 업데이트
+  if (userChip && userChipName) {
+    userChipName.textContent = user.displayName || '사용자';
+    userChip.style.display = 'flex';
+  }
+
+  let profile = null;
+  let savedFasting = null;
+
+  try {
+    // 2. Firestore에서 사용자 프로필 및 단식 정보 불러오기
+    profile = await fastmateApp.getUserDoc(user.uid);
+    savedFasting = profile?.currentFasting;
+    console.log('Firestore 사용자 정보:', profile);
+
+    if (savedFasting) {
+      // TODO: savedFasting 기반 UI 갱신
+      // 예: hydrateFastingTimer(savedFasting);
+      console.log('저장된 단식 정보 있음:', savedFasting);
+    } else {
+      console.log('저장된 단식 정보 없음');
+    }
+  } catch (error) {
+    console.error('사용자 프로필을 불러오는 데 실패:', error);
+  } finally {
+    // 3. 성공/실패와 무관하게 기본 UI/이벤트는 항상 실행
+    try {
+      initializeTime();
+      updateUIState();
+    } catch (e) {
+      console.warn('초기 UI 업데이트 중 경고:', e);
+    }
+    wireEventsOnce();
+  }
+});
+</script>
+
     
 </body>
         <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
@@ -926,58 +988,7 @@ option.is-running {
       toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
     }
 
-    /* =========================
-     * 3) 핵심 로직: 로그인 상태 확인 및 데이터 로드
-     * ========================= */
-    auth.onAuthStateChanged(async (user) => {
-      // user가 있다는 것은 firebase-init.js가 이미 보장해 줍니다.
-      if (user) {
-        console.log(user.displayName, "님 환영합니다.");
-
-        // 1. 사용자 칩 UI 업데이트
-        if (userChip && userChipName) {
-          userChipName.textContent = user.displayName || '사용자';
-          userChip.style.display = 'flex';
-        }
-        
-        // 2. Firestore에서 사용자 프로필 및 단식 정보 불러오기
-        try {
-          // getUserDoc 함수는 firebase-init.js에 있으므로 바로 사용 가능합니다.
-          const profile = await getUserDoc(user.uid);
-          const savedFasting = profile?.currentFasting;
-
-          console.log("Firestore에서 불러온 사용자 정보:", profile);
-
-          if (savedFasting) {
-            console.log("저장된 단식 정보를 불러옵니다:", savedFasting);
-            // Firestore 시간(Timestamp)을 JavaScript Date 객체로 변환
-            selectedStartTime = savedFasting.startTime.toDate();
-            targetHours = savedFasting.targetHours;
-            modelSelect.value = targetHours;
-            fastingState = 'running';
-
-            fastingInterval = setInterval(updateTimer, 1000);
-            updateTimer();
-            updateUIState();
-            updateSelectOptions();
-          } else {
-            console.log("저장된 단식 정보가 없습니다. 초기 상태로 시작합니다.");
-            initializeTime();
-            updateUIState();
-          }
-
-        } catch (error) {
-          console.error("사용자 프로필을 불러오는 데 실패했습니다:", error);
-          showToast('사용자 정보를 불러오는 데 실패했습니다.');
-          initializeTime();
-          updateUIState();
-        }
-
-        // 3. 모든 이벤트 핸들러를 한 번만 연결
-        wireEventsOnce();
-      }
-    });
-
+  
 
     /* =========================
      * 4) UI 업데이트 및 타이머 함수들
