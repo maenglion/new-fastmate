@@ -30,6 +30,31 @@ if (!window.__AUTH_BOOT__) {
     }
   };
 
+      // ▼▼▼ [추가] 비밀번호 재설정 이메일 발송 함수 ▼▼▼
+    sendPasswordReset: function() {
+      const emailInput = document.getElementById('email');
+      if (!emailInput) {
+        console.error('Email input field not found');
+        return;
+      }
+      const email = emailInput.value;
+      if (!email) {
+        alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
+        return;
+      }
+
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
+        })
+        .catch((error) => {
+          console.error("Password reset error:", error);
+          // 사용자가 존재하지 않는 이메일을 입력하는 등 다양한 오류가 있을 수 있습니다.
+          alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
+        });
+    }
+    // ▲▲▲ [추가] 여기까지 ▲▲▲
+
   // 3) 라우팅 가드(필요한 최소만)
   const path = () => location.pathname;
   const isAuthPage = () => /\/(login|signup)\.html$/i.test(path());
