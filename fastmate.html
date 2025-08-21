@@ -275,51 +275,16 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-let bootstrapped = false;
 
-    // Firebase 핸들 (v8)
-const auth = firebase.auth();
-const db   = firebase.firestore();
-// fastmateApp에 노출된 유틸을 안전하게 프록시
-const getUserDoc = (uid) =>
-  (window.fastmateApp && window.fastmateApp.getUserDoc)
-    ? window.fastmateApp.getUserDoc(uid)
-    : Promise.resolve(null);
+// '선장'이 준비해 둔 공용 도구를 가져옵니다.
+    const auth = window.fastmateApp.auth;
+    const db = window.fastmateApp.db;
+    const getUserDoc = window.fastmateApp.getUserDoc;
 
-
-
-    /* =========================
-     * [추가] 1회성 데이터 이사 함수
-     * ========================= */
-    async function migrateLegacyFast(uid) {
-        const legacyStartTime = localStorage.getItem('fastingStartTime');
-        const legacyTargetHours = localStorage.getItem('fastingTargetHours');
-
-        if (legacyStartTime && legacyTargetHours) {
-            console.log("옛날 단식 데이터를 발견했습니다. Firestore로 옮깁니다...");
-            try {
-                await db.collection('users').doc(uid).set({
-                    currentFasting: {
-                        startTime: new Date(legacyStartTime),
-                        targetHours: parseFloat(legacyTargetHours)
-                    }
-                }, { merge: true });
-                localStorage.removeItem('fastingStartTime');
-                localStorage.removeItem('fastingTargetHours');
-                console.log("데이터 이사 완료!");
-            } catch (error) {
-                console.error("데이터 이사 중 오류 발생:", error);
-            }
-        }
-    }
-    
-
-    // ... (이 아래로 DOM 캐시, 상태/유틸, 단식 타이머 함수 등 나머지 코드는 그대로 둡니다) ...
-
-  /* =========================
-   * 1) DOM 캐시
-   * ========================= */
-  const progressArc      = document.getElementById('progressArc');
+    // 이 페이지에서 사용할 DOM 요소들을 미리 찾아둡니다.
+    const userChip = document.getElementById('userChip');
+    const userChipName = document.getElementById('userChipName');
+     const progressArc      = document.getElementById('progressArc');
   const completionOverlay = document.getElementById('completionOverlay');
   const remainingTimeEl  = document.getElementById('remainingTime');
   const statusMessage    = document.getElementById('status-message');
@@ -363,19 +328,121 @@ const getUserDoc = (uid) =>
   const weightInput      = document.getElementById('weightInput');
 
 
-
-// [설정] 마이페이지 URL(실제 경로로 바꿔도 됨)
-const MY_PAGE_URL = '/mypage.html';
-
 // [헬퍼] 닉네임 칩 업데이트 + 표시
-function setUserChip(name) {
-  const chip = document.getElementById('userChip');
-  const chipName = document.getElementById('userChipName');
-  if (!chip || !chipName) return;
-  chipName.textContent = (name && String(name).trim()) || '사용자';
-  chip.style.display = 'flex';
-}
+  function setUserChip(name) {
+    if (!userChip || !userChipName) return;
+    userChipName.textContent = (name && String(name).trim()) || '사용자';
+    userChip.style.display = 'flex';
+  }
 
+  // [헬퍼] 1회성 데이터 이사 함수
+  async function migrateLegacyFast(uid) {
+    const legacyStartTime = localStorage.getItem('fastingStartTime');
+    const legacyTargetHours = localStorage.getItem('fastingTargetHours');
+    if (legacyStartTime && legacyTargetHours) {
+      console.log("옛날 단식 데이터를 발견했습니다. Firestore로 옮깁니다...");
+      try {
+        await db.collection('users').doc(uid).set({
+          currentFasting: {
+            startTime: new Date(legacyStartTime),
+            targetHours: parseFloat(legacyTargetHours)
+          }
+        }, { merge: true });
+        localStorage.removeItem('fastingStartTime');
+        localStorage.removeItem('fastingTargetHours');
+        console.log("데이터 이사 완료!");
+      } catch (error) {
+        console.error("데이터 이사 중 오류 발생:", error);
+      }
+    }
+  }
+    
+
+ async function initializeAppForUser(user) {
+      console.log(user.uid, "님 환영합니다. 앱 초기화를 시작합니다.");
+
+      try {
+        const profile = await getUserDoc(user.uid);
+        console.log("Firestore 프로필 정보:", profile);
+
+        // 1. 닉네임 문제 해결: Firestore 프로필의 닉네임을 사용합니다.
+        const nickname = profile?.displayName || user.displayName || '사용자';
+        if (userChip && userChipName) {
+          userChipName.textContent = nickname;
+          userChip.style.display = 'flex';
+        }
+
+        // 2. 마이페이지 이동 문제 해결: userChip에 클릭 이벤트 추가
+        if (userChip) {
+          userChip.addEventListener('click', () => {
+            // TODO: 마이페이지 경로를 실제 경로로 수정하세요 (예: /mypage.html)
+            window.location.href = '/mypage.html'; 
+          });
+        }
+
+        // 3. Firestore에서 저장된 단식 정보가 있으면 타이머 시작
+        const savedFasting = profile?.currentFasting;
+        if (savedFasting) {
+          // TODO: 단식 정보로 타이머 시작하는 로직
+        } else {
+          // TODO: 단식 중 아닐 때의 초기 UI 설정 로직
+        }
+
+        // TODO: 나머지 모든 이벤트 핸들러 연결
+        // wireEventsOnce();
+
+      } catch (error) {
+        console.error("앱 초기화 중 오류 발생:", error);
+        alert("앱을 초기화하는 데 실패했습니다.");
+      }
+    }
+
+    /**
+     * 인증 상태 리스너: '선장'의 지시를 기다립니다.
+     */
+ auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        // (1) 우선, 예전 데이터가 있다면 Firestore로 옮깁니다.
+        await migrateLegacyFast(user.uid);
+
+        // (2) 그 다음, 최신 사용자 프로필을 Firestore에서 가져옵니다.
+        const profile = await getUserDoc(user.uid);
+        console.log("Firestore 프로필 정보:", profile);
+
+        // (3) 가져온 정보를 바탕으로 화면 UI를 업데이트합니다.
+        const nickname = profile?.displayName || user.displayName || '사용자';
+        if (userChip && userChipName) {
+          userChipName.textContent = nickname;
+          userChip.style.display = 'flex';
+        }
+
+        // (4) 마이페이지 버튼에 이동 기능을 연결합니다.
+        if (userChip) {
+          userChip.addEventListener('click', () => {
+            window.location.href = '/mypage.html';
+          });
+        }
+
+        // (5) 저장된 단식 정보가 있다면 타이머를 복원합니다.
+        const savedFasting = profile?.currentFasting;
+        if (savedFasting) {
+          console.log("저장된 단식 정보를 복원합니다.");
+          // TODO: savedFasting 데이터로 타이머를 시작하는 로직
+        } else {
+          console.log("저장된 단식 정보가 없습니다.");
+          // TODO: 단식 중이 아닐 때의 초기 UI 설정 로직
+        }
+
+        // (6) 페이지의 모든 버튼(시작, 종료 등)에 이벤트 핸들러를 연결합니다.
+        // wireEventsOnce();
+
+      } catch (error) {
+        console.error("앱 초기화 중 오류 발생:", error);
+        alert("앱을 초기화하는 데 실패했습니다. 새로고침 해주세요.");
+      }
+    }
+  });
 
   /* =========================
    * 2) 상태/유틸
@@ -698,74 +765,6 @@ function initializeTime() {
     updateTimeDisplays();
 }
  
-
-auth.onAuthStateChanged(async (user) => {
-  // 비로그인은 /firebase-init.js에서 라우팅 처리함
-  if (!user) return;
-
-  console.log(user.displayName || '사용자', '님 환영함');
-
-  // 1) 사용자칩 표시
-  const chip = document.getElementById('userChip');
-  const chipName = document.getElementById('userChipName');
-  if (chip && chipName) {
-    chipName.textContent = user.displayName || '사용자';
-    chip.style.display = 'flex';
-  }
-
-  // 2) 모달/이벤트 1회 초기화
-  try {
-    initializeTimePicker();
-    wireEventsOnce();
-  } catch (e) {
-    console.warn('초기 바인딩 경고:', e);
-  }
-
-  // 3) Firestore에서 진행중 단식 복원
-  try {
-    const profile = await getUserDoc(user.uid); // 없으면 null
-    const saved = profile?.currentFasting;
-
-    if (saved?.startTime && saved?.targetHours) {
-      // Firestore Timestamp / ISO 문자열 모두 대응함
-      const start = saved.startTime?.toDate
-        ? saved.startTime.toDate()
-        : new Date(saved.startTime);
-
-      selectedStartTime = start;
-      targetHours = Number(saved.targetHours) || 16;
-      fastingState = 'running';
-
-      updateTimeDisplays();
-      updateSelectOptions();
-      updateUIState();
-
-      if (fastingInterval) clearInterval(fastingInterval);
-      fastingInterval = setInterval(updateTimer, 1000);
-      updateTimer();
-
-      console.log('진행중 단식 복원함:', { start, targetHours });
-    } else {
-      // 진행중 아님 → 기본 화면
-      fastingState = 'idle';
-      initializeTime();
-      updateUIState();
-      resetSelectOptions();
-      console.log('진행중 단식 없음');
-    }
-  } catch (err) {
-    console.error('프로필/복원 로드 실패:', err);
-    initializeTime();
-    updateUIState();
-  }
-
-  // 4) 선택: 예전 localStorage 데이터 1회 이관
-  try {
-    await migrateLegacyFast(user.uid);
-  } catch (e) {
-    console.warn('레거시 이관 경고:', e);
-  }
-});
 
 
 // 선택창 UI를 '단식중' 상태로 업데이트하는 함수
