@@ -1,7 +1,8 @@
 {
   "name": "Fastmate: 간헐적 단식 타이머",
   "short_name": "Fastmate",
-  "description": "단식 시간을 추적하고 건강 데이터를 관리하는 간편한 앱",
+   "version": "1.1.0", 
+  "description": "관리하는 단식을 위한 앱으로 타이머,케톤,혈당, 체중을 기록합니다.",
   "start_url": "https://fastmate.kr/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
