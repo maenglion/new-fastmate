@@ -9,10 +9,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
       <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-    <script src="./firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="/firebase-init.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -585,11 +585,14 @@
    <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
-    const auth = window.fastmateApp.auth;
-    const getUserDoc = window.fastmateApp.getUserDoc;
-    const signOutUser = window.fastmateApp.signOutUser;
-    const nicknameEl = document.getElementById('nickname');
-    const emailEl = document.getElementById('email');
+   // 1. 전역 도구 가져오기
+            const auth = window.fastmateApp.auth;
+            const db = window.fastmateApp.db;
+            const getUserDoc = window.fastmateApp.getUserDoc;
+            const signOutUser = window.fastmateApp.signOutUser;
+            
+    
+    // 2. DOM 요소 캐시
     const homeBtn = document.getElementById('homeBtn');
     const pfNickname = document.getElementById('pfNickname');
     const pfEmail = document.getElementById('pfEmail');
@@ -648,8 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let fastingCurrentPage = 1;
     let exerciseCurrentPage = 1;
     const itemsPerPage = 7;
-
-    const db = firebase.firestore();
 
 
     // --- Data Fetching Functions ---
@@ -711,17 +712,13 @@ async function fetchFastingHistory() {
     }
 
     // --- Rendering Functions ---
-    function renderProfileCard() {
-        const profile = allData.profile;
-        const user = firebase.auth().currentUser;
-        if (!profile || !user) return;
+     function renderProfileCard(user, profile) {
+        if (!user) return
         
         const nickname = profile?.nickname || user.displayName || '사용자';
-        pfNickname.textContent = `${nickname}님`;
-        pfEmail.textContent = user.email || '이메일 정보 없음';
+        if (pfNickname) pfNickname.textContent = `${nickname}님`; // ◀◀◀ 수정
+        if (pfEmail) pfEmail.textContent = user.email || '이메일 정보 없음'; // ◀◀◀ 수정
         
-        if (userNicknameHeader) userNicknameHeader.parentElement.style.display = 'none';
-
         const goals = profile?.onboarding?.reasons || [];
         pfGoals.innerHTML = '';
         if (goals.length > 0) {
