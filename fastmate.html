@@ -466,60 +466,70 @@ function updateTimer() {
 
 // 단식 시작 및 종료
 
+// 🔧 교체: 기존 startFasting 전부 삭제하고 아래로 교체
 async function startFasting() {
   if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
-
-  // 로그인 검증 (ensureSignedIn 안 건드리고 여기서만 안전 체크)
-  const user = currentUser || auth.currentUser;
-  if (!user) return showToast("사용자 정보가 확인되지 않았습니다.");
+  if (!currentUser) return showToast("로그인이 필요합니다."); // ← ensureSignedIn() 대신 한 줄 체크
 
   // 1) 시작 시간 확정
   if (!timePickerUsed) selectedStartTime = new Date();
 
-  // 2) 상태 변수 확정(이 순서가 중요)
-  targetHours  = parseFloat(modelSelect.value, 10);
+  // 2) 상태 값 반영
   fastingState = 'running';
+  targetHours = parseFloat(modelSelect.value || targetHours);
 
-  // 3) UI 선반영(사라짐 방지 포인트)
+  // 3) 화면을 '즉시' 갱신 (DB 저장 기다리지 않음)
   updateTimeDisplays();
   updateUIState();
   updateSelectOptions();
 
-  // 4) 타이머 즉시 가동(백엔드 저장과 분리)
-  Object.keys(milestones).forEach(k => (milestones[k] = false));
+  // 4) 타이머 안전 재시작
   if (fastingInterval) clearInterval(fastingInterval);
   fastingInterval = setInterval(updateTimer, 1000);
   updateTimer();
 
-  // 5) DB 저장은 백그라운드로(실패해도 UI는 유지)
+  // 5) 서버 저장 (백그라운드)
   try {
-    await db.collection('users').doc(user.uid).set({
+    await db.collection('users').doc(currentUser.uid).set({
       currentFasting: {
-        startTime: selectedStartTime,
+        startTime: selectedStartTime,           // Date 그대로 저장(Firestore가 Timestamp로 변환)
         targetHours: targetHours
       }
     }, { merge: true });
     showToast(`${targetHours}시간 단식을 시작합니다!`);
-  } catch (error) {
-    console.error("Firestore에 단식 상태 저장 실패:", error);
-    showToast("서버 저장에 일시적 문제가 있음(단식은 계속 진행 중임)");
-    // ※ 여기서 상태 되돌리지 않음 → UI/타이머 유지함
+  } catch (err) {
+    console.error("Firestore 저장 실패:", err);
+    showToast("단식 시작 저장에 실패했습니다.");
+    // 실패 시 UI 원복
+    clearInterval(fastingInterval);
+    fastingState = 'idle';
+    updateUIState();
+    resetSelectOptions();
   } finally {
     timePickerUsed = false;
   }
 }
 
 
+// 🔧 교체: 기존 stopFasting 전부 삭제하고 아래로 교체
 async function stopFasting() {
-  if (fastingState === 'idle') {
-    return showToast("시작된 단식이 없습니다.");
-  }
+  if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
 
-  // 타이머 먼저 정지
-  if (fastingInterval) clearInterval(fastingInterval);
+  clearInterval(fastingInterval);
   fastingState = 'idle';
 
-  const user = currentUser || auth.currentUser;
+  // 사용자 체크(ensureSignedIn() 삭제)
+  if (!currentUser) {
+    // 사용자 없으면 UI만 초기화
+    if (progressArc)     progressArc.style.strokeDasharray = '0 100';
+    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+    if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+    if (saltTip)         saltTip.style.display = 'none';
+    initializeTime();
+    updateUIState();
+    resetSelectOptions();
+    return showToast("사용자 정보가 없어 기록 저장을 건너뜁니다.");
+  }
 
   const record = {
     startTime: selectedStartTime,
@@ -528,23 +538,9 @@ async function stopFasting() {
     actualDurationHours: (new Date() - selectedStartTime) / 3600000
   };
 
-  // 사용자 없으면 UI만 초기화하고 안내
-  if (!user) {
-    // UI 초기화
-    if (progressArc)     progressArc.style.strokeDasharray = '0 100';
-    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
-    if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-    if (saltTip)         saltTip.style.display = 'none';
-    initializeTime();
-    updateUIState();
-    resetSelectOptions();
-    return showToast("사용자 정보가 없어 기록을 저장할 수 없습니다.");
-  }
-
-   // DB 저장(실패해도 UI는 초기화 유지)
   try {
-    // 1) 히스토리 기록
-    await db.collection('users').doc(user.uid)
+    // 기록 저장
+    await db.collection('users').doc(currentUser.uid)
       .collection('fastingHistory').add({
         startTime: record.startTime,
         endTime: record.endTime,
@@ -553,16 +549,17 @@ async function stopFasting() {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-    // 2) 진행중 상태 제거
-    await db.collection('users').doc(user.uid).update({
+    // 진행중 상태 제거
+    await db.collection('users').doc(currentUser.uid).update({
       currentFasting: firebase.firestore.FieldValue.delete()
     });
   } catch (e) {
-    console.error('단식 기록 저장 또는 상태 삭제 실패:', e);
-    showToast("서버 저장 실패(기록은 추후 재시도 가능)");
+    console.error('단식 기록 저장/상태 삭제 실패:', e);
+    showToast("기록 저장에 실패했습니다. 다시 시도해주세요.");
+    // 실패해도 UI는 초기화 유지 (원하면 여기서 롤백 가능)
   }
 
-  // UI 초기화(항상 수행)
+  // UI 초기화
   if (progressArc)     progressArc.style.strokeDasharray = '0 100';
   if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
   if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
@@ -571,10 +568,12 @@ async function stopFasting() {
   initializeTime();
   updateUIState();
   resetSelectOptions();
-
   showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
-  
+
+  function getSignedInUser() {
+  return (typeof currentUser !== 'undefined' && currentUser) || (auth && auth.currentUser) || null;
+}
 
   function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
@@ -708,7 +707,8 @@ function initializeTimePicker() {
     saveWeightBtn?.addEventListener('click', async () => {
       const v = parseFloat(weightInput?.value);
       if (!v || v <= 0) return showToast("올바른 체중을 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
+      const user = getSignedInUser();
+if (!user) { showToast('로그인이 필요합니다.'); return; }
       try {
         await db.collection('users').doc(user.uid).collection('measurements').doc('weight').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
       } catch (e) {
@@ -756,7 +756,8 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
     // [수정] 입력된 시간 문자열을 Date 객체로 변환
     const recordDate = new Date(timestamp);
 
-    const user = ensureSignedIn(); if (!user) return;
+  const user = getSignedInUser();
+if (!user) { showToast('로그인이 필요합니다.'); return; }
 
     saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
 
@@ -783,7 +784,8 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
     saveKetoneBtn?.addEventListener('click', async () => {
       const v = parseFloat(ketoneInput?.value);
       if (v == null || isNaN(v) || v < 0) return showToast("올바른 케톤 수치를 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
+     const user = getSignedInUser();
+if (!user) { showToast('로그인이 필요합니다.'); return; }
       saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
       try {
         await db.collection('users').doc(user.uid).collection('measurements').doc('ketone').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
@@ -811,7 +813,8 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
       if (!sel) return showToast("운동 종류를 선택하세요.");
       if (!duration || duration<=0) return showToast("올바른 운동 시간을 입력하세요.");
       if (calories !== null && calories < 0) return showToast("칼로리는 0 이상으로 입력하세요.");
-      const user = ensureSignedIn(); if (!user) return;
+ const user = getSignedInUser();
+if (!user) { showToast('로그인이 필요합니다.'); return; }
       const rec = { date:new Date().toISOString(), type: sel.dataset.value, duration, calories };
       saveLocalList('exerciseData', rec);
       try {
