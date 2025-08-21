@@ -645,6 +645,12 @@ function initializeTimePicker() {
     stopBtn?.addEventListener('click', stopFasting);
     modelSelect?.addEventListener('change', handleModelChange);
 
+    userChip?.addEventListener('click', () => {
+    // TODO: 실제 마이페이지 경로로 수정하세요.
+    window.location.href = '/mypage.html'; 
+    });
+    // ▲▲▲ 여기까지 추가 ▲▲▲
+
     confirmYesBtn?.addEventListener('click', () => {
       if (pendingTargetHours == null) return;
       targetHours = pendingTargetHours; pendingTargetHours = null;
