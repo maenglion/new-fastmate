@@ -10,10 +10,11 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-    <script defer src="./firebase-init.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script src="/firebase-init.js"></script>
     <link rel="stylesheet" href="./styles.css">
   
     <style>
@@ -880,74 +881,6 @@ option.is-running {
 document.addEventListener('DOMContentLoaded', () => {
     let bootstrapped = false;
 
-   // fastmate.html의 스크립트 최상단, document.addEventListener 안에 있는
-// firebase.auth().onAuthStateChanged(...) 블록 전체를 이 코드로 교체해주세요.
-
-firebase.auth().onAuthStateChanged(async (user) => {
-    // 1. Firebase Auth에 유저 정보가 없으면, 무조건 로그인 페이지로 보냅니다.
-    if (!user) {
-        window.location.replace('./login.html');
-        return;
-    }
-
-    try {
-        // 2. Firestore DB에서 실제 프로필 정보를 가져옵니다.
-        const prof = await getUserDoc();
-
-        // 3. [핵심] DB에 프로필이 없으면 (삭제된 사용자), 유령 세션을 정리하고 로그인 페이지로 보냅니다.
-        if (!prof) {
-            await firebase.auth().signOut(); // Firebase Auth에서 로그아웃시켜 상태를 동기화
-            window.location.replace('./login.html');
-            return;
-        }
-
-        // 4. 온보딩(초기 설정)을 완료했는지 확인합니다.
-        const completed = !!prof?.onboarding?.completed;
-        if (!completed) {
-            window.location.replace('./signup.html?step=2&from=fastmate');
-            return;
-        }
-
-        // 5. 모든 관문을 통과한 정상 사용자만 앱을 초기화합니다.
-        if (!bootstrapped) {
-            bootstrapped = true;
-            
-            const chip = document.getElementById('userChip');
-            const chipName = document.getElementById('userChipName');
-            if (chip && chipName) {
-                chipName.textContent = prof?.nickname || '회원';
-                chip.style.display = 'flex';
-                chip.onclick = () => (window.location.href = './mypage.html');
-            }
-
-            initializeTimePicker();
-            initializeTime();
-            loadState();
-            wireEventsOnce();
-        }
-    } catch (error) {
-        console.error("인증 처리 중 오류 발생:", error);
-        // 문제가 생기면 안전하게 로그아웃시키고 로그인 페이지로 보냅니다.
-        await firebase.auth().signOut();
-        window.location.replace('./login.html');
-    }
-});
-
-
-/**
- * Firestore에서 사용자 문서를 가져오는 함수
- * @param {firebase.User} user - Firebase 인증 사용자 객체
- * @returns {Promise<object|null>} 사용자 문서 데이터 또는 null
- */
-async function getUserDoc(user) {
-  if (!user) return null;
-  
-  // 'db'는 firestore.firestore()로 초기화된 변수여야 합니다.
-  const userRef = db.collection('users').doc(user.uid);
-  const doc = await userRef.get();
-  
-  return doc.exists ? doc.data() : null;
-}
 
     /* =========================
      * [추가] 1회성 데이터 이사 함수
@@ -1347,35 +1280,35 @@ function initializeTime() {
  
 // [수정] 페이지 로드 시 localStorage 대신 Firestore에서 상태를 불러옵니다.
 // loadState 함수를 이 코드로 교체해주세요.
-async function loadState() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
 
-    const prof = await getUserDoc();
-    const savedFasting = prof?.currentFasting;
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      // 이 페이지는 보호되고 있으므로 user가 있다는 것이 보장됩니다.
+      console.log(user.displayName, "님 환영합니다.");
 
-    if (savedFasting && savedFasting.startTime) {
-        const start = savedFasting.startTime.toDate();
-        const hrs   = parseFloat(savedFasting.targetHours);
+      // ▼▼▼ 여기에 그 로직을 통합합니다 ▼▼▼
+      try {
+        // getUserDoc에 반드시 user.uid를 넘겨주어야 합니다.
+        const profile = await getUserDoc(user.uid); 
+        const savedFasting = profile?.currentFasting;
 
-        selectedStartTime = start;
-        targetHours = hrs;
-        modelSelect.value = hrs;
+        console.log("Firestore에서 불러온 사용자 정보:", profile);
         
-        fastingState = 'running';
-        if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-        fastingInterval = setInterval(updateTimer, 1000);
-        updateTimer();
+        if (savedFasting) {
+          // TODO: savedFasting 데이터를 사용해 UI를 업데이트하는 로직을 여기에 작성하세요.
+          // 예시: displayFastingTimer(savedFasting);
+          console.log("저장된 단식 정보가 있습니다:", savedFasting);
+        } else {
+          console.log("저장된 단식 정보가 없습니다.");
+        }
         
-        // [추가] 페이지 로드 시에도 선택창 UI 업데이트
-        updateSelectOptions();
+      } catch (error) {
+        console.error("사용자 프로필을 불러오는 데 실패했습니다:", error);
+        // 사용자에게 오류를 알려주는 UI를 보여줄 수 있습니다.
+      }
+      // ▲▲▲ 여기까지 통합 ▲▲▲
     }
-    
-    updateTimeDisplays();
-    updateUIState();
-}
-
-// loadState 함수 아래에 이 두 함수를 추가해주세요.
+});
 
 // 선택창 UI를 '단식중' 상태로 업데이트하는 함수
 function updateSelectOptions() {

@@ -10,90 +10,95 @@ const firebaseConfig = {
   measurementId: "G-EX5HR2CB35"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+// 2. 초기화 중복 실행 방지 장치
+if (!window.__AUTH_BOOT__) {
+  window.__AUTH_BOOT__ = true; // 실행되었다고 표시
 
+  // 3. Firebase 서비스 초기화
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-// 2. 로그인/회원가입 후 공통으로 처리할 함수
-async function afterAuth(user, additionalUserInfo) {
-  if (!user) return;
+  // 4. Firestore에서 사용자 정보 가져오는 함수
+  async function getUserDoc(uid) {
+    if (!uid) return null;
+    const userRef = db.collection('users').doc(uid);
+    const doc = await userRef.get();
+    return doc.exists ? doc.data() : null;
+  }
 
-  // Firestore에 사용자 정보 저장 (없으면 생성, 있으면 업데이트)
-  const userRef = db.collection('users').doc(user.uid);
-  try {
+  // 5. 로그인 성공 후 실행될 공통 작업
+  async function afterAuth(user, additionalUserInfo) {
+    if (!user || window.__AUTH_NAVIGATED__) return;
+    window.__AUTH_NAVIGATED__ = true; // 중복 이동 방지 표시
+
+    const userRef = db.collection('users').doc(user.uid);
     await userRef.set({
       uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
+      email: user.email || null,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
       lastLogin: new Date()
     }, { merge: true });
-  } catch (error) {
-    console.error("Firestore user update failed:", error);
+
+    // isNewUser가 true이면 회원가입 2단계로, 아니면 메인 앱으로
+    if (additionalUserInfo?.isNewUser) {
+      window.location.replace('/signup-step2.html');
+    } else {
+      window.location.replace('/fastmate.html'); // 메인 앱 페이지 경로
+    }
   }
+  
+  // 6. 페이지 경로에 따른 보호 규칙 정의
+  const isProtectedPage = () => {
+    const path = window.location.pathname;
+    // 이 페이지들은 로그인이 반드시 필요함
+    return /\/(app|signup-step2|fastmate)\.html$/i.test(path);
+  };
 
-  // isNewUser는 리디렉션 직후에만 확인 가능합니다.
-  const isNew = additionalUserInfo?.isNewUser === true;
+  // 7. 구글 로그인 실행 함수 (HTML 버튼에서 사용)
+  window.signInWithGoogle = function () {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithRedirect(provider).catch(e => console.error("Redirect Error:", e));
+  };
 
-  if (isNew) {
-    // 신규 회원이면 회원가입 2단계 페이지로 이동
-    // (주의: 실제 사용하는 페이지 경로로 수정하세요)
-    window.location.replace('/signup-step2.html'); 
-  } else {
-    // 기존 회원이면 메인 앱 페이지로 이동
-    // (주의: 실제 사용하는 페이지 경로로 수정하세요)
-    window.location.replace('/app.html');
-  }
-}
+  // 8. 앱 전체의 인증 상태를 감시하고 처리하는 메인 로직
+  (async function initializeAuth() {
+    try {
+      // 로컬에 로그인 정보 저장 (페이지를 닫았다 열어도 로그인 유지)
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-
-// 3. 구글 로그인 실행 함수 (로그인 버튼에 이 함수를 연결하세요)
-function signInWithGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  // 모든 환경에서 가장 안정적인 리디렉션 방식을 사용합니다.
-  auth.signInWithRedirect(provider);
-}
-
-
-// 4. 앱 로드 시 항상 실행되는 인증 상태 감지 로직 (수정됨)
-function initializeAuth() {
-  // 리디렉션 결과부터 먼저 처리합니다.
-  auth.getRedirectResult()
-    .then(result => {
-      // 리디렉션 결과가 있으면, afterAuth가 페이지 이동을 처리하므로 여기서 끝냅니다.
-      if (result && result.user) {
-        return afterAuth(result.user, result.additionalUserInfo);
+      // Google 로그인 후 돌아왔는지 확인
+      const result = await auth.getRedirectResult();
+      if (result?.user) {
+        // 돌아왔다면 afterAuth 실행하고 종료 (onAuthStateChanged와 중복 실행 방지)
+        await afterAuth(result.user, result.additionalUserInfo);
+        return;
       }
 
-      // 리디렉션 결과가 없는 경우(새로고침, 직접 방문 등)에만 이 리스너로 라우팅을 처리합니다.
-      auth.onAuthStateChanged(user => {
-        // 현재 페이지 경로를 확인합니다.
-        const currentPagePath = window.location.pathname;
-        const isProtectedRoute = currentPagePath.includes('/app.html') || currentPagePath.includes('/signup-step2.html');
-        const isPublicAuthPage = currentPagePath.includes('/login.html') || currentPagePath.includes('/signup.html');
+      // 일반적인 페이지 로드 시 인증 상태 감시
+      auth.onAuthStateChanged(async (user) => {
+        if (window.__AUTH_NAVIGATED__) return; // 이미 다른 곳에서 이동 처리했으면 실행 안 함
 
         if (user) {
-          // 사용자가 로그인 되어 있고, 로그인/가입 페이지에 있다면 메인 앱으로 보냅니다.
-          if (isPublicAuthPage) {
-            window.location.replace('/app.html');
+          // 로그인된 상태
+          const isAuthPage = /\/(login|signup)\.html$/i.test(window.location.pathname);
+          if (isAuthPage) {
+            // 로그인 페이지에 머물러 있다면 메인 앱으로 보냄
+            window.__AUTH_NAVIGATED__ = true;
+            window.location.replace('/fastmate.html');
           }
-          // 그 외의 경우, 로그인된 상태이므로 UI를 업데이트합니다.
-          console.log("User is signed in:", user.displayName);
-          // 예: document.getElementById('userChip').style.display = 'flex';
         } else {
-          // 사용자가 로그아웃 되어 있고, 보호된 페이지(메인 앱 등)에 있다면 로그인 페이지로 보냅니다.
-          if (isProtectedRoute) {
+          // 로그아웃된 상태
+          if (isProtectedPage()) {
+            // 보호된 페이지에 접근했다면 로그인 페이지로 튕겨냄
+            window.__AUTH_NAVIGATED__ = true;
             window.location.replace('/login.html');
           }
         }
       });
-    })
-    .catch(error => {
-      console.error("Firebase Auth Error:", error);
-      alert(`인증 중 오류가 발생했습니다: ${error.message}`);
-    });
+    } catch (e) {
+      console.error('[Auth Init Error]', e);
+    }
+  })();
 }
-
-// 앱 시작 시 인증 로직을 실행합니다.
-initializeAuth();

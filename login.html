@@ -42,97 +42,10 @@
     </p>
     </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM Elements ---
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const emailLoginBtn = document.getElementById('emailLoginBtn');
-        const googleLoginBtn = document.getElementById('googleLoginBtn');
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-        // --- 로그인 상태 감지 및 페이지 이동 전담 ---
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                window.location.href = './fastmate.html';
-            }
-        });
+<script src="/firebase-init.js"></script>
 
-        // --- 이메일/비밀번호 로그인 버튼 이벤트 리스너 ---
-        emailLoginBtn?.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-
-            if (!email || !password) {
-                return alert('이메일과 비밀번호를 모두 입력해주세요.');
-            }
-
-            emailLoginBtn.disabled = true; // 버튼 비활성화
-            try {
-                await firebase.auth().signInWithEmailAndPassword(email, password);
-            } catch (error) {
-                alert(mapAuthErrorToKo(error));
-            } finally {
-                emailLoginBtn.disabled = false; // 버튼 다시 활성화
-            }
-        });
-
-googleLoginBtn?.addEventListener('click', async () => {
-    googleLoginBtn.disabled = true;
-    try {
-        // [수정] 모든 기기에서 알아서 팝업/리디렉션을 처리하는 공용 헬퍼 함수를 사용합니다.
-        await signInWithGoogle(); 
-        // 성공 후의 페이지 이동은, login.html에 이미 있는 다른 onAuthStateChanged가 처리합니다.
-    } catch (error) {
-        if (error.code !== 'auth/popup-closed-by-user') {
-            alert(mapAuthErrorToKo(error));
-        }
-    } finally {
-        googleLoginBtn.disabled = false;
-    }
-});
-
-        // document.addEventListener('DOMContentLoaded', () => { ... }); 안쪽에 추가
-
-    // --- 비밀번호 재설정 링크 이벤트 리스너 ---
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-
-    forgotPasswordLink?.addEventListener('click', async (e) => {
-        e.preventDefault(); // 링크의 기본 동작(페이지 이동)을 막습니다.
-
-        const email = prompt("가입하신 이메일 주소를 입력해주세요. 해당 주소로 비밀번호 재설정 링크를 보내드립니다.");
-        
-        if (!email) {
-            return; // 사용자가 '취소'를 누르면 아무것도 하지 않음
-        }
-
-        try {
-            // Firebase에 비밀번호 재설정 이메일 발송 요청
-            await firebase.auth().sendPasswordResetEmail(email);
-            alert("비밀번호 재설정 이메일을 보냈습니다. 이메일 함을 확인해주세요.");
-        } catch (error) {
-            console.error("비밀번호 재설정 이메일 발송 실패:", error);
-            if (error.code === 'auth/user-not-found') {
-                alert("가입되지 않은 이메일입니다.");
-            } else {
-                alert("오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-            }
-        }
-    });
-
-
-
-        // --- 에러코드 한글화 함수 ---
-        function mapAuthErrorToKo(error) {
-            switch (error.code) {
-                case 'auth/invalid-credential':
-                case 'auth/cancelled-popup-request':
-                    return '로그인 요청이 충돌했거나 취소되었습니다. 잠시 후 다시 시도해주세요.';
-                case 'auth/invalid-email': return '이메일 형식이 올바르지 않습니다.';
-                case 'auth/user-not-found': return '가입 내역이 없는 이메일입니다.';
-                case 'auth/wrong-password': return '비밀번호가 틀렸습니다.';
-                case 'auth/account-exists-with-different-credential': return '이미 다른 방식으로 가입된 이메일입니다.';
-                default: return '로그인에 실패했습니다: ' + (error.message || '알 수 없는 오류');
-            }
-        }
-    });
-</script>
+<button onclick="signInWithGoogle()">구글로 로그인</button>
