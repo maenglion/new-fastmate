@@ -526,6 +526,61 @@ option.is-running {
     100% { opacity: 1; }
 }
 
+/* ▼▼▼ 상단바 및 테마 토글 스위치 스타일 ▼▼▼ */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px; /* 높이 조정 */
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+}
+.topbar-inner {
+  width: 100%;
+  max-width: 1024px; /* fastmate의 최대 너비에 맞게 조정 */
+  padding: 0 20px;
+  display: flex;
+  justify-content: flex-start; /* 왼쪽 정렬 */
+  align-items: center;
+  height: 100%;
+}
+.btn-theme {
+  width: 50px;
+  height: 26px;
+  background-color: var(--subtle-bg-color);
+  border-radius: 13px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+.btn-theme-icon {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23f5c13b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
+}
+body.dark-mode .btn-theme {
+  background-color: var(--primary-color);
+}
+body.dark-mode .btn-theme-icon {
+  transform: translateX(24px);
+  background-color: var(--card-color);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>');
+}
+/* ▲▲▲ 상단바 및 테마 토글 스위치 스타일 ▲▲▲ */
+
+
 /* 색종이 조각(Confetti) 애니메이션 */
 .confetti {
     position: absolute;
@@ -627,6 +682,15 @@ option.is-running {
     </style>
 </head>
 <body>
+    <!-- ▼▼▼ 상단 토글 버튼 영역 (왼쪽 정렬) ▼▼▼ -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <button id="theme-toggle" class="btn-theme" type="button" aria-label="테마 전환">
+        <span class="btn-theme-icon"></span>
+      </button>
+    </div>
+  </div>
+  <!-- ▲▲▲ 상단 토글 버튼 영역 (왼쪽 정렬) ▲▲▲ -->
 
     <!-- 앱 메인 컨텐츠 -->
     <div class="container">
@@ -1560,6 +1624,34 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
       if (el) el.style.display = 'none';
     }
   });
+
+    // ▼▼▼ 테마 토글 로직 추가 ▼▼▼
+  const themeToggle = document.getElementById('theme-toggle');
+  const body = document.body;
+
+  const applyTheme = (theme) => {
+    if (theme === 'dark') {
+      body.classList.add('dark-mode');
+    } else {
+      body.classList.remove('dark-mode');
+    }
+  };
+
+  themeToggle.addEventListener('click', () => {
+    const isDarkMode = body.classList.contains('dark-mode');
+    const newTheme = isDarkMode ? 'light' : 'dark';
+    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme);
+  });
+
+  // 앱 시작 시 저장된 테마가 있으면 적용하고, 없으면 라이트 모드로 시작
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    applyTheme(savedTheme); // 이전 방문 기록이 있으면 그걸 따름
+  } else {
+    applyTheme('light'); // 첫 방문 시 무조건 라이트 모드
+  }
+  // ▲▲▲ 테마 토글 로직 추가 ▲▲▲
 
   window.addEventListener('click', (e) => {
     [timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal, weightModal]
