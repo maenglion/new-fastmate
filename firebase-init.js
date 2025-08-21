@@ -54,8 +54,23 @@ window.fastmateApp = {
         console.error("Password reset error:", error);
         alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
       });
-  }
-};
+  },
+
+   signOutUser: function() {
+      auth.signOut()
+        .then(() => {
+          console.log('User signed out successfully');
+          // 로그아웃 성공 후, 로그인 페이지로 이동시킵니다.
+          window.location.href = '/login.html';
+        })
+        .catch((error) => {
+          console.error('Sign out error:', error);
+          alert('로그아웃 중 오류가 발생했습니다.');
+        });
+    }
+  };
+
+
   
   // 3) 라우팅 가드(필요한 최소만)
   const path = () => location.pathname;
