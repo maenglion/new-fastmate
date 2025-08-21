@@ -510,9 +510,6 @@ async function startFasting() {
 }
 
 
-// fastmate.html의 <script> 안에서 stopFasting 함수를 찾아 교체해주세요.
-
-// stopFasting 함수를 이 코드로 통째로 교체해주세요.
 async function stopFasting() {
   if (fastingState === 'idle') {
     return showToast("시작된 단식이 없습니다.");
@@ -544,7 +541,7 @@ async function stopFasting() {
     return showToast("사용자 정보가 없어 기록을 저장할 수 없습니다.");
   }
 
-  // DB 저장(실패해도 UI는 초기화 유지)
+   // DB 저장(실패해도 UI는 초기화 유지)
   try {
     // 1) 히스토리 기록
     await db.collection('users').doc(user.uid)
@@ -577,6 +574,7 @@ async function stopFasting() {
 
   showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
+  
 
   function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
@@ -908,43 +906,50 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
    // =================================================================
     // 6. 메인 로직: 인증 상태 리스너 (모든 작업의 단일 시작점)
     // =================================================================
-auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user; // 안정적인 사용자 정보를 변수에 저장
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    // 로그아웃 상태: firebase-init.js에서 라우팅 처리하므로 여기선 UI만 초기화 가능
+    currentUser   = null;
+    fastingState  = 'idle';
+    initializeTime();
+    updateUIState();
+    return;
+  }
 
-            try {
-                const profile = await getUserDoc(user.uid);
+  currentUser = user; // 로그인된 사용자 전역 변수 갱신
 
-                // (3) 프로필 기반으로 화면 UI 업데이트
-                const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
-                if (userChipName) userChipName.textContent = nickname;
-                if (userChip) userChip.style.display = 'flex';
-                
-                // (4) 저장된 단식 정보가 있다면 타이머 복원, 없으면 초기화
-                const savedFasting = profile?.currentFasting;
-                if (savedFasting && savedFasting.startTime) {
-                    selectedStartTime = savedFasting.startTime.toDate(); // Firestore Timestamp를 Date로 변환
-                    targetHours = savedFasting.targetHours;
-                    fastingState = 'running';
-                    if(fastingInterval) clearInterval(fastingInterval);
-                    fastingInterval = setInterval(updateTimer, 1000);
-                    updateTimer();
-                } else {
-                    fastingState = 'idle';
-                    initializeTime(); // 현재 시간으로 초기화
-                }
-                
-                updateUIState(); // 현재 상태에 맞게 UI 최종 업데이트
-                
-                // (5) 모든 버튼에 이벤트 핸들러를 단 한 번만 연결
-                wireEventsOnce();
+  try {
+    const profile = await getUserDoc(user.uid);
 
-            } catch (error) {
-                console.error("앱 초기화 중 오류 발생:", error);
-                alert("앱을 초기화하는 데 실패했습니다. 새로고침 해주세요.");
-            }
-        }
-    });
+    // (3) 프로필 기반으로 화면 UI 업데이트
+    const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
+    if (userChipName) userChipName.textContent = nickname;
+    if (userChip) userChip.style.display = 'flex';
+
+    // (4) 저장된 단식 정보 복원
+    const savedFasting = profile?.currentFasting;
+    if (savedFasting?.startTime) {
+      selectedStartTime = savedFasting.startTime.toDate(); // Firestore Timestamp → Date
+      targetHours       = savedFasting.targetHours;
+      fastingState      = 'running';
+      if (fastingInterval) clearInterval(fastingInterval);
+      fastingInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+    } else {
+      fastingState = 'idle';
+      initializeTime(); // 현재 시간 기준 초기화
+    }
+
+    updateUIState(); // 상태에 맞는 UI 최종 업데이트
+
+    // (5) 이벤트 핸들러 1회만 연결
+    wireEventsOnce();
+
+  } catch (error) {
+    console.error("앱 초기화 중 오류:", error);
+    alert("앱 초기화 실패. 새로고침 해주세요.");
+  }
+});
 
   
   function saveLocalList(key, data) {
