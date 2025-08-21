@@ -1,12 +1,13 @@
 // 1. Firebase 앱 초기화
 // (주의: 실제 값으로 채워주세요)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
   authDomain: "auth.fastmate.kr", // ◀◀◀ 가장 중요! 커스텀 도메인으로 변경
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  projectId: "fasting-b4ccb",
+  storageBucket: "fasting-b4ccb.firebasestorage.app",
+  messagingSenderId: "879518503068",
+  appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
+  measurementId: "G-EX5HR2CB35"
 };
 
 firebase.initializeApp(firebaseConfig);
