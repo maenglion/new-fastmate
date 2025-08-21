@@ -1,18 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fastmate - 로그인</title>
+    
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+
+    <link rel="stylesheet" href="./styles.css">
+
+    <style>
+        /* login.html 전용 스타일 (styles.css가 없어도 최소한의 디자인을 보장) */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            box-sizing: border-box;
+            margin: 20px;
+        }
+        .login-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1c8e3e; /* fastmate.html과 동일한 메인 컬러 */
+            margin: 0 0 15px 0;
+        }
+        .login-subtitle {
+            font-size: 1rem;
+            color: #777;
+            margin: 0 0 40px 0;
+        }
+        .google-login-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            padding: 12px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .google-login-btn:hover {
+            background-color: #f8f9fa;
+        }
+        .google-login-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
 <body>
-  <!-- 로그인 UI -->
-  <main>
-    <!-- 중복 버튼 제거하고 이 버튼 하나만 사용 -->
-    <button id="google-login-btn" type="button">구글로 로그인</button>
-  </main>
+    <main class="login-container">
+        <h1 class="login-title">Fastmate</h1>
+        <p class="login-subtitle">관리하는 단식의 시작</p>
+        
+        <button id="google-login-btn" class="google-login-btn" type="button">
+            <svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 398.2 0 256S111.8 0 244 0c69.8 0 130.8 28.5 173.4 74.5l-68.2 68.2C295.6 110.2 271.6 96 244 96 166.3 96 100 162.2 100 240s66.3 144 144 144c80.4 0 125.1-51.2 130.6-76.8H244v-92h233.9c4.7 26.9 7.1 55.5 7.1 84.8z"></path></svg>
+            <span>Google로 로그인</span>
+        </button>
 
-  <!-- ✅ 스크립트는 body 끝 직전에, 이 순서로만 로드함 -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+    </main>
 
-  <!-- 공통 마스터 -->
-  <script src="/firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script src="/firebase-init.js"></script>
+
 </body>
-
-
-<button onclick="signInWithGoogle()">구글로 로그인</button>
+</html>
