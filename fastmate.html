@@ -46,21 +46,30 @@
             margin: 0;
             padding: 20px;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
+           justify-content: center; /* container를 가운데 정렬 */
+  min-height: 100vh;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
 
-        .container {
-            width: 100%;
-            max-width: 420px;
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 8px G30px rgba(0, 0, 0, 0.1);
-            padding: 40px 25px 25px 25px; 
-            box-sizing: border-box;
-            position: relative;
-        }
+/* ▼▼▼ 메인 컨테이너 스타일 ▼▼▼ */
+.container {
+  width: 100%;
+  max-width: 420px; /* 스마트폰과 유사한 최대 너비로 고정 */
+  background-color: var(--card-color); /* 컨테이너에 배경색 적용 */
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* 그림자 효과 추가 */
+  border-radius: 10px; /* 모서리 둥글게 */
+  overflow: hidden; /* 내부 요소가 둥근 모서리를 넘지 않도록 */
+}
+
+header {
+  text-align: center;
+  padding: 1.5rem 20px;
+}
 
         .user-chip {
             position: absolute;
@@ -90,7 +99,7 @@
             margin-bottom: 20px;
             font-weight: 700;
             font-size: 1.8rem;
-            margin-top: 15px;
+            margin-top: 1rem; /*상단여백*/
         }
 
         .ring-wrap {
