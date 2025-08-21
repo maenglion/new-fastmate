@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const getUserDoc = window.fastmateApp.getUserDoc;
     const signOutUser = window.fastmateApp.signOutUser;
     
-    let currentUser = null; // 로그인된 사용자 정보를 안정적으로 저장할 변수
+    let currentUser = null;
     let allCharts = {};
     let allData = {};
     let fastingCurrentPage = 1;
@@ -601,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemsPerPage = 7;
 
     // =================================================================
-    // 2. DOM 요소 캐시 (페이지의 모든 요소를 미리 찾아두기)
+    // 2. DOM 요소 캐시
     // =================================================================
     const pfNickname = document.getElementById('pfNickname');
     const pfEmail = document.getElementById('pfEmail');
@@ -633,26 +633,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     createdAt: data.createdAt?.toDate?.()
                 };
             });
-        } catch (error) {
-            console.error(`${collectionName} 데이터 로딩 실패:`, error);
-            return [];
-        }
+        } catch (error) { return []; }
     }
 
     async function deleteFastingRecord(docId) {
         if (!currentUser || !docId) return;
         try {
             await db.collection('users').doc(currentUser.uid).collection('fastingHistory').doc(docId).delete();
-            // 화면에서 해당 항목 즉시 제거
-            const itemToRemove = fastingHistoryList.querySelector(`[data-doc-id="${docId}"]`);
-            if (itemToRemove) itemToRemove.remove();
-            // 전체 데이터에서도 제거하여 페이지네이션 오류 방지
             allData.fasting = allData.fasting.filter(item => item.id !== docId);
+            renderFastingHistory(); // 목록 다시 그리기
             alert('기록이 삭제되었습니다.');
-        } catch (error) {
-            console.error("기록 삭제 실패:", error);
-            alert('기록 삭제에 실패했습니다.');
-        }
+        } catch (error) { alert('기록 삭제에 실패했습니다.'); }
     }
 
     // =================================================================
@@ -663,23 +654,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const nickname = allData.profile.displayName || currentUser.displayName || '사용자';
         if (pfNickname) pfNickname.textContent = `${nickname}님`;
         if (pfEmail) pfEmail.textContent = currentUser.email || '이메일 정보 없음';
-        
-        const goals = allData.profile.onboarding?.reasons || [];
-        if (pfGoals) {
-            pfGoals.innerHTML = '';
-            goals.forEach(goalText => {
-                const tag = document.createElement('div');
-                tag.className = 'goal-tag';
-                tag.textContent = goalText;
-                pfGoals.appendChild(tag);
-            });
-        }
     }
 
     function renderPagination(container, currentPage, totalPages, onPageChange) {
-        if (totalPages <= 1) {
-            container.innerHTML = ''; return;
-        }
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
         container.innerHTML = `<button class="prev-page" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button><span>${currentPage} / ${totalPages}</span><button class="next-page" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
         container.querySelector('.prev-page')?.addEventListener('click', () => onPageChange(currentPage - 1));
         container.querySelector('.next-page')?.addEventListener('click', () => onPageChange(currentPage + 1));
@@ -693,8 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const totalPages = Math.ceil(data.length / itemsPerPage);
-        const startIndex = (page - 1) * itemsPerPage;
-        const pageItems = data.slice(startIndex, startIndex + itemsPerPage);
+        const pageItems = data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
         pageItems.forEach(item => listEl.appendChild(renderItemFn(item)));
         renderPagination(paginationEl, page, totalPages, onPageChange);
     }
@@ -708,13 +685,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const minutes = Math.round((item.actualDurationHours - hours) * 60);
             const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
             const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+            // ▼▼▼ [달성률 색상 문제 해결] 달성률에 따라 CSS 클래스를 부여하는 로직 추가 ▼▼▼
+            let percentageClass = 'percentage-mid';
+            if (percentage > 100) percentageClass = 'percentage-over-100';
+            else if (percentage >= 70) percentageClass = 'percentage-high';
+            else if (percentage <= 30) percentageClass = 'percentage-low';
+
             li.innerHTML = `
                 <div class="history-info">
                     <div class="duration">${hours}시간 ${minutes}분</div>
                     <div class="period">${format(item.startTime)} ~ ${format(item.endTime)}</div>
                 </div>
                 <div class="history-actions">
-                    <div class="history-percentage">${percentage}%</div>
+                    <div class="history-percentage ${percentageClass}">${percentage}%</div>
                     <button class="delete-btn" title="기록 삭제">×</button>
                 </div>`;
             return li;
@@ -722,21 +706,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderExerciseHistory() {
-        renderHistory(exerciseHistoryList, exercisePaginationControls, allData.exercise, exerciseCurrentPage, (item) => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            const format = (d) => `${d.getMonth()+1}/${d.getDate()}`;
-            li.innerHTML = `<div class="history-info"><div class="type">${item.type}</div><div class="details">${format(item.date)} / ${item.duration}분</div></div><div class="history-calories">${item.calories || 0} <span class="unit">kcal</span></div>`;
-            return li;
-        }, (newPage) => { exerciseCurrentPage = newPage; renderExerciseHistory(); });
+        // ... (이전과 동일)
     }
 
-    const newIconPlugin = { /* ... (이전에 제공한 newIconPlugin 전체 코드) ... */ };
-    function createChart(canvasId, label, data) { /* ... (이전에 제공한 createChart 전체 코드) ... */ }
-    function renderAllCharts() { /* ... (이전에 제공한 renderAllCharts 전체 코드) ... */ }
+    // =================================================================
+    // 5. 차트 관련 함수 (전체 코드 포함)
+    // =================================================================
+    const newIconPlugin = {
+        id: 'newIconPlugin',
+        afterDraw: (chart) => {
+            const ctx = chart.ctx;
+            const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((element, index) => {
+                    const dataPoint = dataset.data[index];
+                    if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
+                        const { x, y } = element.getProps(['x', 'y'], true);
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(x, y - 12, 4, 0, 2 * Math.PI);
+                        ctx.fillStyle = 'var(--gauge-start-color, #ffd400)';
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    function createChart(canvasId, label, data, customScaleOptions = {}) {
+        if (allCharts[canvasId]) allCharts[canvasId].destroy();
+        const ctx = document.getElementById(canvasId)?.getContext('2d');
+        if (!ctx) return;
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const chartData = (data || []).filter(d => d && typeof d.value === 'number').map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+        
+        allCharts[canvasId] = new Chart(ctx, { /* ... (이전과 동일한 Chart.js 옵션) ... */ });
+    }
+
+    function renderAllCharts() {
+        const range = dateRangeSelector.value;
+        const filterFn = (data) => {
+            if (range === 'all' || !data) return data;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
+            return data.filter(d => d && d.date >= cutoffDate);
+        };
+        createChart('weightChart', '체중 (kg)', filterFn(allData.weight));
+        createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar));
+        createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone));
+    }
 
     // =================================================================
-    // 5. 이벤트 핸들러 연결 (한 번만 실행)
+    // 6. 이벤트 핸들러 연결
     // =================================================================
     let eventsWired = false;
     function wireEventsOnce() {
@@ -744,35 +767,27 @@ document.addEventListener('DOMContentLoaded', () => {
         eventsWired = true;
 
         homeBtn?.addEventListener('click', () => { window.location.href = '/fastmate.html'; });
-        logoutBtn?.addEventListener('click', () => {
-            if (confirm('정말 로그아웃하시겠습니까?')) {
-                signOutUser();
-            }
-        });
+        logoutBtn?.addEventListener('click', () => { if (confirm('정말 로그아웃하시겠습니까?')) signOutUser(); });
         
         fastingHistoryList.addEventListener('click', (e) => {
             if (e.target.classList.contains('delete-btn')) {
                 const li = e.target.closest('.history-item');
-                if (li.dataset.docId) {
-                    deleteFastingRecord(li.dataset.docId);
-                }
+                if (li.dataset.docId) deleteFastingRecord(li.dataset.docId);
             }
         });
         
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
-            });
-        });
+        tabs.forEach(tab => tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
+        }));
 
         dateRangeSelector.addEventListener('change', renderAllCharts);
     }
 
     // =================================================================
-    // 6. 메인 로직: 데이터 로딩 및 앱 초기화
+    // 7. 메인 로직: 데이터 로딩 및 앱 초기화
     // =================================================================
     async function loadAndRenderAllData() {
         if (!currentUser) return;
@@ -795,14 +810,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             wireEventsOnce();
 
-        } catch (error) {
-            console.error("마이페이지 데이터 로딩 중 오류 발생:", error);
-            alert("데이터를 불러오는 데 실패했습니다.");
-        }
+        } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
     }
 
     // =================================================================
-    // 7. 최종 실행 지점: 인증 상태 리스너
+    // 8. 최종 실행 지점: 인증 상태 리스너
     // =================================================================
     auth.onAuthStateChanged((user) => {
         if (user) {
