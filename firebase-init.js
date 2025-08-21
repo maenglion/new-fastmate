@@ -159,57 +159,52 @@ function showApp() {
 
       // (B) 일반 상태 감지
       auth.onAuthStateChanged(async (user) => {
-        console.log('[auth] state=', !!user, 'path=', path());
-        if (user) {
-          // 로그인 상태에서 로그인/가입 페이지면 앱으로
-          if (isAuthPage()) goOnce('/fastmate.html');
+  console.log('[auth] state=', !!user, 'path=', path());
 
-          // ▼ fastmate.html 훅: 페이지 안은 그대로 둔 채 기본 초기화만 보장
-          if (/\/fastmate\.html$/i.test(path())) {
-            try {
-              // 사용자 칩(있을 때만)
-              const userChip = document.getElementById('userChip');
-              const userChipName = document.getElementById('userChipName');
-              if (userChip && userChipName) {
-                userChipName.textContent = user.displayName || '사용자';
-                userChip.style.display = 'flex';
-              }
+  // --- 1단계: 페이지를 떠나야 하는가? (리디렉션) ---
+  // 리디렉션이 필요하면 가장 먼저 처리하고 함수를 즉시 종료합니다.
+  if (user && isAuthPage()) {
+    return goOnce('/fastmate.html');
+  }
+  if (!user && isProtected()) {
+    return goOnce('/login.html');
+  }
 
-              // 프로필(있으면 쓰고, 없어도 통과)
-              const profile = await window.fastmateApp.getUserDoc(user.uid);
-              const savedFasting = profile?.currentFasting;
-              if (savedFasting && window.hydrateFastingTimer) {
-                window.hydrateFastingTimer(savedFasting);
-              }
-            } catch (e) { console.warn('[fastmate hook]', e); }
-            // 페이지가 정의해둔 초기화 함수가 있으면 호출, 없어도 통과
-            try { window.initializeTime && window.initializeTime(); } catch(e){}
-            try { window.updateUIState && window.updateUIState(); } catch(e){}
-            // 이벤트 중복 방지 예시(선택)
-            if (!window.__WIRED__) { window.__WIRED__ = true; if (window.wireEventsOnce) try { window.wireEventsOnce(); } catch(e){} }
-          }
-            showApp();
+  // --- 2단계: 페이지에 머무는 것이 확정! ---
+  // 이제 "일단 먼저" 스플래시 스크린부터 치웁니다.
+  showApp();
 
-        } else {
-          // 비로그인 상태에서 보호 페이지면 로그인으로
-         if (isProtected()) {
-          // and they are on a protected page, redirect them.
-          return goOnce('/login.html'); // 'return' stops the function here.
+  // --- 3단계: 스플래시가 사라진 후, 필요한 데이터를 화면에 표시합니다. ---
+  // 사용자가 로그인한 상태일 때만 데이터 로딩 로직을 실행합니다.
+   if (user) {
+        if (/\/fastmate\.html$/i.test(path())) {
+          try {
+            const userChip = document.getElementById('userChip');
+            const userChipName = document.getElementById('userChipName');
+            if (userChip && userChipName) {
+              userChipName.textContent = user.displayName || '사용자';
+              userChip.style.display = 'flex';
+            }
+            const profile = await window.fastmateApp.getUserDoc(user.uid);
+            const savedFasting = profile?.currentFasting;
+            if (savedFasting && window.hydrateFastingTimer) {
+              window.hydrateFastingTimer(savedFasting);
+            } else {
+              if(window.initializeTime) window.initializeTime();
+            }
+          } catch (e) { console.warn('[fastmate hook]', e); }
+          
+          if(window.updateUIState) window.updateUIState();
+          if (!window.__WIRED__) { window.__WIRED__ = true; if (window.wireEventsOnce) try { window.wireEventsOnce(); } catch(e){} }
         }
-
-        // ▼ 3. Since the user is logged out and allowed to be on this page, we show the page.
-        showApp();
       }
     });
 
+  // ▼ 여기가 바로 그 "안전망" 역할을 하는 부분입니다.
   } catch (e) {
     console.error('[auth init]', e);
     alert(`인증 초기화 오류: ${e.message}`);
-    
-    // ▼ 4. If any error occurs during initialization, we must still remove the splash screen
-    // so the user can see the error message.
     showApp(); 
   }
-})(); }
-
-
+})();
+}
