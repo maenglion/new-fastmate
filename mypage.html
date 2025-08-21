@@ -585,6 +585,11 @@
    <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
+    const auth = window.fastmateApp.auth;
+    const getUserDoc = window.fastmateApp.getUserDoc;
+    const signOutUser = window.fastmateApp.signOutUser;
+    const nicknameEl = document.getElementById('nickname');
+    const emailEl = document.getElementById('email');
     const homeBtn = document.getElementById('homeBtn');
     const pfNickname = document.getElementById('pfNickname');
     const pfEmail = document.getElementById('pfEmail');
@@ -597,13 +602,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.tab-button');
     const dateRangeSelector = document.getElementById('dateRangeSelector');
     // mypage.html의 document.addEventListener('DOMContentLoaded', ...) 안에 추가
-const logoutBtn = document.getElementById('logoutBtn');
-logoutBtn?.addEventListener('click', () => {
-    if (confirm('정말 로그아웃하시겠습니까?')) {
-        appSignOut(); // firebase-init.js에 있는 공용 로그아웃 함수 호출
-    }
-});
+
+    const logoutBtn = document.getElementById('logoutBtn');
+document.addEventListener('DOMContentLoaded', () => {
+    const logoutButton = document.getElementById('logout-btn');
     
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            // 사용자님의 좋은 아이디어를 여기에 다시 적용합니다.
+            if (confirm('정말 로그아웃하시겠습니까?')) {
+                // 올바른 공용 로그아웃 함수를 호출합니다.
+                window.fastmateApp.signOutUser();
+            }
+        });
+    }
+   
+        // --- Firebase Auth Listener (Main Entry Point) ---
+ auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    // 1. getUserDoc 문제 해결: 공용 getUserDoc 함수를 사용해 프로필을 가져옵니다.
+                    const profile = await getUserDoc(user.uid);
+
+                    if (nicknameEl) {
+                        nicknameEl.textContent = profile?.displayName || user.displayName || '정보 없음';
+                    }
+                    if (emailEl) {
+                        emailEl.textContent = user.email;
+                    }
+                }
+                // 사용자가 없으면 firebase-init.js가 알아서 로그인 페이지로 보냅니다.
+            });
+
+            // 2. 로그아웃 문제 해결: 로그아웃 버튼에 공용 signOutUser 함수를 연결합니다.
+            if (logoutButton) {
+                logoutButton.addEventListener('click', () => {
+                    // 사용자님이 부르셨던 appSignOut 대신, 공용 함수인 signOutUser를 호출합니다.
+                    signOutUser();
+                });
+            }
+        });
+
     // --- State Variables ---
     let allCharts = {};
     let allData = {};
@@ -613,14 +651,6 @@ logoutBtn?.addEventListener('click', () => {
 
     const db = firebase.firestore();
 
-    // --- Firebase Auth Listener (Main Entry Point) ---
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            loadAndRenderAllData();
-        } else {
-            window.location.href = './login.html';
-        }
-    });
 
     // --- Data Fetching Functions ---
     async function fetchFromFirestore(dataType) {
