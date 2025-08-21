@@ -280,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = window.fastmateApp.auth;
     const db = window.fastmateApp.db;
     const getUserDoc = window.fastmateApp.getUserDoc;
+    let currentUser = null; // 로그인된 사용자 정보를 안정적으로 저장할 변수  
 
     // 이 페이지에서 사용할 DOM 요소들을 미리 찾아둡니다.
     const userChip = document.getElementById('userChip');
@@ -326,16 +327,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const weightModal      = document.getElementById('weightModal');
   const saveWeightBtn    = document.getElementById('saveWeightBtn');
   const weightInput      = document.getElementById('weightInput');
+  const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
+
+  /* =========================
+   * 2) 상태/유틸
+   * ========================= */
+  let timePickerUsed = false; // <-- 이 줄을 추가!
+  let fastingInterval  = null;
+  let targetHours      = 16;
+  let fastingState     = 'idle';
+  let selectedStartTime= new Date();
+  let pendingTargetHours = null;
+  let toastTimeout     = null;
+  let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
 
 
-// [헬퍼] 닉네임 칩 업데이트 + 표시
-  function setUserChip(name) {
-    if (!userChip || !userChipName) return;
-    userChipName.textContent = (name && String(name).trim()) || '사용자';
-    userChip.style.display = 'flex';
+
+function showToast(msg) {
+    if (!toast) return;
+    clearTimeout(toastTimeout);
+    toast.textContent = msg;
+    toast.classList.add('show');
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
   }
 
-  // [헬퍼] 1회성 데이터 이사 함수
+// [헬퍼] 1회성 데이터 이사 함수
   async function migrateLegacyFast(uid) {
     const legacyStartTime = localStorage.getItem('fastingStartTime');
     const legacyTargetHours = localStorage.getItem('fastingTargetHours');
@@ -356,144 +372,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
-    
 
- async function initializeAppForUser(user) {
-      console.log(user.uid, "님 환영합니다. 앱 초기화를 시작합니다.");
 
-      try {
-        const profile = await getUserDoc(user.uid);
-        console.log("Firestore 프로필 정보:", profile);
-
-        // 1. 닉네임 문제 해결: Firestore 프로필의 닉네임을 사용합니다.
-        const nickname = profile?.displayName || user.displayName || '사용자';
-        if (userChip && userChipName) {
-          userChipName.textContent = nickname;
-          userChip.style.display = 'flex';
-        }
-
-        // 2. 마이페이지 이동 문제 해결: userChip에 클릭 이벤트 추가
-        if (userChip) {
-          userChip.addEventListener('click', () => {
-            // TODO: 마이페이지 경로를 실제 경로로 수정하세요 (예: /mypage.html)
-            window.location.href = '/mypage.html'; 
-          });
-        }
-
-        // 3. Firestore에서 저장된 단식 정보가 있으면 타이머 시작
-        const savedFasting = profile?.currentFasting;
-        if (savedFasting) {
-          // TODO: 단식 정보로 타이머 시작하는 로직
-        } else {
-          // TODO: 단식 중 아닐 때의 초기 UI 설정 로직
-        }
-
-        // TODO: 나머지 모든 이벤트 핸들러 연결
-        // wireEventsOnce();
-
-      } catch (error) {
-        console.error("앱 초기화 중 오류 발생:", error);
-        alert("앱을 초기화하는 데 실패했습니다.");
-      }
-    }
-
-    /**
-     * 인증 상태 리스너: '선장'의 지시를 기다립니다.
-     */
- auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      try {
-        // (1) 우선, 예전 데이터가 있다면 Firestore로 옮깁니다.
-        await migrateLegacyFast(user.uid);
-
-        // (2) 그 다음, 최신 사용자 프로필을 Firestore에서 가져옵니다.
-        const profile = await getUserDoc(user.uid);
-        console.log("Firestore 프로필 정보:", profile);
-
-        // (3) 가져온 정보를 바탕으로 화면 UI를 업데이트합니다.
-        const nickname = profile?.displayName || user.displayName || '사용자';
-        if (userChip && userChipName) {
-          userChipName.textContent = nickname;
-          userChip.style.display = 'flex';
-        }
-
-        // (4) 마이페이지 버튼에 이동 기능을 연결합니다.
-        if (userChip) {
-          userChip.addEventListener('click', () => {
-            window.location.href = '/mypage.html';
-          });
-        }
-
-        // (5) 저장된 단식 정보가 있다면 타이머를 복원합니다.
-        const savedFasting = profile?.currentFasting;
-        if (savedFasting) {
-          console.log("저장된 단식 정보를 복원합니다.");
-          // TODO: savedFasting 데이터로 타이머를 시작하는 로직
-        } else {
-          console.log("저장된 단식 정보가 없습니다.");
-          // TODO: 단식 중이 아닐 때의 초기 UI 설정 로직
-        }
-
-        // (6) 페이지의 모든 버튼(시작, 종료 등)에 이벤트 핸들러를 연결합니다.
-        // wireEventsOnce();
-
-      } catch (error) {
-        console.error("앱 초기화 중 오류 발생:", error);
-        alert("앱을 초기화하는 데 실패했습니다. 새로고침 해주세요.");
-      }
-    }
-  });
-
-  /* =========================
-   * 2) 상태/유틸
-   * ========================= */
-  let timePickerUsed = false; // <-- 이 줄을 추가!
-let fastingInterval  = null;
-  let targetHours      = 16;
-  let fastingState     = 'idle';
-  let selectedStartTime= new Date();
-  let pendingTargetHours = null;
-  let toastTimeout     = null;
-  let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
- const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
-
-  
-
-  function showToast(msg) {
-    if (!toast) return;
-    clearTimeout(toastTimeout);
-    toast.textContent = msg;
-    toast.classList.add('show');
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
-  }
-  function saveLocalList(key, data) {
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    arr.unshift(data);
-    localStorage.setItem(key, JSON.stringify(arr));
-  }
-  function ensureSignedIn() {
-    const user = auth?.currentUser;
-    if (!user) {
-      showToast('로그인이 필요합니다.');
-      window.location.href = './login.html';
-      return null;
-    }
-    return user;
-  }
-  
-
-  /* =========================
-   * 3) 단식 타이머
-   * ========================= */
-  function updateTimeDisplays() {
-    const start = selectedStartTime;
-    const duration = parseInt(modelSelect.value || targetHours, 10);
-    const end = new Date(start.getTime() + duration * 3600000);
-    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
-    if (startTimeValue) startTimeValue.textContent = fmt(start);
-    if (endTimeValue)   endTimeValue.textContent   = fmt(end);
-  }
-  // fastmate.html의 <script> 안에서 updateUIState 함수를 찾아 교체
+// fastmate.html의 <script> 안에서 updateUIState 함수를 찾아 교체
 function updateUIState() {
     const running = fastingState === 'running';
     if (startBtn) {
@@ -512,33 +393,20 @@ function updateUIState() {
     }
 }
 
-function checkMilestones(progress) {
-    const messages = {
-      10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
-      25: "25% 달성! 순조롭게 진행 중이에요.",
-      50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧",
-      75: "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
-      90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧",
-      110: "110% 초과 달성! 몸이 보내는 신호에 귀를 기울여 주세요.",
-      120: "120% 초과 달성! 정말 대단한 의지입니다!",
-      150: "150% 초과 달성! 새로운 기록을 쓰고 계시는군요!",
-      200: "200% 달성! 컨디션 조절은 필수입니다. 충분한 휴식을 잊지 마세요."
-    };
 
-    // [수정] 이제 progress가 아닌 실제 경과 시간 비율로 계산합니다.
-    const now = new Date();
-    const elapsed = now - selectedStartTime;
-    const target  = parseFloat(targetHours) * 3600000;
-    const actualProgress = (elapsed / target) * 100;
+  /* =========================
+   * 단식 타이머
+   * ========================= */
+  function updateTimeDisplays() {
+    const start = selectedStartTime;
+    const duration = parseInt(modelSelect.value || targetHours, 10);
+    const end = new Date(start.getTime() + duration * 3600000);
+    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+    if (startTimeValue) startTimeValue.textContent = fmt(start);
+    if (endTimeValue)   endTimeValue.textContent   = fmt(end);
+  }
 
-    Object.keys(milestones).forEach((p) => {
-      const pi = parseInt(p, 10);
-      if (actualProgress >= pi && !milestones[p]) {
-        showToast(messages[p]);
-        milestones[p] = true;
-      }
-    });
-}
+
 // fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
 // updateTimer 함수를 이 코드로 통째로 교체해주세요.
 function updateTimer() {
@@ -596,6 +464,8 @@ function updateTimer() {
         }
     }
 }
+
+// 단식 시작 및 종료
 
 function startFasting() {
     if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
@@ -683,23 +553,9 @@ async function stopFasting() {
     showToast("단식을 종료했습니다. 수고하셨습니다!");
 }
 
-  function handleModelChange(e) {
-    const newTarget = parseInt(e.target.value, 10);
-    if (fastingState === 'running' && newTarget !== targetHours) {
-      pendingTargetHours = newTarget;
-      if (confirmChangeModal && confirmMessage) {
-        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
-        confirmChangeModal.style.display = 'flex';
-      }
-      e.target.value = targetHours;
-    } else if (fastingState !== 'running') {
-      targetHours = newTarget;
-      updateTimeDisplays();
-    }
-  }
 
 /* =========================
- * 4) 시간 선택 초기화
+ * 시간 선택 초기화
  * ========================= */
 function initializeTimePicker() {
     if (!timePickerModal) return;
@@ -735,7 +591,7 @@ function initializeTimePicker() {
         dayBeforeBtn.classList.remove('active');
     });
 
-    saveTimeBtn?.addEventListener('click', () => {
+    saveTimeBtn?.addEventListener('click', async () => { // <-- 여기에 async 추가!
         timePickerUsed = true; // 사용자가 시간 선택 모달을 사용했다는 깃발을 세움
 
         let hour = parseInt(hourSelect.value, 10);
@@ -752,55 +608,32 @@ function initializeTimePicker() {
         updateTimeDisplays();
         timePickerModal.style.display = 'none';
 
-        if (fastingState === 'running') {
-            localStorage.setItem('fastingStartTime', selectedStartTime.toISOString());
-            updateTimer();
-            showToast('진행 중인 단식의 시작 시간이 변경되었습니다.');
-        }
-    });
-} // <-- 여기에 닫는 괄호 '}'가 필요했습니다.
+        // ▼▼▼ [버그 수정] 시간 정정 로직 ▼▼▼
+            if (fastingState === 'running') {
+                if (!currentUser) return showToast("사용자 정보가 없습니다. 다시 시도해주세요.");
+                
+                try {
+                    // localStorage가 아닌 Firestore에 직접 업데이트
+                    await db.collection('users').doc(currentUser.uid).set({
+                        currentFasting: { 
+                            startTime: selectedStartTime, // 새로 선택된 시간
+                            targetHours: targetHours 
+                        }
+                    }, { merge: true });
 
-function initializeTime() {
-    selectedStartTime = new Date();
-    updateTimeDisplays();
-}
- 
+                    updateTimer(); // DB 업데이트 성공 후 타이머 즉시 갱신
+                    showToast('진행 중인 단식의 시작 시간이 변경되었습니다.');
 
-
-// 선택창 UI를 '단식중' 상태로 업데이트하는 함수
-function updateSelectOptions() {
-    modelSelect.classList.add('is-fasting');
-    const options = modelSelect.options;
-    for (let i = 0; i < options.length; i++) {
-        const option = options[i];
-        // 원래 텍스트를 저장해둠 (예: "16:8 (16시간 단식)")
-        if (!option.dataset.originalText) {
-            option.dataset.originalText = option.textContent;
-        }
-        if (option.value == targetHours) {
-            option.textContent = `${option.dataset.originalText} (진행중)`;
-            option.classList.add('is-running');
-        } else {
-            option.textContent = option.dataset.originalText;
-            option.classList.remove('is-running');
-        }
+                } catch (error) {
+                    console.error("Error updating start time in Firestore:", error);
+                    showToast("시간 변경에 실패했습니다.");
+                }
+            }
+        });
     }
-}
 
-// 선택창 UI를 초기 상태로 되돌리는 함수
-function resetSelectOptions() {
-    modelSelect.classList.remove('is-fasting');
-    const options = modelSelect.options;
-    for (let i = 0; i < options.length; i++) {
-        const option = options[i];
-        if (option.dataset.originalText) {
-            option.textContent = option.dataset.originalText;
-        }
-        option.classList.remove('is-running');
-    }
-}
 
-  /* =========================
+/* =========================
    * 5) 이벤트 바인딩 (1회)
    * ========================= */
   let eventsWired = false;
@@ -974,14 +807,193 @@ saveBloodSugarBtn?.addEventListener('click', async () => {
       .forEach(modal => { if (e.target === modal) modal.style.display = 'none'; });
   });
 
-  // --- 최소 초기화 3종 세트 (안전망) ---
-try {
-  initializeTimePicker();
-  initializeTime();
-  updateUIState();
-  wireEventsOnce();
-} catch(e) {
-  console.warn('초기화 경고:', e);
+
+
+// [헬퍼] 닉네임 칩 업데이트 + 표시
+  function setUserChip(name) {
+    if (!userChip || !userChipName) return;
+    userChipName.textContent = (name && String(name).trim()) || '사용자';
+    userChip.style.display = 'flex';
+  }
+
+  
+    
+
+ async function initializeAppForUser(user) {
+      console.log(user.uid, "님 환영합니다. 앱 초기화를 시작합니다.");
+
+      try {
+        const profile = await getUserDoc(user.uid);
+        console.log("Firestore 프로필 정보:", profile);
+
+        // 1. 닉네임 문제 해결: Firestore 프로필의 닉네임을 사용합니다.
+        const nickname = profile?.displayName || user.displayName || '사용자';
+        if (userChip && userChipName) {
+          userChipName.textContent = nickname;
+          userChip.style.display = 'flex';
+        }
+
+        // 2. 마이페이지 이동 문제 해결: userChip에 클릭 이벤트 추가
+        if (userChip) {
+          userChip.addEventListener('click', () => {
+            // TODO: 마이페이지 경로를 실제 경로로 수정하세요 (예: /mypage.html)
+            window.location.href = '/mypage.html'; 
+          });
+        }
+
+        // 3. Firestore에서 저장된 단식 정보가 있으면 타이머 시작
+        const savedFasting = profile?.currentFasting;
+        if (savedFasting) {
+          // TODO: 단식 정보로 타이머 시작하는 로직
+        } else {
+          // TODO: 단식 중 아닐 때의 초기 UI 설정 로직
+        }
+
+        // TODO: 나머지 모든 이벤트 핸들러 연결
+        // wireEventsOnce();
+
+      } catch (error) {
+        console.error("앱 초기화 중 오류 발생:", error);
+        alert("앱을 초기화하는 데 실패했습니다.");
+      }
+    
+    initializeTimePicker();
+}
+
+   // =================================================================
+    // 6. 메인 로직: 인증 상태 리스너 (모든 작업의 단일 시작점)
+    // =================================================================
+auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user; // 안정적인 사용자 정보를 변수에 저장
+
+            try {
+                const profile = await getUserDoc(user.uid);
+
+                // (3) 프로필 기반으로 화면 UI 업데이트
+                const nickname = profile?.displayName || user.displayName || '사용자';
+                if (userChipName) userChipName.textContent = nickname;
+                if (userChip) userChip.style.display = 'flex';
+                
+                // (4) 저장된 단식 정보가 있다면 타이머 복원, 없으면 초기화
+                const savedFasting = profile?.currentFasting;
+                if (savedFasting && savedFasting.startTime) {
+                    selectedStartTime = savedFasting.startTime.toDate(); // Firestore Timestamp를 Date로 변환
+                    targetHours = savedFasting.targetHours;
+                    fastingState = 'running';
+                    if(fastingInterval) clearInterval(fastingInterval);
+                    fastingInterval = setInterval(updateTimer, 1000);
+                    updateTimer();
+                } else {
+                    fastingState = 'idle';
+                    initializeTime(); // 현재 시간으로 초기화
+                }
+                
+                updateUIState(); // 현재 상태에 맞게 UI 최종 업데이트
+                
+                // (5) 모든 버튼에 이벤트 핸들러를 단 한 번만 연결
+                wireEventsOnce();
+
+            } catch (error) {
+                console.error("앱 초기화 중 오류 발생:", error);
+                alert("앱을 초기화하는 데 실패했습니다. 새로고침 해주세요.");
+            }
+        }
+    });
+
+  
+  function saveLocalList(key, data) {
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.unshift(data);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+
+
+function checkMilestones(progress) {
+    const messages = {
+      10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
+      25: "25% 달성! 순조롭게 진행 중이에요.",
+      50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧",
+      75: "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
+      90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧",
+      110: "110% 초과 달성! 몸이 보내는 신호에 귀를 기울여 주세요.",
+      120: "120% 초과 달성! 정말 대단한 의지입니다!",
+      150: "150% 초과 달성! 새로운 기록을 쓰고 계시는군요!",
+      200: "200% 달성! 컨디션 조절은 필수입니다. 충분한 휴식을 잊지 마세요."
+    };
+
+    // [수정] 이제 progress가 아닌 실제 경과 시간 비율로 계산합니다.
+    const now = new Date();
+    const elapsed = now - selectedStartTime;
+    const target  = parseFloat(targetHours) * 3600000;
+    const actualProgress = (elapsed / target) * 100;
+
+    Object.keys(milestones).forEach((p) => {
+      const pi = parseInt(p, 10);
+      if (actualProgress >= pi && !milestones[p]) {
+        showToast(messages[p]);
+        milestones[p] = true;
+      }
+    });
+}
+
+
+  function handleModelChange(e) {
+    const newTarget = parseInt(e.target.value, 10);
+    if (fastingState === 'running' && newTarget !== targetHours) {
+      pendingTargetHours = newTarget;
+      if (confirmChangeModal && confirmMessage) {
+        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
+        confirmChangeModal.style.display = 'flex';
+      }
+      e.target.value = targetHours;
+    } else if (fastingState !== 'running') {
+      targetHours = newTarget;
+      updateTimeDisplays();
+    }
+  }
+
+
+// 선택창 UI를 '단식중' 상태로 업데이트하는 함수
+function updateSelectOptions() {
+    modelSelect.classList.add('is-fasting');
+    const options = modelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        // 원래 텍스트를 저장해둠 (예: "16:8 (16시간 단식)")
+        if (!option.dataset.originalText) {
+            option.dataset.originalText = option.textContent;
+        }
+        if (option.value == targetHours) {
+            option.textContent = `${option.dataset.originalText} (진행중)`;
+            option.classList.add('is-running');
+        } else {
+            option.textContent = option.dataset.originalText;
+            option.classList.remove('is-running');
+        }
+    }
+}
+
+
+
+// 선택창 UI를 초기 상태로 되돌리는 함수
+function resetSelectOptions() {
+    modelSelect.classList.remove('is-fasting');
+    const options = modelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        if (option.dataset.originalText) {
+            option.textContent = option.dataset.originalText;
+        }
+        option.classList.remove('is-running');
+    }
+}
+
+
+
+function initializeTime() {
+    selectedStartTime = new Date();
+    updateTimeDisplays();
 }
 
 
