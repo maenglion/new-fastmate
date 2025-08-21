@@ -1,21 +1,9 @@
-// firebase-init.js (수정된 최종 버전)
+// /firebase-init.js  — 단일 파일, 최소 로직
 
-// 1. Firebase 앱 초기화 (fastmate 프로젝트의 올바른 설정값)
-const firebaseConfig = {
-  apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-  authDomain: "auth.fastmate.kr",
-  projectId: "fastmate-c1c1",
-  storageBucket: "fastmate-c1c1.appspot.com",
-  messagingSenderId: "879518503068",
-  appId: "1:879518503068:web:a140d3a505e61d9a265691"
-};
-
-// 2. 초기화 중복 실행 방지 및 공용 공간 생성
-// ===== 0) SDK/앱 전역 노출 방지 및 중복 초기화 가드 =====
 if (!window.__AUTH_BOOT__) {
   window.__AUTH_BOOT__ = true;
 
-  // ===== 1) Firebase 앱 초기화 (너가 쓰는 프로젝트 설정 유지) =====
+  // 1) Firebase 초기화 (현재 설정 유지)
   const firebaseConfig = {
     apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
     authDomain: "auth.fastmate.kr",
@@ -25,106 +13,104 @@ if (!window.__AUTH_BOOT__) {
     appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
     measurementId: "G-EX5HR2CB35"
   };
-
-  // SDK v10 compat 전제 (firebase-*-compat.js)
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db   = firebase.firestore();
 
-  // 다른 스크립트에서 쓸 수 있게 안전하게 노출
-  window.firebaseApp = firebase.app();
-  window.auth = auth;
-  window.db   = db;
-
-  // ===== 2) 유틸 =====
-  const isAuthPage = () => /\/(login|signup)\.html$/i.test(location.pathname);
-  const isProtectedPage = () => /\/(fastmate|app|signup-step2)\.html$/i.test(location.pathname);
-
-  function safeGo(to) {
-    if (window.__AUTH_NAVIGATED__) return;
-    window.__AUTH_NAVIGATED__ = true;
-    location.replace(to);
-  }
-
-  async function getUserDoc(uid) {
-    if (!uid) return null;
-    try {
-      const snap = await db.collection('users').doc(uid).get();
-      return snap.exists ? { id: snap.id, ...snap.data() } : null;
-    } catch (e) {
-      console.error('[getUserDoc] fail:', e);
-      return null;
+  // 2) 전역(필요 시 사용할 수 있게)
+  window.fastmateApp = {
+    auth,
+    db,
+    getUserDoc: async (uid) => {
+      if (!uid) return null;
+      try {
+        const s = await db.collection('users').doc(uid).get();
+        return s.exists ? { id: s.id, ...s.data() } : null;
+      } catch (e) { console.error('[getUserDoc]', e); return null; }
     }
-  }
-  window.getUserDoc = getUserDoc; // fastmate.html에서 호출 가능하게 노출
+  };
 
-  async function afterAuth(user, additionalUserInfo) {
-    if (!user) return;
-    try {
-      await db.collection('users').doc(user.uid).set({
-        uid: user.uid,
-        email: user.email || null,
-        displayName: user.displayName || null,
-        photoURL: user.photoURL || null,
-        lastLogin: new Date()
-      }, { merge: true });
-    } catch (e) {
-      console.error("Firestore user update failed:", e);
-    }
-    // 신규/기존 분기
-    additionalUserInfo?.isNewUser ? safeGo('/signup-step2.html') : safeGo('/fastmate.html');
-  }
+  // 3) 라우팅 가드(필요한 최소만)
+  const path = () => location.pathname;
+  const isAuthPage = () => /\/(login|signup)\.html$/i.test(path());
+  const isProtected = () => /\/(fastmate|signup-step2)\.html$/i.test(path()); // app.html 안 씀
+  const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
 
-  // ===== 3) 로그인 함수(버튼 바인딩 전용) =====
+  // 4) 로그인 시작(버튼 클릭용)
   window.signInWithGoogle = function () {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithRedirect(provider).catch(e => {
-      console.error('[signInWithRedirect] error:', e);
-      alert('로그인 시작 중 오류가 발생함');
+      console.error('[signInWithRedirect]', e);
+      alert('로그인 시작 오류 발생함');
     });
   };
 
-  // 버튼 자동 바인딩 (id="google-login-btn")
+  // 5) 로그인 버튼 자동 바인딩(있으면만)
   document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('google-login-btn');
-    if (btn && !btn.__BOUND__) {
-      btn.__BOUND__ = true;
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.signInWithGoogle();
-      });
-    }
+    const btn = document.getElementById('google-login-btn') || document.querySelector('[data-role="google-login"]');
+    if (btn && !btn.__BOUND__) { btn.__BOUND__ = true; btn.addEventListener('click', e => { e.preventDefault(); window.signInWithGoogle(); }); }
   });
 
-  // ===== 4) 초기 인증 플로우 =====
-  (async function initAuthFlow() {
+  // 6) 인증 플로우
+  (async function initAuth() {
     try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-      // 리디렉션 결과 우선 처리
-      const result = await auth.getRedirectResult();
-      if (result?.user) {
-        console.log('[auth] redirect OK:', result.user.uid);
-        await afterAuth(result.user, result.additionalUserInfo);
-        return;
+      // (A) 리디렉션 결과 우선
+      const r = await auth.getRedirectResult();
+      if (r?.user) {
+        try {
+          await db.collection('users').doc(r.user.uid).set({
+            uid: r.user.uid,
+            email: r.user.email || null,
+            displayName: r.user.displayName || null,
+            photoURL: r.user.photoURL || null,
+            lastLogin: new Date()
+          }, { merge: true });
+        } catch (e) { console.error('user upsert fail', e); }
+        return r.additionalUserInfo?.isNewUser ? goOnce('/signup-step2.html') : goOnce('/fastmate.html');
       }
 
-      // 상태 리스너
-      auth.onAuthStateChanged((user) => {
-        console.log('[auth] state:', !!user, 'path=', location.pathname);
+      // (B) 일반 상태 감지
+      auth.onAuthStateChanged(async (user) => {
+        console.log('[auth] state=', !!user, 'path=', path());
         if (user) {
-          // 로그인 상태
-          if (isAuthPage()) safeGo('/fastmate.html');
+          // 로그인 상태에서 로그인/가입 페이지면 앱으로
+          if (isAuthPage()) goOnce('/fastmate.html');
+
+          // ▼ fastmate.html 훅: 페이지 안은 그대로 둔 채 기본 초기화만 보장
+          if (/\/fastmate\.html$/i.test(path())) {
+            try {
+              // 사용자 칩(있을 때만)
+              const userChip = document.getElementById('userChip');
+              const userChipName = document.getElementById('userChipName');
+              if (userChip && userChipName) {
+                userChipName.textContent = user.displayName || '사용자';
+                userChip.style.display = 'flex';
+              }
+
+              // 프로필(있으면 쓰고, 없어도 통과)
+              const profile = await window.fastmateApp.getUserDoc(user.uid);
+              const savedFasting = profile?.currentFasting;
+              if (savedFasting && window.hydrateFastingTimer) {
+                window.hydrateFastingTimer(savedFasting);
+              }
+            } catch (e) { console.warn('[fastmate hook]', e); }
+            // 페이지가 정의해둔 초기화 함수가 있으면 호출, 없어도 통과
+            try { window.initializeTime && window.initializeTime(); } catch(e){}
+            try { window.updateUIState && window.updateUIState(); } catch(e){}
+            // 이벤트 중복 방지 예시(선택)
+            if (!window.__WIRED__) { window.__WIRED__ = true; if (window.wireEventsOnce) try { window.wireEventsOnce(); } catch(e){} }
+          }
         } else {
-          // 비로그인 상태
-          if (isProtectedPage()) safeGo('/login.html');
+          // 비로그인 상태에서 보호 페이지면 로그인으로
+          if (isProtected()) goOnce('/login.html');
         }
       });
-
+  
     } catch (e) {
-      console.error('[auth init] error:', e);
+      console.error('[auth init]', e);
       alert(`인증 초기화 오류: ${e.message}`);
     }
   })();
 }
-
