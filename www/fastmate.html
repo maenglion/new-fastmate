@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<script src="/firebase-init.js"></script>
+<script type="module" defer src="./firebase-init.js"></script>
 <link rel="stylesheet" href="./styles.css">
 
 </head>
@@ -283,8 +283,13 @@
     <!-- Toast Alert -->
     <div id="toast"></div>
 
+
+
+
 <script>
+ 
 document.addEventListener('DOMContentLoaded', () => {
+  
 
 // '선장'이 준비해 둔 공용 도구를 가져옵니다.
     const auth = window.fastmateApp.auth;
@@ -937,6 +942,12 @@ auth.onAuthStateChanged(async user => {
         initializeTime();
         resetSelectOptions(); // 로그아웃 시에도 초기화
         updateUIState();
+
+// 로그아웃 시 로그인 페이지로 이동시키는 로직 추가
+        if (location.pathname !== '/login.html' && location.pathname !== '/signup.html') {
+            location.href = '/login.html';
+        }
+
         return;
     }
 
@@ -1082,6 +1093,7 @@ function resetSelectOptions() {
 function initializeTime() {
     selectedStartTime = new Date();
     updateTimeDisplays();
+    initializeTimePicker();
 }
 
 
