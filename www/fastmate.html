@@ -1000,6 +1000,26 @@ auth.onAuthStateChanged(async user => {
     }
 });
 
+
+// 문제가 생기면 지울 줄 
+function openTimePicker() {
+  if (!timePickerModal) return;
+
+  const now = selectedStartTime || new Date();
+  let h = now.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; h = h ? h : 12;
+
+  hourSelect.value = h;
+  minuteSelect.value = now.getMinutes();
+  ampmSelect.value = ampm;
+
+  // 기본값: 오늘
+  todayBtn?.classList.add('active');
+  dayBeforeBtn?.classList.remove('active');
+
+  timePickerModal.style.display = 'flex';
+}
   
   function saveLocalList(key, data) {
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
