@@ -33,7 +33,8 @@ document.body.classList.remove('oauth-busy');
     </main>
     <!-- 앱 메인 컨텐츠 -->
     <div class="container">
-        <div id="userChip" class="user-chip" style="display:none">
+        <a id="userChip" class="user-chip" href="/mypage.html" style="display:none"> ... </a>
+
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span id="userChipName">-</span>님
         </div>
@@ -828,8 +829,7 @@ function openTimePicker(mode /* 'start'|'end' */) {
     // 종료 버튼은 ‘종료시간 선택 → 저장 시 finalizeStopFasting’ 플로우
     stopBtn?.addEventListener('click', openEndTimePickerForStop);
     modelSelect?.addEventListener('change', handleModelChange);
-
-    userChip?.addEventListener('click', () => { window.location.href = '/mypage.html'; });
+  
 
     confirmYesBtn?.addEventListener('click', () => {
       if (pendingTargetHours == null) return;
