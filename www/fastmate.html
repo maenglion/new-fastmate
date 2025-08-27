@@ -364,6 +364,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
 
+  (() => {
+  const style = document.createElement('style');
+  style.textContent = `
+    #timePickerModal{ z-index:9999 !important; }
+    #timePickerModal .time-picker-content{ transform:none !important; }
+    #timePickerModal select{ pointer-events:auto; -webkit-appearance:menulist; appearance:auto; }
+  `;
+  document.head.appendChild(style);
+})();
+
   // ===== 3) 유틸 =====
   function showToast(msg) {
     if (!toast) return;
@@ -545,32 +555,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ===== 5) 타임피커(시작/종료 공용) =====
-  let timePickerWired = false;
+// 전역 헬퍼 (파일 내 아무 함수보다 위여도 되고, 아래여도 됨)
+function ensureTimepickerOptions() {
+  if (hourSelect && hourSelect.options.length === 0) {
+    for (let i = 1; i <= 12; i++) {
+      const o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = String(i);
+      hourSelect.appendChild(o);
+    }
+  }
+  if (minuteSelect && minuteSelect.options.length === 0) {
+    for (let i = 0; i < 60; i++) {
+      const o = document.createElement('option');
+      o.value = String(i);                  // 값: 0~59 (패딩 X)
+      o.textContent = String(i).padStart(2,'0'); // 표시: 00~59
+      minuteSelect.appendChild(o);
+    }
+  }
+}
+
+let timePickerWired = false;
 function initializeTimePicker() {
   if (!timePickerModal || timePickerWired) return;
   timePickerWired = true;
 
-  // 옵션 주입 (한 번만)
-  const ensureOptions = () => {
-    if (hourSelect && hourSelect.options.length === 0) {
-      for (let i = 1; i <= 12; i++) {
-        const opt = document.createElement('option');
-        opt.value = String(i);
-        opt.textContent = String(i);
-        hourSelect.appendChild(opt);
-      }
-    }
-    if (minuteSelect && minuteSelect.options.length === 0) {
-      for (let i = 0; i < 60; i++) {
-        const opt = document.createElement('option');
-        opt.value = String(i);
-        opt.textContent = String(i).padStart(2, '0');
-        minuteSelect.appendChild(opt);
-      }
-    }
-  };
-  ensureOptions();
+  ensureTimepickerOptions(); // ← 호출만
+
+
 
   // 시작시간 박스 클릭 → 'start' 모드 모달
   startTimeBox?.addEventListener('click', () => openTimePicker('start'));
@@ -647,28 +659,31 @@ function initializeTimePicker() {
 }
 
 
-  function openTimePicker(mode /* 'start'|'end' */) {
+// openTimePicker(mode) 전체 교체
+function openTimePicker(mode /* 'start'|'end' */) {
   if (!timePickerModal) return;
   timePickerMode = mode;
 
-  // 최상단 보장 (일부 환경에서 드롭다운이 오버레이 뒤로 깔리는 문제 회피)
+  // 옵션이 비어있을 가능성 방지
+  ensureTimepickerOptions();
+
+  // 최상단 보장
   timePickerModal.style.zIndex = '9999';
   timePickerModal.style.display = 'flex';
 
-  // 타이틀
+  // 타이틀 & 기본값: 종료(end)는 "지금", 시작(start)은 selectedStartTime
   const title = (mode === 'start') ? '시작 시간 선택' : '종료 시간 선택';
-  const base  = (mode === 'start') ? (selectedStartTime || new Date()) : new Date(); // ← 종료는 “지금”이 기본값!
+  const base  = (mode === 'start') ? (selectedStartTime || new Date()) : new Date();
 
-  // 기본값 채우기
   let h = base.getHours();
   const ampm = h >= 12 ? 'PM' : 'AM';
   h = h % 12; h = h ? h : 12;
 
-  if (ampmSelect) ampmSelect.value = ampm;
-  if (hourSelect) hourSelect.value = String(h);
-  if (minuteSelect) minuteSelect.value = String(base.getMinutes());
+  if (ampmSelect)  ampmSelect.value  = ampm;
+  if (hourSelect)  hourSelect.value  = String(h);
+  if (minuteSelect) minuteSelect.value = String(base.getMinutes()); // 값은 '2' 형태(패딩X)
 
-  // 날짜 버튼: 종료는 무조건 '오늘' 기본
+  // 날짜 버튼: 종료는 무조건 '오늘'
   todayBtn?.classList.add('active');
   dayBeforeBtn?.classList.remove('active');
 
