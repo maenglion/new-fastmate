@@ -18,7 +18,7 @@ if (!window.__AUTH_BOOT__) {
   const db   = firebase.firestore();
 
   // 2) 전역(필요 시 사용할 수 있게)
-window.fastmateApp = {
+ window.fastmateApp = {
     auth,
     db,
     getUserDoc: async (uid) => {
@@ -27,25 +27,6 @@ window.fastmateApp = {
         const s = await db.collection('users').doc(uid).get();
         return s.exists ? { id: s.id, ...s.data() } : null;
       } catch (e) { console.error('[getUserDoc]', e); return null; }
-    },
-    sendPasswordReset: function() {
-      const emailInput = document.getElementById('reset-email'); 
-      if (!emailInput) return; 
-
-      const email = emailInput.value;
-      if (!email) {
-        alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
-        return;
-      }
-
-      auth.sendPasswordResetEmail(email)
-        .then(() => {
-          alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
-        })
-        .catch((error) => {
-          console.error("Password reset error:", error);
-          alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
-        });
     },
     signOutUser: function() {
       auth.signOut()
@@ -58,9 +39,12 @@ window.fastmateApp = {
           alert('로그아웃 중 오류가 발생했습니다.');
         });
     }
+    // 참고: sendPasswordReset 함수는 login.html 페이지에서만 필요하므로 여기서는 제외해도 됩니다.
   };
 
-
+  // =================================================================
+  // ▼▼▼ 인증 준비 완료를 알려주는 Promise 생성 (핵심 로직) ▼▼▼
+  // =================================================================
   let authReadyResolver;
   window.fastmateApp.authReady = new Promise((resolve) => {
     authReadyResolver = resolve; // resolve 함수를 외부에서 호출할 수 있도록 저장
@@ -81,70 +65,82 @@ window.signInWithGoogle = async function () {
 
   // Capacitor 앱 환경인지 확인
   if (window.Capacitor?.isNativePlatform()) {
-    // --- 앱(안드로이드/iOS)을 위한 네이티브 로그인 코드 ---
-    try {
-      console.log('FirebaseAuthentication 플러그인 객체:', window.FirebaseAuthentication);
-      const result = await window.FirebaseAuthentication.signInWithGoogle();
-      await auth.signInWithCustomToken(result.token);
-      console.log("네이티브 로그인 성공!", result.user);
+       try {
+      // ⬇️ 여기 3줄이 핵심
+      const { credential } = await window.FirebaseAuthentication.signInWithGoogle();
+      const googleCred = firebase.auth.GoogleAuthProvider.credential(credential?.idToken);
+      await firebase.auth().signInWithCredential(googleCred);
+      console.log("웹 로그인 성공!");
     } catch (error) {
       if (error.message !== 'canceled') {
-        console.error("네이티브 로그인 오류", error);
-        alert('네이티브 로그인에 실패했습니다.');
+        console.error("웹 로그인 오류", error);
+        alert('웹 로그인에 실패했습니다.');
       }
     }
   } else {
-    // --- 일반 웹사이트를 위한 팝업 로그인 코드 ---
     try {
-      const result = await auth.signInWithPopup(provider);
-      console.log("웹 로그인 성공!", result.user);
+      await auth.signInWithPopup(provider);
     } catch (error) {
-      console.error("웹 로그인 오류", error);
-      alert('로그인에 실패했습니다: ' + error.message);
+      // 팝업 차단 시엔 자동으로 리다이렉트로 폴백
+      if (error.code === 'auth/popup-blocked') {
+        await auth.signInWithRedirect(provider);
+      } else {
+        console.error("웹 로그인 오류", error);
+        alert('로그인에 실패했습니다: ' + error.message);
+      }
     }
   }
-};
+};;
 
   // 5) 로그인 버튼 자동 바인딩(있으면만)
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('google-login-btn') || document.querySelector('[data-role="google-login"]');
-    if (btn && !btn.__BOUND__) { btn.__BOUND__ = true; btn.addEventListener('click', e => { e.preventDefault(); window.signInWithGoogle(); }); }
-  });
-
-// 로그인/비밀번호찾기 버튼 자동 바인딩
 document.addEventListener('DOMContentLoaded', () => {
-    // 구글 로그인 버튼 자동 연결
-    const googleBtn = document.getElementById('google-login-btn');
-    if (googleBtn) {
-        googleBtn.addEventListener('click', window.signInWithGoogle);
-    }
+  // 구글 로그인 버튼 자동 연결
+  const googleBtn = document.getElementById('google-login-btn') 
+                 || document.querySelector('[data-role="google-login"]');
+  if (googleBtn && !googleBtn.__BOUND__) {            // ⬅️ 가드 추가
+    googleBtn.__BOUND__ = true;                       // ⬅️ 가드 추가
+    googleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.signInWithGoogle();
+    });
+  }
 
-    // 비밀번호 재설정 버튼 자동 연결
-    const resetBtn = document.getElementById('send-reset-email-btn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            const emailInput = document.getElementById('reset-email');
-            const email = emailInput ? emailInput.value : null;
-
-            if (!email) {
-                alert('이메일 주소를 입력해주세요.');
-                return;
-            }
-
-            auth.sendPasswordResetEmail(email)
-                .then(() => {
-                    alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
-                })
-                .catch((error) => {
-                    console.error("Password reset error:", error);
-                    alert(`오류가 발생했습니다: ${error.message}`);
-                });
-        });
-    }
+  // 비밀번호 재설정 버튼 자동 연결 (기존 그대로)
+  const resetBtn = document.getElementById('send-reset-email-btn');
+  if (resetBtn && !resetBtn.__BOUND__) {              // ⬅️(선택) 중복 방지
+    resetBtn.__BOUND__ = true;
+    resetBtn.addEventListener('click', () => {
+      const emailInput = document.getElementById('reset-email');
+      const email = emailInput ? emailInput.value : null;
+      if (!email) return alert('이메일 주소를 입력해주세요.');
+      auth.sendPasswordResetEmail(email)
+          .then(() => alert(`'${email}' 로 재설정 메일을 보냈습니다.`))
+          .catch((error) => {
+            console.error("Password reset error:", error);
+            alert(`오류가 발생했습니다: ${error.message}`);
+          });
+    });
+  }
 });
 
   // 6) 인증 플로우
-(async function initAuth() {
+// 4) 인증 플로우 실행
+  (async function initAuth() {
+    
+    // =================================================================
+    // ▼▼▼ [버그 수정] showApp 함수를 initAuth 내부로 이동 ▼▼▼
+    // =================================================================
+    function showApp() {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => { 
+          splash.style.display = 'none'; 
+        }, 500);
+      }
+      document.body.classList.add('loaded');
+    }
+
     try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
@@ -161,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }, { merge: true });
         } catch (e) { console.error('user upsert fail', e); }
         
-        // 리디렉션 후에는 Promise를 즉시 resolve하고 페이지 이동
         authReadyResolver(r.user);
         const destination = r.additionalUserInfo?.isNewUser ? '/signup-step2.html' : '/fastmate.html';
         if (location.pathname !== destination) {
@@ -172,27 +167,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // (B) 일반 상태 감지 리스너
       let resolved = false;
-      auth.onAuthStateChanged(async (user) => {
-        console.log('[auth] state=', !!user, 'path=', location.pathname);
+       auth.onAuthStateChanged(async (user) => {
+    console.log('[auth] state=', !!user, 'path=', location.pathname);
+    showApp();
 
-        // ▼▼▼ [핵심 수정] 페이지 이동(리디렉션) 로직 제거 ▼▼▼
-        // 페이지 이동은 각 페이지가 authReady를 기다린 후 직접 처리합니다.
-        
-        // 스플래시 스크린은 여기서 숨겨줍니다.
-        showApp();
-        
-        // 첫 인증 상태가 확정되면 authReady Promise를 resolve합니다.
-        if (!resolved) {
-          resolved = true;
-          authReadyResolver(user);
-        }
-      });
-
-    } catch (e) {
-      console.error('[auth init]', e);
-      alert(`인증 초기화 오류: ${e.message}`);
-      showApp(); 
-      authReadyResolver(null); // 오류 발생 시에도 Promise를 풀어주어 무한 대기 방지
+    const p = location.pathname;
+    if (!user && /\/(fastmate|signup-step2)\.html$/i.test(p)) { 
+      location.replace('/login.html'); 
+      return;                     // ← 선택: 리다이렉트 후 추가 실행 방지
     }
-  })();
+    if ( user && /\/(login|signup)\.html$/i.test(p)) { 
+      location.replace('/fastmate.html'); 
+      return;                     // ← 선택
+    }
+
+    if (!resolved) { resolved = true; authReadyResolver(user); }
+  });
+
+} catch (e) {
+  console.error('[auth init]', e);
+  alert(`인증 초기화 오류: ${e.message}`);
+  showApp();
+  authReadyResolver(null);
+}
+})();   // ← IIFE 닫기
 }
