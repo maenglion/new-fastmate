@@ -19,10 +19,9 @@
 
 </head>
 <body>
-  <script>
-if (sessionStorage.getItem('oauthBusy') === '1') {
-  document.body.classList.add('oauth-busy');
-}
+<script>
+sessionStorage.removeItem('oauthBusy');
+document.body.classList.remove('oauth-busy');
 </script>
   <div id="splash-screen">
     <div class="splash-content">
@@ -752,8 +751,7 @@ function openTimePicker(mode /* 'start'|'end' */) {
   if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
   openTimePicker('end'); // 종료시간 선택 띄우기 (기본값=지금)
   }
-  stopBtn?.addEventListener('click', openEndTimePickerForStop);
-
+  
   // 실제 종료 처리 (선택된 종료시간 사용)
   async function finalizeStopFasting(endDate /* Date */) {
     if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
