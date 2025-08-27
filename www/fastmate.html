@@ -19,9 +19,10 @@
 
 </head>
 <body>
-<script>
-sessionStorage.removeItem('oauthBusy');
-document.body.classList.remove('oauth-busy');
+  <script>
+if (sessionStorage.getItem('oauthBusy') === '1') {
+  document.body.classList.add('oauth-busy');
+}
 </script>
   <div id="splash-screen">
     <div class="splash-content">
@@ -33,8 +34,7 @@ document.body.classList.remove('oauth-busy');
     </main>
     <!-- 앱 메인 컨텐츠 -->
     <div class="container">
-        <a id="userChip" class="user-chip" href="/mypage.html" style="display:none"> ... </a>
-
+        <div id="userChip" class="user-chip" style="display:none">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span id="userChipName">-</span>님
         </div>
@@ -298,16 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const app = window.fastmateApp || {};
   const auth = app.auth;
   const db   = app.db;
- const getUserDoc = app.getUserDoc || (async (uid) => {
-  try {
-    const snap = await db.collection('users').doc(uid).get();
-    return snap.exists ? snap.data() : null;
-  } catch (e) {
-    console.warn('getUserDoc fallback error', e);
-    return null;
-  }
-});
-
+  const getUserDoc = app.getUserDoc || (async () => null);
 
   // ===== 1) DOM 캐시 =====
   const userChip        = document.getElementById('userChip');
@@ -761,7 +752,8 @@ function openTimePicker(mode /* 'start'|'end' */) {
   if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
   openTimePicker('end'); // 종료시간 선택 띄우기 (기본값=지금)
   }
-  
+  stopBtn?.addEventListener('click', openEndTimePickerForStop);
+
   // 실제 종료 처리 (선택된 종료시간 사용)
   async function finalizeStopFasting(endDate /* Date */) {
     if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
@@ -829,7 +821,8 @@ function openTimePicker(mode /* 'start'|'end' */) {
     // 종료 버튼은 ‘종료시간 선택 → 저장 시 finalizeStopFasting’ 플로우
     stopBtn?.addEventListener('click', openEndTimePickerForStop);
     modelSelect?.addEventListener('change', handleModelChange);
-  
+
+    userChip?.addEventListener('click', () => { window.location.href = '/mypage.html'; });
 
     confirmYesBtn?.addEventListener('click', () => {
       if (pendingTargetHours == null) return;
@@ -977,49 +970,38 @@ function openTimePicker(mode /* 'start'|'end' */) {
     localStorage.setItem(key, JSON.stringify(arr));
   }
 
-  /* ===== 9) 인증 리스너 ===== */
-if (!window.__PAGE_AUTH_WIRED__) {
-  window.__PAGE_AUTH_WIRED__ = true;
-
-  if (!auth) {
-    // Firebase가 아직 안 올라왔을 때의 안전 가드
-    initializeTime();
-    resetSelectOptions();
-    updateUIState();
-  } else {
+  // ===== 9) 인증 리스너 =====
+  if (auth) {
     auth.onAuthStateChanged(async (user) => {
       if (!user) {
-        // 라우팅은 firebase-init.js가 처리 — 여기서는 이동 금지
-        currentUser  = null;
-        fastingState = 'idle';
+        currentUser   = null;
+        fastingState  = 'idle';
         initializeTime();
         resetSelectOptions();
         updateUIState();
-        // (선택) 유저칩 숨김
-        if (userChip) userChip.style.display = 'none';
+
+        if (location.pathname !== '/login.html' && location.pathname !== '/signup.html') {
+          location.href = '/login.html';
+        }
         return;
       }
 
       currentUser = user;
 
       try {
-        const profile  = await getUserDoc(user.uid);
+        const profile = await getUserDoc(user.uid);
         const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
         setUserChip(nickname);
 
         const savedFasting = profile?.currentFasting;
         if (savedFasting?.startTime) {
           fastingState = 'running';
-          selectedStartTime = (savedFasting.startTime.toDate
-            ? savedFasting.startTime.toDate()
-            : new Date(savedFasting.startTime));
+          selectedStartTime = (savedFasting.startTime.toDate ? savedFasting.startTime.toDate() : new Date(savedFasting.startTime));
           targetHours = Number(savedFasting.targetHours) || 16;
           if (modelSelect) modelSelect.value = String(targetHours);
-
           if (fastingInterval) clearInterval(fastingInterval);
           fastingInterval = setInterval(updateTimer, 1000);
-
-          updateTimer();
+          updateTimer();          // 즉시 갱신
           updateTimeDisplays();
           updateSelectOptions();
         } else {
@@ -1030,15 +1012,20 @@ if (!window.__PAGE_AUTH_WIRED__) {
         }
 
         updateUIState();
-        if (saltTip)
-          saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+        if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
 
+        // 이벤트는 1회만 바인딩
         wireEventsOnce();
-      } catch (e) {
-        console.error('앱 초기화 중 오류:', e);
+
+      } catch (error) {
+        console.error('앱 초기화 중 오류:', error);
         alert('앱 초기화 실패. 새로고침 해주세요.');
       }
     });
+  } else {
+    // auth가 아직 없을 때도 타임피커는 동작하도록 와이어
+    initializeTime();
+    wireEventsOnce();
   }
-}
 });
+</script>
