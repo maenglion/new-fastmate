@@ -19,6 +19,11 @@
 
 </head>
 <body>
+  <script>
+if (sessionStorage.getItem('oauthBusy') === '1') {
+  document.body.classList.add('oauth-busy');
+}
+</script>
   <div id="splash-screen">
     <div class="splash-content">
       <h1 class="splash-title">fastmate</h1>
@@ -287,9 +292,6 @@
 
 
 <script>
-if (sessionStorage.getItem('oauthBusy') === '1') {
-  document.body.classList.add('oauth-busy');
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   // ===== 0) Firebase 핸들(선행 스크립트에서 노출됨) =====
