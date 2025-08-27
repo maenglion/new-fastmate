@@ -72,13 +72,50 @@ if (!window.__AUTH_BOOT__) {
   const toUrl = (base) => `/${base}${/\.html$/i.test(path()) ? '.html' : ''}`; // 현재 URL 스타일 따라감
 
   // 4) 로그인 시작(버튼 클릭용)
-  window.signInWithGoogle = function () {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithRedirect(provider).catch(e => {
-      console.error('[signInWithRedirect]', e);
-      alert('로그인 시작 오류 발생함');
+
+window.signInWithGoogle = function () {
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  // 플래그: OAuth 중엔 스플래시만 보이게
+  sessionStorage.setItem('oauthBusy', '1');
+  document.body.classList.add('oauth-busy');
+
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  const preferRedirect = (isIOS && !standalone) || isSafari; // iOS 웹뷰/Safari는 redirect가 안전
+
+  if (preferRedirect) {
+    firebase.auth().signInWithRedirect(provider).catch(err => {
+      sessionStorage.removeItem('oauthBusy');
+      document.body.classList.remove('oauth-busy');
+      console.error(err); alert('로그인 시작 오류');
     });
-  };
+  } else {
+    firebase.auth().signInWithPopup(provider).then(async (r) => {
+      // 사용자 upsert
+      const u = r.user;
+      try {
+        await firebase.firestore().collection('users').doc(u.uid).set({
+          uid: u.uid, email: u.email || null,
+          displayName: u.displayName || null, photoURL: u.photoURL || null,
+          lastLogin: new Date()
+        }, { merge: true });
+      } catch(e){ console.warn('upsert fail', e); }
+
+      // 바로 진입
+      location.replace('/fastmate.html');
+    }).catch(err => {
+      console.error(err); alert('로그인 실패');
+    }).finally(() => {
+      sessionStorage.removeItem('oauthBusy');
+      document.body.classList.remove('oauth-busy');
+    });
+  }
+};
+
+
 
   // 5) 로그인/비밀번호찾기 버튼 자동 바인딩(있으면만)
   document.addEventListener('DOMContentLoaded', () => {
