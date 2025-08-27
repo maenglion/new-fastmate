@@ -1,24 +1,24 @@
-// /firebase-init.js  — 단일 파일, 최소 로직
+// /firebase-init.js — 단일 파일, 최소 로직
 
 if (!window.__AUTH_BOOT__) {
   window.__AUTH_BOOT__ = true;
 
-  // 1) Firebase 초기화 (현재 설정 유지)
+  // 1) Firebase 초기화
   const firebaseConfig = {
-  apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-  authDomain: "auth.fastmate.kr",
-  projectId: "fasting-b4ccb",
-  storageBucket: "fasting-b4ccb.firebasestorage.app",
-  messagingSenderId: "879518503068",
-  appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
-  measurementId: "G-EX5HR2CB35"
+    apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
+    authDomain: "auth.fastmate.kr",
+    projectId: "fasting-b4ccb",
+    storageBucket: "fasting-b4ccb.firebasestorage.app",
+    messagingSenderId: "879518503068",
+    appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
+    measurementId: "G-EX5HR2CB35"
   };
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db   = firebase.firestore();
 
-  // 2) 전역(필요 시 사용할 수 있게)
- window.fastmateApp = {
+  // 2) 전역 앱 객체
+  window.fastmateApp = {
     auth,
     db,
     getUserDoc: async (uid) => {
@@ -41,29 +41,14 @@ if (!window.__AUTH_BOOT__) {
     }
   };
 
-  // =================================================================
-  // ▼▼▼ 인증 준비 완료를 알려주는 Promise 생성 (핵심 로직) ▼▼▼
-  // =================================================================
+  // 3) 인증 준비 완료 Promise 생성 (핵심)
   let authReadyResolver;
   window.fastmateApp.authReady = new Promise((resolve) => {
-    authReadyResolver = resolve; // resolve 함수를 외부에서 호출할 수 있도록 저장
+    authReadyResolver = resolve;
   });
 
-  
-  // 3) 라우팅 가드(필요한 최소만)
-
-// 변경 (확장자 유무/슬래시 허용)
-const AUTH_RE = /\/(login|signup)(?:\.html)?(?:\/)?$/i;
-const APP_RE  = /\/(fastmate|signup-step2)(?:\.html)?(?:\/)?$/i;
-
-const p = location.pathname;
-if (!user && APP_RE.test(p))  location.replace('/login');     // 확장자 없는 경로로 통일
-if ( user && AUTH_RE.test(p)) location.replace('/fastmate');  // 확장자 없는 경로로 통일
-
-  // 4) 로그인 시작(버튼 클릭용)
-// Firebase JS SDK에서 가져오는 것이 아니라, Capacitor 플러그인을 직접 사용합니다.
-
- window.signInWithGoogle = async function () {
+  // 4) 구글 로그인 함수 (네이티브/웹 분기 처리)
+  window.signInWithGoogle = async function () {
     const provider = new firebase.auth.GoogleAuthProvider();
 
     if (window.Capacitor?.isNativePlatform() && window.FirebaseAuthentication) {
@@ -71,16 +56,14 @@ if ( user && AUTH_RE.test(p)) location.replace('/fastmate');  // 확장자 없�
         const result = await window.FirebaseAuthentication.signInWithGoogle();
         const googleCred = firebase.auth.GoogleAuthProvider.credential(result.credential?.idToken);
         await firebase.auth().signInWithCredential(googleCred);
-        console.log("웹 로그인 성공!");
-        // 신규 유저면 온보딩으로, 아니면 앱으로
-const isNew = !!result?.additionalUserInfo?.isNewUser;
-location.replace(isNew ? '/signup-step2' : '/fastmate');
+        console.log("네이티브 로그인 성공!");
+        // 네이티브 로그인 성공 후 페이지 이동은 onAuthStateChanged가 처리하도록 둡니다.
       } catch (error) {
         if (error.message && error.message.toLowerCase().includes('canceled')) {
-           console.log('웹 로그인이 사용자에 의해 취소되었습니다.');
+           console.log('네이티브 로그인이 사용자에 의해 취소되었습니다.');
         } else {
-          console.error("웹 로그인 오류", error);
-          alert('웹 로그인에 실패했습니다.');
+          console.error("네이티브 로그인 오류", error);
+          alert('네이티브 로그인에 실패했습니다.');
         }
       }
     } else {
@@ -101,42 +84,29 @@ location.replace(isNew ? '/signup-step2' : '/fastmate');
     }
   };
 
-  // 5) 로그인 버튼 자동 바인딩(있으면만)
-document.addEventListener('DOMContentLoaded', () => {
-  // 구글 로그인 버튼 자동 연결
-  const googleBtn = document.getElementById('google-login-btn') 
-                 || document.querySelector('[data-role="google-login"]');
-  if (googleBtn && !googleBtn.__BOUND__) {            // ⬅️ 가드 추가
-    googleBtn.__BOUND__ = true;                       // ⬅️ 가드 추가
-    googleBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.signInWithGoogle();
-    });
-  }
+  // 5) 로그인 버튼 자동 바인딩
+  document.addEventListener('DOMContentLoaded', () => {
+    const googleBtn = document.getElementById('google-login-btn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', window.signInWithGoogle);
+    }
+  });
 
-  // 비밀번호 재설정 버튼 자동 연결 (기존 그대로)
-  const resetBtn = document.getElementById('send-reset-email-btn');
-  if (resetBtn && !resetBtn.__BOUND__) {              // ⬅️(선택) 중복 방지
-    resetBtn.__BOUND__ = true;
-    resetBtn.addEventListener('click', () => {
-      const emailInput = document.getElementById('reset-email');
-      const email = emailInput ? emailInput.value : null;
-      if (!email) return alert('이메일 주소를 입력해주세요.');
-      auth.sendPasswordResetEmail(email)
-          .then(() => alert(`'${email}' 로 재설정 메일을 보냈습니다.`))
-          .catch((error) => {
-            console.error("Password reset error:", error);
-            alert(`오류가 발생했습니다: ${error.message}`);
-          });
-    });
-  }
-});
-
-  // 6) 인증 플로우
-// 4) 인증 플로우 실행
+  // 6) 인증 플로우 실행
   (async function initAuth() {
     
-     try {
+    function showApp() {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => { 
+          splash.style.display = 'none'; 
+        }, 500);
+      }
+      document.body.classList.add('loaded');
+    }
+
+    try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
       const r = await auth.getRedirectResult();
@@ -151,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }, { merge: true });
         } catch (e) { console.error('user upsert fail', e); }
         
+        // 리디렉션 후에는 authReady를 즉시 resolve하고 페이지를 이동시킵니다.
         authReadyResolver(r.user);
         const destination = r.additionalUserInfo?.isNewUser ? '/signup-step2.html' : '/fastmate.html';
         if (location.pathname !== destination) {
@@ -163,10 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(async (user) => {
         console.log('[auth] state=', !!user, 'path=', location.pathname);
         showApp();
-        
-        // =================================================================
-        // ▼▼▼ [핵심 수정] 충돌을 일으키는 리디렉션 로직을 모두 제거합니다. ▼▼▼
-        // =================================================================
         
         // 첫 인증 상태가 확정되면 authReady Promise를 resolve합니다.
         // 페이지 이동은 각 페이지(fastmate.html, login.html)가 이 신호를 받은 후 직접 처리합니다.
