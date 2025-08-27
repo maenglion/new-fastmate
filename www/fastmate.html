@@ -654,21 +654,6 @@ function initializeTimePicker() {
     minuteSelect.innerHTML = '';
     for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
 
-    startTimeBox?.addEventListener('click', () => {
-        if (fastingState === 'running') {
-            // 단식 중에도 모달을 열 수 있도록 허용 (이전 수정 사항 반영)
-        }
-        const now = selectedStartTime;
-        let h = now.getHours();
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12;
-        h = h ? h : 12;
-        hourSelect.value = h;
-        minuteSelect.value = now.getMinutes();
-        ampmSelect.value = ampm;
-        timePickerModal.style.display = 'flex';
-    });
-
     dayBeforeBtn?.addEventListener('click', () => {
         dayBeforeBtn.classList.add('active');
         todayBtn.classList.remove('active');
@@ -719,6 +704,9 @@ function initializeTimePicker() {
             }
         });
     }
+// DOM과 함수 선언이 끝난 시점에 1회만 실행
+wireEventsOnce();
+initializeTimePicker();
 
 
 /* =========================
@@ -962,7 +950,7 @@ if (!user) { showToast('로그인이 필요합니다.'); return; }
         alert("앱을 초기화하는 데 실패했습니다.");
       }
     
-    initializeTimePicker();
+    
 }
 
 // 문제가 생기면 지울 줄 
