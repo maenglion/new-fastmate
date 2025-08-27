@@ -297,7 +297,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const app = window.fastmateApp || {};
   const auth = app.auth;
   const db   = app.db;
-  const getUserDoc = app.getUserDoc || (async () => null);
+ const getUserDoc = app.getUserDoc || (async (uid) => {
+  try {
+    const snap = await db.collection('users').doc(uid).get();
+    return snap.exists ? snap.data() : null;
+  } catch (e) {
+    console.warn('getUserDoc fallback error', e);
+    return null;
+  }
+});
+
 
   // ===== 1) DOM 캐시 =====
   const userChip        = document.getElementById('userChip');
