@@ -95,6 +95,7 @@ if (!window.__AUTH_BOOT__) {
   // 6) 인증 플로우 실행
   (async function initAuth() {
     
+    // [수정] showApp 함수를 initAuth 내부 최상단으로 이동
     function showApp() {
       const splash = document.getElementById('splash-screen');
       if (splash) {
@@ -121,7 +122,6 @@ if (!window.__AUTH_BOOT__) {
           }, { merge: true });
         } catch (e) { console.error('user upsert fail', e); }
         
-        // 리디렉션 후에는 authReady를 즉시 resolve하고 페이지를 이동시킵니다.
         authReadyResolver(r.user);
         const destination = r.additionalUserInfo?.isNewUser ? '/signup-step2.html' : '/fastmate.html';
         if (location.pathname !== destination) {
@@ -135,8 +135,6 @@ if (!window.__AUTH_BOOT__) {
         console.log('[auth] state=', !!user, 'path=', location.pathname);
         showApp();
         
-        // 첫 인증 상태가 확정되면 authReady Promise를 resolve합니다.
-        // 페이지 이동은 각 페이지(fastmate.html, login.html)가 이 신호를 받은 후 직접 처리합니다.
         if (!resolved) {
           resolved = true;
           authReadyResolver(user);
