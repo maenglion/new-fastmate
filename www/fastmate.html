@@ -14,8 +14,8 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<script type="module" defer src="./firebase-init.js"></script>
-<link rel="stylesheet" href="./styles.css">
+    <script type="module" defer src="./firebase-init.js?v=20250827"></script>
+    <link rel="stylesheet" href="./styles.css">
 
 </head>
 <body>
@@ -287,36 +287,6 @@
 
 
 <script>
- 
-document.addEventListener('DOMContentLoaded', async () => {
-
-    // --- 1. 인증 상태가 준비될 때까지 기다리고, 비로그인 사용자는 즉시 리디렉션 ---
-  try {
-    // firebase-init.js에 만들어 둔 authReady Promise를 기다립니다.
-    const user = await window.fastmateApp.authReady;
-    
-    // Promise가 user 객체(로그인) 또는 null(로그아웃)로 resolve됩니다.
-    if (!user) {
-      // 사용자가 없으면 로그인 페이지로 보냅니다.
-      // location.replace를 사용해 뒤로가기 히스토리를 남기지 않습니다.
-      location.replace('/login.html');
-      // 리디렉션 후 아래 코드가 실행되지 않도록 여기서 중단합니다.
-      return; 
-    }
-    
-    // 이 지점은 사용자가 확실히 로그인된 상태입니다.
-    // 사용자 정보를 기반으로 앱 초기화를 진행합니다.
-    initializeAppForUser(user);
-
-  } catch (e) {
-    console.error("인증 가드 실행 중 오류:", e);
-    alert("인증 상태를 확인하는 중 문제가 발생했습니다. 페이지를 새로고침해주세요.");
-    // 오류 발생 시에도 로그인 페이지로 보내 안전을 확보합니다.
-    location.replace('/login.html');
-    return;
-  }
-
-  
 
 // '선장'이 준비해 둔 공용 도구를 가져옵니다.
     const auth = window.fastmateApp.auth;
@@ -382,6 +352,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   let pendingTargetHours = null;
   let toastTimeout     = null;
   let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
+
+ 
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // --- 1. 인증 상태가 준비될 때까지 기다리고, 비로그인 사용자는 즉시 리디렉션 ---
+  try {
+    // firebase-init.js에 만들어 둔 authReady Promise를 기다립니다.
+    const user = await window.fastmateApp.authReady;
+    
+    // Promise가 user 객체(로그인) 또는 null(로그아웃)로 resolve됩니다.
+    if (!user) {
+      // 사용자가 없으면 로그인 페이지로 보냅니다.
+      // location.replace를 사용해 뒤로가기 히스토리를 남기지 않습니다.
+      location.replace('/login.html');
+      // 리디렉션 후 아래 코드가 실행되지 않도록 여기서 중단합니다.
+      return; 
+    }
+    
+    // 이 지점은 사용자가 확실히 로그인된 상태입니다.
+    // 사용자 정보를 기반으로 앱 초기화를 진행합니다.
+    initializeAppForUser(user);
+
+  } catch (e) {
+    console.error("인증 가드 실행 중 오류:", e);
+    alert("인증 상태를 확인하는 중 문제가 발생했습니다. 페이지를 새로고침해주세요.");
+    // 오류 발생 시에도 로그인 페이지로 보내 안전을 확보합니다.
+    location.replace('/login.html');
+    return;
+  }
+
+  
+
 
 
 
