@@ -287,78 +287,85 @@
 
 
 <script>
- 
 document.addEventListener('DOMContentLoaded', () => {
-  
+  // ===== 0) Firebase 핸들(선행 스크립트에서 노출됨) =====
+  const app = window.fastmateApp || {};
+  const auth = app.auth;
+  const db   = app.db;
+  const getUserDoc = app.getUserDoc || (async () => null);
 
-// '선장'이 준비해 둔 공용 도구를 가져옵니다.
-    const auth = window.fastmateApp.auth;
-    const db = window.fastmateApp.db;
-    const getUserDoc = window.fastmateApp.getUserDoc;
-    let currentUser = null; // 로그인된 사용자 정보를 안정적으로 저장할 변수  
-
-    // 이 페이지에서 사용할 DOM 요소들을 미리 찾아둡니다.
-    const userChip = document.getElementById('userChip');
-    const userChipName = document.getElementById('userChipName');
-     const progressArc      = document.getElementById('progressArc');
+  // ===== 1) DOM 캐시 =====
+  const userChip        = document.getElementById('userChip');
+  const userChipName    = document.getElementById('userChipName');
+  const progressArc     = document.getElementById('progressArc');
   const completionOverlay = document.getElementById('completionOverlay');
-  const remainingTimeEl  = document.getElementById('remainingTime');
-  const statusMessage    = document.getElementById('status-message');
-  const saltTip          = document.getElementById('salt-tip');
-  const startBtn         = document.getElementById('startBtn');
-  const stopBtn          = document.getElementById('stopBtn');
-  const modelSelect      = document.getElementById('fastingModelSelect');
-  const startTimeBox     = document.getElementById('startTimeBox');
-  const startTimeValue   = document.getElementById('startTimeValue');
-  const endTimeValue     = document.getElementById('endTimeValue');
-  const timePickerModal  = document.getElementById('timePickerModal');
-  const dayBeforeBtn     = document.getElementById('dayBeforeBtn');
-  const todayBtn         = document.getElementById('todayBtn');
-  const hourSelect       = document.getElementById('hourSelect');
-  const minuteSelect     = document.getElementById('minuteSelect');
-  const ampmSelect       = document.getElementById('ampmSelect');
-  const saveTimeBtn      = document.getElementById('saveTimeBtn');
+  const remainingTimeEl = document.getElementById('remainingTime');
+  const statusMessage   = document.getElementById('status-message');
+  const saltTip         = document.getElementById('salt-tip');
+  const startBtn        = document.getElementById('startBtn');
+  const stopBtn         = document.getElementById('stopBtn');
+  const modelSelect     = document.getElementById('fastingModelSelect');
+  const startTimeBox    = document.getElementById('startTimeBox');
+  const startTimeValue  = document.getElementById('startTimeValue');
+  const endTimeValue    = document.getElementById('endTimeValue');
+
+  // 공용 시간선택 모달 (시작/종료 공용)
+  const timePickerModal = document.getElementById('timePickerModal');
+  const timePickerTitle = timePickerModal?.querySelector('.onb-title');
+  const dayBeforeBtn    = document.getElementById('dayBeforeBtn');
+  const todayBtn        = document.getElementById('todayBtn');
+  const hourSelect      = document.getElementById('hourSelect');
+  const minuteSelect    = document.getElementById('minuteSelect');
+  const ampmSelect      = document.getElementById('ampmSelect');
+  const saveTimeBtn     = document.getElementById('saveTimeBtn');
+
+  // 선택 확인 모달(있으면 사용, 없으면 confirm 대체)
   const confirmChangeModal = document.getElementById('confirmChangeModal');
   const confirmMessage     = document.getElementById('confirmMessage');
   const confirmYesBtn      = document.getElementById('confirmYesBtn');
   const confirmNoBtn       = document.getElementById('confirmNoBtn');
-  const bloodSugarBtn    = document.getElementById('bloodSugarBtn');
-  const ketoneBtn        = document.getElementById('ketoneBtn');
-  const exerciseBtn      = document.getElementById('exerciseBtn');
-  const bloodSugarModal  = document.getElementById('bloodSugarModal');
-  const saveBloodSugarBtn= document.getElementById('saveBloodSugarBtn');
-  const bloodSugarInput  = document.getElementById('bloodSugarInput');
-  const ketoneModal      = document.getElementById('ketoneModal');
-  const saveKetoneBtn    = document.getElementById('saveKetoneBtn');
-  const ketoneInput      = document.getElementById('ketoneInput');
-  const exerciseModal    = document.getElementById('exerciseModal');
-  const exerciseTypeWrap = document.getElementById('exerciseType');
-  const exerciseDuration = document.getElementById('exerciseDuration');
-  const exerciseCalories = document.getElementById('exerciseCalories');
-  const saveExerciseBtn  = document.getElementById('saveExerciseBtn');
-  const privacyPolicyLink= document.getElementById('privacyPolicyLink');
-  const toast            = document.getElementById('toast');
-  const weightBtn        = document.getElementById('weightBtn');
-  const weightModal      = document.getElementById('weightModal');
-  const saveWeightBtn    = document.getElementById('saveWeightBtn');
-  const weightInput      = document.getElementById('weightInput');
+
+  // 기록 모달/컨트롤
+  const bloodSugarBtn     = document.getElementById('bloodSugarBtn');
+  const ketoneBtn         = document.getElementById('ketoneBtn');
+  const exerciseBtn       = document.getElementById('exerciseBtn');
+  const bloodSugarModal   = document.getElementById('bloodSugarModal');
+  const saveBloodSugarBtn = document.getElementById('saveBloodSugarBtn');
+  const bloodSugarInput   = document.getElementById('bloodSugarInput');
+  const ketoneModal       = document.getElementById('ketoneModal');
+  const saveKetoneBtn     = document.getElementById('saveKetoneBtn');
+  const ketoneInput       = document.getElementById('ketoneInput');
+  const exerciseModal     = document.getElementById('exerciseModal');
+  const exerciseTypeWrap  = document.getElementById('exerciseType');
+  const exerciseDuration  = document.getElementById('exerciseDuration');
+  const exerciseCalories  = document.getElementById('exerciseCalories');
+  const saveExerciseBtn   = document.getElementById('saveExerciseBtn');
+  const weightBtn         = document.getElementById('weightBtn');
+  const weightModal       = document.getElementById('weightModal');
+  const saveWeightBtn     = document.getElementById('saveWeightBtn');
+  const weightInput       = document.getElementById('weightInput');
+  const privacyPolicyLink = document.getElementById('privacyPolicyLink');
+  const toast             = document.getElementById('toast');
+
+  // ===== 2) 상태 =====
+  let currentUser = null;
+  let fastingInterval = null;
+  let fastingState = 'idle'; // 'idle'|'running'
+  let targetHours = 16;
+  let selectedStartTime = new Date();
+  let pendingTargetHours = null;
+  let completionFired = false;
+  let toastTimeout = null;
+
+  // 타임피커 모드: 'start' | 'end' | null
+  let timePickerMode = null;
+  // 사용자가 타임피커로 시작시간을 명시 선택했는지
+  let timePickerUsed = false;
+
   const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
 
-  /* =========================
-   * 2) 상태/유틸
-   * ========================= */
-  let timePickerUsed = false; // <-- 이 줄을 추가!
-  let fastingInterval  = null;
-  let targetHours      = 16;
-  let fastingState     = 'idle';
-  let selectedStartTime= new Date();
-  let pendingTargetHours = null;
-  let toastTimeout     = null;
-  let completionFired = false; // 목표 달성 이벤트가 한 번만 실행되도록 하는 깃발
-
-
-
-function showToast(msg) {
+  // ===== 3) 유틸 =====
+  function showToast(msg) {
     if (!toast) return;
     clearTimeout(toastTimeout);
     toast.textContent = msg;
@@ -366,64 +373,97 @@ function showToast(msg) {
     toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
   }
 
-// [헬퍼] 1회성 데이터 이사 함수
-  async function migrateLegacyFast(uid) {
-    const legacyStartTime = localStorage.getItem('fastingStartTime');
-    const legacyTargetHours = localStorage.getItem('fastingTargetHours');
-    if (legacyStartTime && legacyTargetHours) {
-      console.log("옛날 단식 데이터를 발견했습니다. Firestore로 옮깁니다...");
-      try {
-        await db.collection('users').doc(uid).set({
-          currentFasting: {
-            startTime: new Date(legacyStartTime),
-            targetHours: parseFloat(legacyTargetHours)
-          }
-        }, { merge: true });
-        localStorage.removeItem('fastingStartTime');
-        localStorage.removeItem('fastingTargetHours');
-        console.log("데이터 이사 완료!");
-      } catch (error) {
-        console.error("데이터 이사 중 오류 발생:", error);
+  function setUserChip(name) {
+    if (!userChip || !userChipName) return;
+    userChipName.textContent = (name && String(name).trim()) || '사용자';
+    userChip.style.display = 'flex';
+  }
+
+  function getSignedInUser() {
+    return currentUser || auth?.currentUser || null;
+  }
+
+  function updateUIState() {
+    const running = fastingState === 'running';
+    if (startBtn) {
+      startBtn.disabled = running;
+      startBtn.textContent = running ? '단식중' : '단식 시작';
+      startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
+      startBtn.style.color = running ? '#333' : '#fff';
+    }
+    if (stopBtn) {
+      stopBtn.disabled = !running;
+      stopBtn.style.opacity = running ? '1' : '0.5';
+    }
+  }
+
+  function updateSelectOptions() {
+    if (!modelSelect) return;
+    modelSelect.classList.add('is-fasting');
+    const options = modelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i];
+      if (!opt.dataset.originalText) opt.dataset.originalText = opt.textContent;
+      if (opt.value == targetHours) {
+        opt.textContent = `${opt.dataset.originalText} (진행중)`;
+        opt.classList.add('is-running');
+      } else {
+        opt.textContent = opt.dataset.originalText;
+        opt.classList.remove('is-running');
       }
     }
   }
 
-
-// fastmate.html의 <script> 안에서 updateUIState 함수를 찾아 교체
-function updateUIState() {
-    const running = fastingState === 'running';
-    if (startBtn) {
-        startBtn.disabled = running;
-        startBtn.textContent = running ? '단식중' : '단식 시작';
-        startBtn.style.backgroundColor = running ? 'var(--gauge-start-color)' : 'var(--primary-color)';
-        // ▼▼▼ [수정] '단식중'일 때 글자색을 어두운 색으로 고정합니다. ▼▼▼
-        startBtn.style.color = running ? '#333' : '#fff';
+  function resetSelectOptions() {
+    if (!modelSelect) return;
+    modelSelect.classList.remove('is-fasting');
+    const options = modelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i];
+      if (opt.dataset.originalText) opt.textContent = opt.dataset.originalText;
+      opt.classList.remove('is-running');
     }
-    if (stopBtn) { 
-        stopBtn.disabled = !running; 
-        stopBtn.style.opacity = running ? '1' : '0.5'; 
-    }
-}
+  }
 
-
-  /* =========================
-   * 단식 타이머
-   * ========================= */
   function updateTimeDisplays() {
     const start = selectedStartTime;
     const duration = fastingState === 'running'
-  ? parseFloat(targetHours)
-  : parseInt(modelSelect.value || targetHours, 10);
+      ? parseFloat(targetHours)
+      : parseInt(modelSelect?.value || targetHours, 10);
     const end = new Date(start.getTime() + duration * 3600000);
     const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
     if (startTimeValue) startTimeValue.textContent = fmt(start);
     if (endTimeValue)   endTimeValue.textContent   = fmt(end);
   }
 
+  function checkMilestones() {
+    const now = new Date();
+    const elapsed = now - selectedStartTime;
+    const target  = parseFloat(targetHours) * 3600000;
+    const actualProgress = (elapsed / target) * 100;
 
-// fastmate.html의 <script> 안에서 updateTimer 함수를 찾아 교체
-// updateTimer 함수를 이 코드로 통째로 교체해주세요.
-function updateTimer() {
+    const messages = {
+      10:  "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
+      25:  "25% 달성! 순조롭게 진행 중이에요.",
+      50:  "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧",
+      75:  "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
+      90:  "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧",
+      110: "110% 초과 달성! 몸이 보내는 신호에 귀를 기울여 주세요.",
+      120: "120% 초과 달성! 정말 대단한 의지입니다!",
+      150: "150% 초과 달성! 새로운 기록을 쓰고 계시는군요!",
+      200: "200% 달성! 컨디션 조절은 필수입니다. 충분한 휴식을 잊지 마세요."
+    };
+
+    Object.keys(milestones).forEach((p) => {
+      const pi = parseInt(p, 10);
+      if (actualProgress >= pi && !milestones[p]) {
+        showToast(messages[p]);
+        milestones[p] = true;
+      }
+    });
+  }
+
+  function updateTimer() {
     const now = new Date();
     const elapsed = now - selectedStartTime;
     const target  = parseFloat(targetHours) * 3600000;
@@ -431,175 +471,56 @@ function updateTimer() {
 
     const timerLabel = document.querySelector('.timer-display .label');
 
-    
-  // ✅ [추가] 시작/종료 표시가 비어있을 때 한 번 채워주기
-  if ((startTimeValue?.textContent === '-' || endTimeValue?.textContent === '-') && selectedStartTime) {
-    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
-    startTimeValue.textContent = fmt(selectedStartTime);
-    endTimeValue.textContent = fmt(
-  new Date(selectedStartTime.getTime() + (parseFloat(targetHours) * 3600000))
-);
-  }
+    // 비어있으면 1회 채우기
+    if ((startTimeValue?.textContent === '-' || endTimeValue?.textContent === '-') && selectedStartTime) {
+      const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+      startTimeValue.textContent = fmt(selectedStartTime);
+      endTimeValue.textContent = fmt(new Date(selectedStartTime.getTime() + (parseFloat(targetHours) * 3600000)));
+    }
 
-    // --- 목표 달성 전/후 UI 업데이트 ---
     if (elapsed < target) {
-        // 목표 달성 전
-        if(timerLabel) timerLabel.textContent = '남은 시간';
-        if(progressArc) progressArc.setAttribute('stroke', 'url(#progGrad)');
-
-        const remain = target - elapsed;
-        const h = Math.floor(remain / 3600000);
-        const m = Math.floor((remain % 3600000) / 60000);
-        const s = Math.floor((remain % 60000) / 1000);
-        if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-
-        if (statusMessage) {
-            statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
-        }
-    } else {
-        // 목표 달성 후 (초과 시간)
-        if(timerLabel) timerLabel.textContent = '초과 시간';
-        if(progressArc) progressArc.setAttribute('stroke', 'url(#overtimeGrad)');
-
-        const overtime = elapsed - target;
-        const h = Math.floor(overtime / 3600000);
-        const m = Math.floor((overtime % 3600000) / 60000);
-        const s = Math.floor((overtime % 60000) / 1000);
-        if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        
-        if (statusMessage) statusMessage.textContent = "목표 달성! 대단해요!";
-    }
-
-    // --- 공통 로직 ---
-    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
-    checkMilestones(progress);
-    
-    // [수정] 목표 달성 시, 애니메이션만 1회 보여주고 단식은 계속 진행합니다.
-    if (progress >= 100 && !completionFired) {
-        completionFired = true; // 중복 실행 방지
-        
-        // 자동으로 stopFasting()을 호출하는 코드를 삭제했습니다.
-        if (completionOverlay) {
-            completionOverlay.classList.add('show');
-            // 4초 후 애니메이션만 숨깁니다.
-            setTimeout(() => {
-                completionOverlay.classList.remove('show');
-            }, 4000);
-        }
-    }
-}
-
-// 단식 시작 및 종료
-
-// 🔧 교체: 기존 startFasting 전부 삭제하고 아래로 교체
-async function startFasting() {
-  if (fastingState === 'running') return showToast("이미 단식이 진행 중입니다.");
-  if (!currentUser) return showToast("로그인이 필요합니다."); // ← ensureSignedIn() 대신 한 줄 체크
-
-  // 1) 시작 시간 확정
-  if (!timePickerUsed) selectedStartTime = new Date();
-
-  // 2) 상태 값 반영
-  fastingState = 'running';
-  targetHours = parseFloat(modelSelect.value || targetHours);
-
-  // 3) 화면을 '즉시' 갱신 (DB 저장 기다리지 않음)
-  updateTimeDisplays();
-  updateUIState();
-  updateSelectOptions();
-
-  // 4) 타이머 안전 재시작
-  if (fastingInterval) clearInterval(fastingInterval);
-  fastingInterval = setInterval(updateTimer, 1000);
-  updateTimer();
-
-  // 5) 서버 저장 (백그라운드)
-  try {
-    await db.collection('users').doc(currentUser.uid).set({
-      currentFasting: {
-        startTime: selectedStartTime,           // Date 그대로 저장(Firestore가 Timestamp로 변환)
-        targetHours: targetHours
+      // 목표 전
+      if (timerLabel) timerLabel.textContent = '남은 시간';
+      if (progressArc) progressArc.setAttribute('stroke', 'url(#progGrad)');
+      const remain = target - elapsed;
+      const h = Math.floor(remain / 3600000);
+      const m = Math.floor((remain % 3600000) / 60000);
+      const s = Math.floor((remain % 60000) / 1000);
+      if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (statusMessage) {
+        statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
       }
-    }, { merge: true });
-    showToast(`${targetHours}시간 단식을 시작합니다!`);
-  } catch (err) {
-    console.error("Firestore 저장 실패:", err);
-    showToast("단식 시작 저장에 실패했습니다.");
-    // 실패 시 UI 원복
-    clearInterval(fastingInterval);
-    fastingState = 'idle';
-    updateUIState();
-    resetSelectOptions();
-  } finally {
-    timePickerUsed = false;
-  }
-}
+    } else {
+      // 목표 초과
+      if (timerLabel) timerLabel.textContent = '초과 시간';
+      if (progressArc) progressArc.setAttribute('stroke', 'url(#overtimeGrad)');
+      const overtime = elapsed - target;
+      const h = Math.floor(overtime / 3600000);
+      const m = Math.floor((overtime % 3600000) / 60000);
+      const s = Math.floor((overtime % 60000) / 1000);
+      if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (statusMessage) statusMessage.textContent = '목표 달성! 대단해요!';
+    }
 
+    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
+    checkMilestones();
 
-// 🔧 교체: 기존 stopFasting 전부 삭제하고 아래로 교체
-async function stopFasting() {
-  if (fastingState === 'idle') return showToast("시작된 단식이 없습니다.");
-
-  clearInterval(fastingInterval);
-  fastingState = 'idle';
-
-  // 사용자 체크(ensureSignedIn() 삭제)
-  if (!currentUser) {
-    // 사용자 없으면 UI만 초기화
-    if (progressArc)     progressArc.style.strokeDasharray = '0 100';
-    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
-    if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-    if (saltTip)         saltTip.style.display = 'none';
-    initializeTime();
-    updateUIState();
-    resetSelectOptions();
-    return showToast("사용자 정보가 없어 기록 저장을 건너뜁니다.");
+    if (progress >= 100 && !completionFired) {
+      completionFired = true;
+      if (completionOverlay) {
+        completionOverlay.classList.add('show');
+        setTimeout(() => completionOverlay.classList.remove('show'), 4000);
+      }
+    }
   }
 
-  const record = {
-    startTime: selectedStartTime,
-    endTime: new Date(),
-    targetHours: parseFloat(targetHours),
-    actualDurationHours: (new Date() - selectedStartTime) / 3600000
-  };
-
-  try {
-    // 기록 저장
-    await db.collection('users').doc(currentUser.uid)
-      .collection('fastingHistory').add({
-        startTime: record.startTime,
-        endTime: record.endTime,
-        targetHours: record.targetHours,
-        actualDurationHours: record.actualDurationHours,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-    // 진행중 상태 제거
-    await db.collection('users').doc(currentUser.uid).update({
-      currentFasting: firebase.firestore.FieldValue.delete()
-    });
-  } catch (e) {
-    console.error('단식 기록 저장/상태 삭제 실패:', e);
-    showToast("기록 저장에 실패했습니다. 다시 시도해주세요.");
-    // 실패해도 UI는 초기화 유지 (원하면 여기서 롤백 가능)
+  function initializeTime() {
+    selectedStartTime = new Date();
+    updateTimeDisplays();
+    initializeTimePicker(); // 안전: 항상 와이어
   }
 
-  // UI 초기화
-  if (progressArc)     progressArc.style.strokeDasharray = '0 100';
-  if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
-  if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-  if (saltTip)         saltTip.style.display = 'none';
-
-  initializeTime();
-  updateUIState();
-  resetSelectOptions();
-  showToast("단식을 종료했습니다. 수고하셨습니다!");
-}
-
-  function getSignedInUser() {
-  return (typeof currentUser !== 'undefined' && currentUser) || (auth && auth.currentUser) || null;
-}
-
+  // ===== 4) 모델 변경 =====
   function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
     if (fastingState === 'running' && newTarget !== targetHours) {
@@ -607,223 +528,326 @@ async function stopFasting() {
       if (confirmChangeModal && confirmMessage) {
         confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
         confirmChangeModal.style.display = 'flex';
+      } else {
+        if (confirm(`단식 목표를 ${targetHours}시간 → ${newTarget}시간으로 변경할까요?`)) {
+          targetHours = newTarget;
+          modelSelect.value = targetHours;
+          updateTimeDisplays(); updateTimer();
+          if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+          showToast('단식 목표가 변경되었습니다.');
+        } else {
+          modelSelect.value = targetHours;
+        }
       }
-      e.target.value = targetHours;
     } else if (fastingState !== 'running') {
       targetHours = newTarget;
       updateTimeDisplays();
     }
   }
 
-/* =========================
- * 시간 선택 초기화
- * ========================= */
-function initializeTimePicker() {
-    if (!timePickerModal) return;
-    
+  // ===== 5) 타임피커(시작/종료 공용) =====
+  let timePickerWired = false;
+  function initializeTimePicker() {
+    if (!timePickerModal || timePickerWired) return;
+    timePickerWired = true;
+
+    // 옵션 채우기 (1~12시, 0~59분)
     hourSelect.innerHTML = '';
     for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
-    
     minuteSelect.innerHTML = '';
     for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
 
-    startTimeBox?.addEventListener('click', () => {
-        if (fastingState === 'running') {
-            // 단식 중에도 모달을 열 수 있도록 허용 (이전 수정 사항 반영)
-        }
-        const now = selectedStartTime;
-        let h = now.getHours();
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12;
-        h = h ? h : 12;
-        hourSelect.value = h;
-        minuteSelect.value = now.getMinutes();
-        ampmSelect.value = ampm;
-        timePickerModal.style.display = 'flex';
-    });
+    // 시작시간 상자 클릭 => 'start' 모드로 열기 (단식 중에도 허용)
+    startTimeBox?.addEventListener('click', () => openTimePicker('start'));
 
-    dayBeforeBtn?.addEventListener('click', () => {
-        dayBeforeBtn.classList.add('active');
-        todayBtn.classList.remove('active');
-    });
+    // 날짜 토글
+    dayBeforeBtn?.addEventListener('click', () => { dayBeforeBtn.classList.add('active'); todayBtn.classList.remove('active'); });
+    todayBtn?.addEventListener('click', () => { todayBtn.classList.add('active'); dayBeforeBtn.classList.remove('active'); });
 
-    todayBtn?.addEventListener('click', () => {
-        todayBtn.classList.add('active');
-        dayBeforeBtn.classList.remove('active');
-    });
+    // 저장
+    saveTimeBtn?.addEventListener('click', async () => {
+      let hour = parseInt(hourSelect.value, 10);
+      const minute = parseInt(minuteSelect.value, 10);
+      const isPM = ampmSelect.value === 'PM';
+      if (isPM && hour < 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
 
-    saveTimeBtn?.addEventListener('click', async () => { // <-- 여기에 async 추가!
-        timePickerUsed = true; // 사용자가 시간 선택 모달을 사용했다는 깃발을 세움
+      const picked = new Date();
+      if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
+      picked.setHours(hour, minute, 0, 0);
 
-        let hour = parseInt(hourSelect.value, 10);
-        const minute = parseInt(minuteSelect.value, 10);
-        const isPM = ampmSelect.value === 'PM';
-        if (isPM && hour < 12) hour += 12;
-        if (!isPM && hour === 12) hour = 0;
-
-        const newDate = new Date();
-        if (dayBeforeBtn?.classList.contains('active')) newDate.setDate(newDate.getDate() - 1);
-        newDate.setHours(hour, minute, 0, 0);
-
-        selectedStartTime = newDate;
+      if (timePickerMode === 'start') {
+        timePickerUsed = true;
+        selectedStartTime = picked;
         updateTimeDisplays();
         timePickerModal.style.display = 'none';
 
-        // ▼▼▼ [버그 수정] 시간 정정 로직 ▼▼▼
-            if (fastingState === 'running') {
-                if (!currentUser) return showToast("사용자 정보가 없습니다. 다시 시도해주세요.");
-                
-                try {
-                    // localStorage가 아닌 Firestore에 직접 업데이트
-                    await db.collection('users').doc(currentUser.uid).set({
-                        currentFasting: { 
-                            startTime: selectedStartTime, // 새로 선택된 시간
-                            targetHours: targetHours 
-                        }
-                    }, { merge: true });
+        if (fastingState === 'running') {
+          if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
+          try {
+            await db.collection('users').doc(currentUser.uid).set({
+              currentFasting: { startTime: selectedStartTime, targetHours }
+            }, { merge: true });
+            updateTimer();
+            showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
+          } catch (err) {
+            console.error('Error updating start time:', err);
+            showToast('시간 변경에 실패했습니다.');
+          }
+        }
+      } else if (timePickerMode === 'end') {
+        // 종료시간 검증
+        if (picked < selectedStartTime) {
+          return showToast('종료 시간은 시작 시간 이후여야 합니다.');
+        }
+        timePickerModal.style.display = 'none';
+        finalizeStopFasting(picked); // ← 선택된 종료시간으로 종료
+      }
+    });
 
-                    updateTimer(); // DB 업데이트 성공 후 타이머 즉시 갱신
-                    showToast('진행 중인 단식의 시작 시간이 변경되었습니다.');
+    // 모달 밖 클릭 닫기
+    window.addEventListener('click', (e) => {
+      if (e.target === timePickerModal) timePickerModal.style.display = 'none';
+    });
+  }
 
-                } catch (error) {
-                    console.error("Error updating start time in Firestore:", error);
-                    showToast("시간 변경에 실패했습니다.");
-                }
-            }
-        });
+  function openTimePicker(mode /* 'start'|'end' */) {
+    if (!timePickerModal) return;
+    timePickerMode = mode;
+
+    // 타이틀 변경
+    if (timePickerTitle) {
+      timePickerTitle.textContent = mode === 'start' ? '시작 시간 선택' : '종료 시간 선택';
     }
 
+    // 기본값 채우기
+    const base = (mode === 'start') ? (selectedStartTime || new Date()) : new Date();
+    let h = base.getHours();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; h = h ? h : 12;
 
-/* =========================
-   * 5) 이벤트 바인딩 (1회)
-   * ========================= */
+    hourSelect.value = h;
+    minuteSelect.value = base.getMinutes();
+    ampmSelect.value = ampm;
+
+    // 오늘/어제 토글 (종료는 기본 '오늘')
+    todayBtn?.classList.add('active');
+    dayBeforeBtn?.classList.remove('active');
+
+    timePickerModal.style.display = 'flex';
+  }
+
+  // ===== 6) 시작/종료 =====
+  async function startFasting() {
+    if (fastingState === 'running') return showToast('이미 단식이 진행 중입니다.');
+    if (!getSignedInUser()) return showToast('로그인이 필요합니다.');
+
+    if (!timePickerUsed) selectedStartTime = new Date();
+
+    fastingState = 'running';
+    targetHours = parseFloat(modelSelect.value || targetHours);
+
+    updateTimeDisplays();
+    updateUIState();
+    updateSelectOptions();
+
+    if (fastingInterval) clearInterval(fastingInterval);
+    fastingInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+
+    try {
+      await db.collection('users').doc(currentUser.uid).set({
+        currentFasting: { startTime: selectedStartTime, targetHours }
+      }, { merge: true });
+      showToast(`${targetHours}시간 단식을 시작합니다!`);
+    } catch (err) {
+      console.error('Firestore 저장 실패:', err);
+      showToast('단식 시작 저장에 실패했습니다.');
+      clearInterval(fastingInterval);
+      fastingState = 'idle';
+      updateUIState();
+      resetSelectOptions();
+    } finally {
+      timePickerUsed = false;
+    }
+  }
+
+  // 종료 플로우(버튼 클릭 시) — 종료시간 선택 모달 열기
+  function openEndTimePickerForStop() {
+    if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
+    // ‘end’ 모드로 타임피커 오픈
+    openTimePicker('end');
+  }
+
+  // 실제 종료 처리 (선택된 종료시간 사용)
+  async function finalizeStopFasting(endDate /* Date */) {
+    if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
+
+    clearInterval(fastingInterval);
+    fastingState = 'idle';
+
+    if (!currentUser) {
+      // 사용자 없으면 UI만 초기화
+      if (progressArc)     progressArc.style.strokeDasharray = '0 100';
+      if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+      if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+      if (saltTip)         saltTip.style.display = 'none';
+      initializeTime();
+      updateUIState();
+      resetSelectOptions();
+      return showToast('사용자 정보가 없어 기록 저장을 건너뜁니다.');
+    }
+
+    const record = {
+      startTime: selectedStartTime,
+      endTime: endDate || new Date(),
+      targetHours: parseFloat(targetHours),
+      actualDurationHours: ((endDate || new Date()) - selectedStartTime) / 3600000
+    };
+
+    try {
+      await db.collection('users').doc(currentUser.uid)
+        .collection('fastingHistory').add({
+          startTime: record.startTime,
+          endTime: record.endTime,
+          targetHours: record.targetHours,
+          actualDurationHours: record.actualDurationHours,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+      await db.collection('users').doc(currentUser.uid).update({
+        currentFasting: firebase.firestore.FieldValue.delete()
+      });
+    } catch (e) {
+      console.error('단식 기록 저장/상태 삭제 실패:', e);
+      showToast('기록 저장에 실패했습니다. 다시 시도해주세요.');
+      // 실패해도 UI 초기화는 진행
+    }
+
+    // UI 초기화
+    if (progressArc)     progressArc.style.strokeDasharray = '0 100';
+    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+    if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+    if (saltTip)         saltTip.style.display = 'none';
+
+    initializeTime();
+    updateUIState();
+    resetSelectOptions();
+    showToast('단식을 종료했습니다. 수고하셨습니다!');
+  }
+
+  // ===== 7) 이벤트 와이어 =====
   let eventsWired = false;
   function wireEventsOnce() {
     if (eventsWired) return;
     eventsWired = true;
 
     startBtn?.addEventListener('click', startFasting);
-    stopBtn?.addEventListener('click', stopFasting);
+    // 종료 버튼은 ‘종료시간 선택 → 저장 시 finalizeStopFasting’ 플로우
+    stopBtn?.addEventListener('click', openEndTimePickerForStop);
     modelSelect?.addEventListener('change', handleModelChange);
 
-    userChip?.addEventListener('click', () => {
-    // TODO: 실제 마이페이지 경로로 수정하세요.
-    window.location.href = '/mypage.html'; 
-    });
-    // ▲▲▲ 여기까지 추가 ▲▲▲
+    userChip?.addEventListener('click', () => { window.location.href = '/mypage.html'; });
 
     confirmYesBtn?.addEventListener('click', () => {
       if (pendingTargetHours == null) return;
       targetHours = pendingTargetHours; pendingTargetHours = null;
       modelSelect.value = targetHours;
-      localStorage.setItem('fastingTargetHours', targetHours);
       updateTimeDisplays(); updateTimer();
       if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-      showToast("단식 목표가 변경되었습니다.");
+      showToast('단식 목표가 변경되었습니다.');
       confirmChangeModal.style.display = 'none';
     });
     confirmNoBtn?.addEventListener('click', () => {
-      modelSelect.value = targetHours;
+      if (modelSelect) modelSelect.value = targetHours;
       confirmChangeModal.style.display = 'none';
     });
-    
-    // --- 체중 기록 ---
+
+    // 공통 모달 닫기
+    document.addEventListener('click', (e) => {
+      const closeId = e.target?.getAttribute?.('data-close');
+      if (closeId) {
+        const el = document.getElementById(closeId);
+        if (el) el.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('click', (e) => {
+      [bloodSugarModal, ketoneModal, exerciseModal, weightModal]
+        .filter(Boolean)
+        .forEach(m => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    // ===== 기록: 체중 =====
     weightBtn?.addEventListener('click', () => weightModal && (weightModal.style.display='flex'));
     saveWeightBtn?.addEventListener('click', async () => {
       const v = parseFloat(weightInput?.value);
-      if (!v || v <= 0) return showToast("올바른 체중을 입력하세요.");
-      const user = getSignedInUser();
-if (!user) { showToast('로그인이 필요합니다.'); return; }
+      if (!v || v <= 0) return showToast('올바른 체중을 입력하세요.');
+      const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('weight').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('users').doc(user.uid).collection('measurements').doc('weight')
+          .collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
       } catch (e) {
         console.error('save weight failed:', e);
         showToast('서버 저장 실패(체중)… 잠시 후 다시 시도해주세요.');
       }
       weightInput.value = '';
       weightModal.style.display = 'none';
-      showToast("체중이 저장되었습니다.");
+      showToast('체중이 저장되었습니다.');
     });
-    
-    // --- 혈당 기록 ---
+
+    // ===== 기록: 혈당 =====
     bloodSugarBtn?.addEventListener('click', () => {
-      if (bloodSugarModal) {
-        bloodSugarModal.style.display = 'flex';
-   // [추가] 시간 입력창에 현재 시간을 기본값으로 설정
-        const timestampInput = document.getElementById('bloodSugarTimestampInput');
-        if (timestampInput) {
-            const now = new Date();
-            // YYYY-MM-DDTHH:mm 형식에 맞게 시간 오프셋을 조정합니다.
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            timestampInput.value = now.toISOString().slice(0, 16);
-        }
-       
-      } else {
-        const v = parseFloat(prompt('혈당 수치 (mg/dL)를 입력하세요:') || '');
-        if (v > 0) {
-          saveLocalList('bloodSugarData', { date:new Date().toISOString(), value:v });
-          showToast('혈당 수치가 저장되었습니다.');
-        }
+      if (!bloodSugarModal) return;
+      bloodSugarModal.style.display = 'flex';
+      const t = document.getElementById('bloodSugarTimestampInput');
+      if (t) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        t.value = now.toISOString().slice(0, 16);
       }
     });
-    // wireEventsOnce 함수 안
 
-saveBloodSugarBtn?.addEventListener('click', async () => {
-    const v = parseFloat(bloodSugarInput?.value);
-    if (!v || v <= 0) return showToast("올바른 혈당 수치를 입력하세요.");
-
-    // [추가] 시간 입력창에서 값 가져오기
-    const timestampInput = document.getElementById('bloodSugarTimestampInput');
-    const timestamp = timestampInput.value;
-
-    if (!timestamp) return showToast("측정 시간을 선택해주세요.");
-    
-    // [수정] 입력된 시간 문자열을 Date 객체로 변환
-    const recordDate = new Date(timestamp);
-
-  const user = getSignedInUser();
-if (!user) { showToast('로그인이 필요합니다.'); return; }
-
-    saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
-
-    try {
-        await db.collection('users').doc(user.uid)
-            .collection('measurements').doc('bloodSugar')
-            .collection('items').add({
-                date: recordDate, // [수정] new Date() 대신 선택한 시간으로 저장
-                value: v,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-    } catch (e) {
+    saveBloodSugarBtn?.addEventListener('click', async () => {
+      const v = parseFloat(bloodSugarInput?.value);
+      if (!v || v <= 0) return showToast('올바른 혈당 수치를 입력하세요.');
+      const t = document.getElementById('bloodSugarTimestampInput');
+      if (!t?.value) return showToast('측정 시간을 선택해주세요.');
+      const recordDate = new Date(t.value);
+      const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
+      saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
+      try {
+        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
+          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } catch (e) {
         console.error('save blood sugar failed:', e);
         showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
-    }
+      }
+      bloodSugarInput.value = '';
+      bloodSugarModal.style.display = 'none';
+      showToast('혈당 수치가 저장되었습니다.');
+    });
 
-    bloodSugarInput.value = '';
-    bloodSugarModal.style.display = 'none';
-    showToast("혈당 수치가 저장되었습니다.");
-});
-
-    // --- 케톤 기록 ---
+    // ===== 기록: 케톤 =====
     ketoneBtn?.addEventListener('click', () => ketoneModal && (ketoneModal.style.display='flex'));
     saveKetoneBtn?.addEventListener('click', async () => {
       const v = parseFloat(ketoneInput?.value);
-      if (v == null || isNaN(v) || v < 0) return showToast("올바른 케톤 수치를 입력하세요.");
-     const user = getSignedInUser();
-if (!user) { showToast('로그인이 필요합니다.'); return; }
+      if (v == null || isNaN(v) || v < 0) return showToast('올바른 케톤 수치를 입력하세요.');
+      const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('ketone').collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('users').doc(user.uid).collection('measurements').doc('ketone')
+          .collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
       } catch (e) {
         console.error('save ketone failed:', e);
         showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
       }
       ketoneInput.value = '';
       ketoneModal.style.display = 'none';
-      showToast("케톤 수치가 저장되었습니다.");
+      showToast('케톤 수치가 저장되었습니다.');
     });
 
-    // --- 운동 기록 ---
+    // ===== 기록: 운동 =====
     exerciseBtn?.addEventListener('click', () => exerciseModal && (exerciseModal.style.display='flex'));
     exerciseTypeWrap?.addEventListener('click', (e) => {
       if (!e.target.classList.contains('tag')) return;
@@ -835,15 +859,18 @@ if (!user) { showToast('로그인이 필요합니다.'); return; }
       const sel = exerciseTypeWrap?.querySelector('.tag.active');
       const duration = parseInt(exerciseDuration?.value,10);
       const calories = exerciseCalories?.value === '' ? null : parseInt(exerciseCalories.value,10);
-      if (!sel) return showToast("운동 종류를 선택하세요.");
-      if (!duration || duration<=0) return showToast("올바른 운동 시간을 입력하세요.");
-      if (calories !== null && calories < 0) return showToast("칼로리는 0 이상으로 입력하세요.");
- const user = getSignedInUser();
-if (!user) { showToast('로그인이 필요합니다.'); return; }
+      if (!sel) return showToast('운동 종류를 선택하세요.');
+      if (!duration || duration<=0) return showToast('올바른 운동 시간을 입력하세요.');
+      if (calories !== null && calories < 0) return showToast('칼로리는 0 이상으로 입력하세요.');
+      const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       const rec = { date:new Date().toISOString(), type: sel.dataset.value, duration, calories };
       saveLocalList('exerciseData', rec);
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('exercise').collection('items').add({ date: new Date(), type: rec.type, duration: rec.duration, calories: rec.calories ?? 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('users').doc(user.uid).collection('measurements').doc('exercise')
+          .collection('items').add({
+            date: new Date(), type: rec.type, duration: rec.duration, calories: rec.calories ?? 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
       } catch (e) {
         console.error('save exercise failed:', e);
         showToast('서버 저장 실패(운동)… 잠시 후 다시 시도해주세요.');
@@ -852,270 +879,78 @@ if (!user) { showToast('로그인이 필요합니다.'); return; }
       exerciseDuration.value = '';
       exerciseCalories.value = '';
       exerciseModal.style.display = 'none';
-      showToast("운동 기록이 저장되었습니다.");
+      showToast('운동 기록이 저장되었습니다.');
     });
 
-    // --- 기타 링크 및 공통 이벤트 ---
     privacyPolicyLink?.addEventListener('click', (e) => {
       e.preventDefault();
-      showToast("개인정보처리방침 페이지로 이동합니다. (개발 중)");
+      showToast('개인정보처리방침 페이지로 이동합니다. (개발 중)');
     });
   }
 
-  // --- 공통 모달 닫기 로직 ---
-  document.addEventListener('click', (e) => {
-    const closeId = e.target?.getAttribute?.('data-close');
-    if (closeId) {
-      const el = document.getElementById(closeId);
-      if (el) el.style.display = 'none';
-    }
-  });
-
-
-  window.addEventListener('click', (e) => {
-    [timePickerModal, confirmChangeModal, bloodSugarModal, ketoneModal, exerciseModal, weightModal]
-      .filter(Boolean)
-      .forEach(modal => { if (e.target === modal) modal.style.display = 'none'; });
-  });
-
-
-
-// [헬퍼] 닉네임 칩 업데이트 + 표시
-  function setUserChip(name) {
-    if (!userChip || !userChipName) return;
-    userChipName.textContent = (name && String(name).trim()) || '사용자';
-    userChip.style.display = 'flex';
-  }
-
-  
-    
-
- async function initializeAppForUser(user) {
-      console.log(user.uid, "님 환영합니다. 앱 초기화를 시작합니다.");
-
-      try {
-        const profile = await getUserDoc(user.uid);
-        console.log("Firestore 프로필 정보:", profile);
-
-        // 1. 닉네임 문제 해결: Firestore 프로필의 닉네임을 사용합니다.
-        const nickname = profile?.displayName || user.displayName || '사용자';
-        if (userChip && userChipName) {
-          userChipName.textContent = nickname;
-          userChip.style.display = 'flex';
-        }
-
-        // 2. 마이페이지 이동 문제 해결: userChip에 클릭 이벤트 추가
-        if (userChip) {
-          userChip.addEventListener('click', () => {
-            // TODO: 마이페이지 경로를 실제 경로로 수정하세요 (예: /mypage.html)
-            window.location.href = '/mypage.html'; 
-          });
-        }
-
-        // 3. Firestore에서 저장된 단식 정보가 있으면 타이머 시작
-        const savedFasting = profile?.currentFasting;
-        if (savedFasting) {
-          // TODO: 단식 정보로 타이머 시작하는 로직
-        } else {
-          // TODO: 단식 중 아닐 때의 초기 UI 설정 로직
-        }
-
-        // TODO: 나머지 모든 이벤트 핸들러 연결
-        // wireEventsOnce();
-
-      } catch (error) {
-        console.error("앱 초기화 중 오류 발생:", error);
-        alert("앱을 초기화하는 데 실패했습니다.");
-      }
-    
-    initializeTimePicker();
-}
-
-   // =================================================================
-    // 6. 메인 로직: 인증 상태 리스너 (모든 작업의 단일 시작점)
-    // =================================================================
-auth.onAuthStateChanged(async user => {
-    if (!user) {
-        // ... (로그아웃 상태 로직은 동일)
-        currentUser   = null;
-        fastingState  = 'idle';
-        initializeTime();
-        resetSelectOptions(); // 로그아웃 시에도 초기화
-        updateUIState();
-
-// 로그아웃 시 로그인 페이지로 이동시키는 로직 추가
-        if (location.pathname !== '/login.html' && location.pathname !== '/signup.html') {
-            location.href = '/login.html';
-        }
-
-        return;
-    }
-
-    currentUser = user;
-
-    try {
-        const profile = await getUserDoc(user.uid);
-
-        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
-        if (userChipName) userChipName.textContent = nickname;
-        if (userChip) userChip.style.display = 'flex';
-
-        const savedFasting = profile?.currentFasting;
-
-        if (savedFasting?.startTime) {
-            // [상태 1] 저장된 단식이 있을 때 (진행 중)
-            fastingState = 'running';
-            selectedStartTime = savedFasting.startTime.toDate();
-            targetHours = Number(savedFasting.targetHours) || 16;
-            
-            if (modelSelect) modelSelect.value = String(targetHours);
-
-            if (fastingInterval) clearInterval(fastingInterval);
-            fastingInterval = setInterval(updateTimer, 1000);
-
-            // [개선 1] UI 업데이트 로직을 이 블록 안으로 이동
-            updateTimer();          // 타이머 UI 즉시 업데이트
-            updateTimeDisplays();   // 시간 표시부 업데이트
-            updateSelectOptions();  // 드롭다운에 '(진행중)' 표시
-            
-        } else {
-            // [상태 2] 저장된 단식이 없을 때 (휴식 중)
-            fastingState = 'idle';
-
-            // [개선 2] UI 초기화 로직을 명확하게 그룹화
-            initializeTime();       // 시간 관련 변수 초기화
-            updateTimeDisplays();   // 시간 표시부 초기화된 값으로 업데이트
-            resetSelectOptions();   // 드롭다운 초기화
-        }
-
-        // [개선 3] 전체적인 UI 상태 (버튼 활성화 등)는 마지막에 한 번만 호출
-        updateUIState();
-        if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
-
-        wireEventsOnce();
-
-    } catch (error) {
-        console.error("앱 초기화 중 오류:", error);
-        alert("앱 초기화 실패. 새로고침 해주세요.");
-    }
-});
-
-
-// 문제가 생기면 지울 줄 
-function openTimePicker() {
-  if (!timePickerModal) return;
-
-  const now = selectedStartTime || new Date();
-  let h = now.getHours();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12; h = h ? h : 12;
-
-  hourSelect.value = h;
-  minuteSelect.value = now.getMinutes();
-  ampmSelect.value = ampm;
-
-  // 기본값: 오늘
-  todayBtn?.classList.add('active');
-  dayBeforeBtn?.classList.remove('active');
-
-  timePickerModal.style.display = 'flex';
-}
-  
+  // ===== 8) 기타 헬퍼 =====
   function saveLocalList(key, data) {
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
     arr.unshift(data);
     localStorage.setItem(key, JSON.stringify(arr));
   }
 
+  // ===== 9) 인증 리스너 =====
+  if (auth) {
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        currentUser   = null;
+        fastingState  = 'idle';
+        initializeTime();
+        resetSelectOptions();
+        updateUIState();
 
-function checkMilestones(progress) {
-    const messages = {
-      10: "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
-      25: "25% 달성! 순조롭게 진행 중이에요.",
-      50: "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧",
-      75: "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
-      90: "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧",
-      110: "110% 초과 달성! 몸이 보내는 신호에 귀를 기울여 주세요.",
-      120: "120% 초과 달성! 정말 대단한 의지입니다!",
-      150: "150% 초과 달성! 새로운 기록을 쓰고 계시는군요!",
-      200: "200% 달성! 컨디션 조절은 필수입니다. 충분한 휴식을 잊지 마세요."
-    };
+        if (location.pathname !== '/login.html' && location.pathname !== '/signup.html') {
+          location.href = '/login.html';
+        }
+        return;
+      }
 
-    // [수정] 이제 progress가 아닌 실제 경과 시간 비율로 계산합니다.
-    const now = new Date();
-    const elapsed = now - selectedStartTime;
-    const target  = parseFloat(targetHours) * 3600000;
-    const actualProgress = (elapsed / target) * 100;
+      currentUser = user;
 
-    Object.keys(milestones).forEach((p) => {
-      const pi = parseInt(p, 10);
-      if (actualProgress >= pi && !milestones[p]) {
-        showToast(messages[p]);
-        milestones[p] = true;
+      try {
+        const profile = await getUserDoc(user.uid);
+        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
+        setUserChip(nickname);
+
+        const savedFasting = profile?.currentFasting;
+        if (savedFasting?.startTime) {
+          fastingState = 'running';
+          selectedStartTime = (savedFasting.startTime.toDate ? savedFasting.startTime.toDate() : new Date(savedFasting.startTime));
+          targetHours = Number(savedFasting.targetHours) || 16;
+          if (modelSelect) modelSelect.value = String(targetHours);
+          if (fastingInterval) clearInterval(fastingInterval);
+          fastingInterval = setInterval(updateTimer, 1000);
+          updateTimer();          // 즉시 갱신
+          updateTimeDisplays();
+          updateSelectOptions();
+        } else {
+          fastingState = 'idle';
+          initializeTime();
+          updateTimeDisplays();
+          resetSelectOptions();
+        }
+
+        updateUIState();
+        if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+
+        // 이벤트는 1회만 바인딩
+        wireEventsOnce();
+
+      } catch (error) {
+        console.error('앱 초기화 중 오류:', error);
+        alert('앱 초기화 실패. 새로고침 해주세요.');
       }
     });
-}
-
-
-  function handleModelChange(e) {
-    const newTarget = parseInt(e.target.value, 10);
-    if (fastingState === 'running' && newTarget !== targetHours) {
-      pendingTargetHours = newTarget;
-      if (confirmChangeModal && confirmMessage) {
-        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
-        confirmChangeModal.style.display = 'flex';
-      }
-      e.target.value = targetHours;
-    } else if (fastingState !== 'running') {
-      targetHours = newTarget;
-      updateTimeDisplays();
-    }
+  } else {
+    // auth가 아직 없을 때도 타임피커는 동작하도록 와이어
+    initializeTime();
+    wireEventsOnce();
   }
-
-
-// 선택창 UI를 '단식중' 상태로 업데이트하는 함수
-function updateSelectOptions() {
-    modelSelect.classList.add('is-fasting');
-    const options = modelSelect.options;
-    for (let i = 0; i < options.length; i++) {
-        const option = options[i];
-        // 원래 텍스트를 저장해둠 (예: "16:8 (16시간 단식)")
-        if (!option.dataset.originalText) {
-            option.dataset.originalText = option.textContent;
-        }
-        if (option.value == targetHours) {
-            option.textContent = `${option.dataset.originalText} (진행중)`;
-            option.classList.add('is-running');
-        } else {
-            option.textContent = option.dataset.originalText;
-            option.classList.remove('is-running');
-        }
-    }
-}
-
-
-
-// 선택창 UI를 초기 상태로 되돌리는 함수
-function resetSelectOptions() {
-    modelSelect.classList.remove('is-fasting');
-    const options = modelSelect.options;
-    for (let i = 0; i < options.length; i++) {
-        const option = options[i];
-        if (option.dataset.originalText) {
-            option.textContent = option.dataset.originalText;
-        }
-        option.classList.remove('is-running');
-    }
-}
-
-
-
-function initializeTime() {
-    selectedStartTime = new Date();
-    updateTimeDisplays();
-    initializeTimePicker();
-}
-
-
 });
 </script>
