@@ -292,9 +292,8 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
 
 
 <script>
-
 document.addEventListener('DOMContentLoaded', () => {
-  // ===== 0) Firebase 핸들(선행 스크립트에서 노출됨) =====
+  // ===== 0) Firebase 핸들 =====
   const app = window.fastmateApp || {};
   const auth = app.auth;
   const db   = app.db;
@@ -315,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const startTimeValue  = document.getElementById('startTimeValue');
   const endTimeValue    = document.getElementById('endTimeValue');
 
-  // 공용 시간선택 모달 (시작/종료 공용)
+  // 공용 시간선택 모달
   const timePickerModal = document.getElementById('timePickerModal');
   const timePickerTitle = timePickerModal?.querySelector('.onb-title');
   const dayBeforeBtn    = document.getElementById('dayBeforeBtn');
@@ -325,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const ampmSelect      = document.getElementById('ampmSelect');
   const saveTimeBtn     = document.getElementById('saveTimeBtn');
 
-  // 선택 확인 모달(있으면 사용, 없으면 confirm 대체)
+  // 선택 확인 모달(없으면 confirm 사용)
   const confirmChangeModal = document.getElementById('confirmChangeModal');
   const confirmMessage     = document.getElementById('confirmMessage');
   const confirmYesBtn      = document.getElementById('confirmYesBtn');
@@ -363,24 +362,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let completionFired = false;
   let toastTimeout = null;
 
-
-
-  // 타임피커 모드: 'start' | 'end' | null
-  let timePickerMode = null;
-  // 사용자가 타임피커로 시작시간을 명시 선택했는지
-  let timePickerUsed = false;
+  // 타임피커
+  let timePickerMode = null;   // 'start' | 'end' | null
+  let timePickerUsed = false;  // 시작시간을 명시 선택했는지
 
   const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
 
+  // 타임피커 z-index 보정
   (() => {
-  const style = document.createElement('style');
-  style.textContent = `
-    #timePickerModal{ z-index:9999 !important; }
-    #timePickerModal .time-picker-content{ transform:none !important; }
-    #timePickerModal select{ pointer-events:auto; -webkit-appearance:menulist; appearance:auto; }
-  `;
-  document.head.appendChild(style);
-})();
+    const style = document.createElement('style');
+    style.textContent = `
+      #timePickerModal{ z-index:9999 !important; }
+      #timePickerModal .time-picker-content{ transform:none !important; }
+      #timePickerModal select{ pointer-events:auto; -webkit-appearance:menulist; appearance:auto; }
+    `;
+    document.head.appendChild(style);
+  })();
 
   // ===== 3) 유틸 =====
   function showToast(msg) {
@@ -449,7 +446,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ? parseFloat(targetHours)
       : parseInt(modelSelect?.value || targetHours, 10);
     const end = new Date(start.getTime() + duration * 3600000);
-    const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+    const fmt = (d) =>
+      `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
     if (startTimeValue) startTimeValue.textContent = fmt(start);
     if (endTimeValue)   endTimeValue.textContent   = fmt(end);
   }
@@ -491,7 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 비어있으면 1회 채우기
     if ((startTimeValue?.textContent === '-' || endTimeValue?.textContent === '-') && selectedStartTime) {
-      const fmt = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+      const fmt = (d) =>
+        `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
       startTimeValue.textContent = fmt(selectedStartTime);
       endTimeValue.textContent = fmt(new Date(selectedStartTime.getTime() + (parseFloat(targetHours) * 3600000)));
     }
@@ -504,9 +503,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const h = Math.floor(remain / 3600000);
       const m = Math.floor((remain % 3600000) / 60000);
       const s = Math.floor((remain % 60000) / 1000);
-      if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (remainingTimeEl) remainingTimeEl.textContent =
+        `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       if (statusMessage) {
-        statusMessage.innerHTML = `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
+        statusMessage.innerHTML =
+          `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
       }
     } else {
       // 목표 초과
@@ -516,7 +517,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const h = Math.floor(overtime / 3600000);
       const m = Math.floor((overtime % 3600000) / 60000);
       const s = Math.floor((overtime % 60000) / 1000);
-      if (remainingTimeEl) remainingTimeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (remainingTimeEl) remainingTimeEl.textContent =
+        `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       if (statusMessage) statusMessage.textContent = '목표 달성! 대단해요!';
     }
 
@@ -563,154 +565,137 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-// 전역 헬퍼 (파일 내 아무 함수보다 위여도 되고, 아래여도 됨)
-// 옵션 주입 함수가 있다면 재호출 가능하도록 유지
+  // ===== 5) 타임피커 =====
+  let timePickerWired = false;
 
-let timePickerWired = false;
-
-
-function ensureTimepickerOptions() {
-  if (hourSelect && hourSelect.options.length === 0) {
-    for (let i = 1; i <= 12; i++) {
-      const o = document.createElement('option');
-      o.value = String(i);
-      o.textContent = String(i);
-      hourSelect.appendChild(o);
+  function ensureTimepickerOptions() {
+    if (hourSelect && hourSelect.options.length === 0) {
+      for (let i = 1; i <= 12; i++) {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = String(i);
+        hourSelect.appendChild(o);
+      }
+    }
+    if (minuteSelect && minuteSelect.options.length === 0) {
+      for (let i = 0; i < 60; i++) {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = String(i).padStart(2,'0');
+        minuteSelect.appendChild(o);
+      }
     }
   }
-  if (minuteSelect && minuteSelect.options.length === 0) {
-    for (let i = 0; i < 60; i++) {
-      const o = document.createElement('option');
-      o.value = String(i);                      // 값: 0~59
-      o.textContent = String(i).padStart(2,'0'); // 표시: 00~59
-      minuteSelect.appendChild(o);
-    }
-  }
-}
 
-function initializeTimePicker() {
-  if (!timePickerModal || timePickerWired) return;
-  timePickerWired = true;
+  function initializeTimePicker() {
+    if (!timePickerModal || timePickerWired) return;
+    timePickerWired = true;
 
-  // 네이티브 화살표 사용(커스텀 꺾쇠 제거)
-  [ampmSelect, hourSelect, minuteSelect].forEach((sel) => {
-    if (!sel) return;
-    sel.style.backgroundImage = 'none';
-    sel.style.appearance = 'auto';
-    sel.style.webkitAppearance = 'menulist';
-    sel.disabled = false;
-    sel.style.pointerEvents = 'auto';
-    sel.addEventListener('click', (e) => e.stopPropagation());
-    sel.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
-    sel.addEventListener('mousedown', (e) => e.stopPropagation());
-  });
+    [ampmSelect, hourSelect, minuteSelect].forEach((sel) => {
+      if (!sel) return;
+      sel.style.backgroundImage = 'none';
+      sel.style.appearance = 'auto';
+      sel.style.webkitAppearance = 'menulist';
+      sel.disabled = false;
+      sel.style.pointerEvents = 'auto';
+      sel.addEventListener('click', (e) => e.stopPropagation());
+      sel.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+      sel.addEventListener('mousedown', (e) => e.stopPropagation());
+    });
 
-  // 옵션 보장
-  ensureTimepickerOptions();
-
-  // 시작시간 박스 → 시작 모드
-  startTimeBox?.addEventListener('click', () => openTimePicker('start'));
-
-  // 날짜 토글
-  dayBeforeBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dayBeforeBtn.classList.add('active');
-    todayBtn.classList.remove('active');
-  });
-  todayBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    todayBtn.classList.add('active');
-    dayBeforeBtn.classList.remove('active');
-  });
-
-  // 저장
-  saveTimeBtn?.addEventListener('click', async (e) => {
-    e.stopPropagation();
-
-    // 혹시 모를 레이스 대비: 옵션 재보장
     ensureTimepickerOptions();
 
-    const h12  = parseInt(hourSelect?.value ?? '', 10);
-    const mm   = parseInt(minuteSelect?.value ?? '', 10);
-    const ampm = ampmSelect?.value;
-    if (Number.isNaN(h12) || Number.isNaN(mm) || !ampm) {
-      console.warn('[timepicker] invalid', { h12, mm, ampm });
-      return showToast('시간을 다시 선택해주세요.');
-    }
+    startTimeBox?.addEventListener('click', () => openTimePicker('start'));
 
-    let hour = h12 % 12;
-    if (ampm === 'PM') hour += 12;
+    dayBeforeBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dayBeforeBtn.classList.add('active');
+      todayBtn.classList.remove('active');
+    });
+    todayBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      todayBtn.classList.add('active');
+      dayBeforeBtn.classList.remove('active');
+    });
 
-    const picked = new Date();
-    if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
-    picked.setHours(hour, mm, 0, 0);
+    saveTimeBtn?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      ensureTimepickerOptions();
 
-    if (timePickerMode === 'start') {
-      // 시작시간 저장/업데이트
-      timePickerUsed = true;
-      selectedStartTime = picked;
-      updateTimeDisplays();
-      timePickerModal.style.display = 'none';
-
-      if (fastingState === 'running') {
-        if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
-        try {
-          await db.collection('users').doc(currentUser.uid).set({
-            currentFasting: { startTime: selectedStartTime, targetHours }
-          }, { merge: true });
-          updateTimer();
-          showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
-        } catch (err) {
-          console.error('Error updating start time:', err);
-          showToast('시간 변경에 실패했습니다.');
-        }
+      const h12  = parseInt(hourSelect?.value ?? '', 10);
+      const mm   = parseInt(minuteSelect?.value ?? '', 10);
+      const ampm = ampmSelect?.value;
+      if (Number.isNaN(h12) || Number.isNaN(mm) || !ampm) {
+        console.warn('[timepicker] invalid', { h12, mm, ampm });
+        return showToast('시간을 다시 선택해주세요.');
       }
-    } else if (timePickerMode === 'end') {
-      if (picked < selectedStartTime) return showToast('종료 시간은 시작 시간 이후여야 합니다.');
-      timePickerModal.style.display = 'none';
-      finalizeStopFasting(picked); // 선택한 종료시간으로 종료 기록
-    } else {
-      console.warn('[timepicker] mode is null');
-      showToast('잠시 후 다시 시도해주세요.');
-    }
-  });
 
-  // 모달 바깥 클릭 시 닫기
-  window.addEventListener('click', (e) => {
-    if (e.target === timePickerModal) timePickerModal.style.display = 'none';
-  });
-}
+      let hour = h12 % 12;
+      if (ampm === 'PM') hour += 12;
 
-// openTimePicker(mode) 전체 교체
-function openTimePicker(mode /* 'start'|'end' */) {
-  if (!timePickerModal) return;
-  timePickerMode = mode;
+      const picked = new Date();
+      if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
+      picked.setHours(hour, mm, 0, 0);
 
-  // 옵션이 비어있을 가능성 방지
-  ensureTimepickerOptions();
+      if (timePickerMode === 'start') {
+        timePickerUsed = true;
+        selectedStartTime = picked;
+        updateTimeDisplays();
+        timePickerModal.style.display = 'none';
 
-  // 최상단 보장
-  timePickerModal.style.zIndex = '9999';
-  timePickerModal.style.display = 'flex';
+        if (fastingState === 'running') {
+          if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
+          try {
+            await db.collection('users').doc(currentUser.uid).set({
+              currentFasting: { startTime: selectedStartTime, targetHours }
+            }, { merge: true });
+            updateTimer();
+            showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
+          } catch (err) {
+            console.error('Error updating start time:', err);
+            showToast('시간 변경에 실패했습니다.');
+          }
+        }
+      } else if (timePickerMode === 'end') {
+        if (picked < selectedStartTime) return showToast('종료 시간은 시작 시간 이후여야 합니다.');
+        timePickerModal.style.display = 'none';
+        finalizeStopFasting(picked);
+      } else {
+        console.warn('[timepicker] mode is null');
+        showToast('잠시 후 다시 시도해주세요.');
+      }
+    });
 
-  // 타이틀 & 기본값: 종료(end)는 "지금", 시작(start)은 selectedStartTime
-  const title = (mode === 'start') ? '시작 시간 선택' : '종료 시간 선택';
-  const base  = (mode === 'start') ? (selectedStartTime || new Date()) : new Date();
+    // 모달 바깥 클릭 시 닫기
+    window.addEventListener('click', (e) => {
+      if (e.target === timePickerModal) timePickerModal.style.display = 'none';
+    });
+  }
 
-  let h = base.getHours();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12; h = h ? h : 12;
+  function openTimePicker(mode /* 'start'|'end' */) {
+    if (!timePickerModal) return;
+    timePickerMode = mode;
 
-  if (ampmSelect)  ampmSelect.value  = ampm;
-  if (hourSelect)  hourSelect.value  = String(h);
-  if (minuteSelect) minuteSelect.value = String(base.getMinutes()); // 값은 '2' 형태(패딩X)
+    ensureTimepickerOptions();
+    timePickerModal.style.zIndex = '9999';
+    timePickerModal.style.display = 'flex';
 
-  // 날짜 버튼: 종료는 무조건 '오늘'
-  todayBtn?.classList.add('active');
-  dayBeforeBtn?.classList.remove('active');
+    const title = (mode === 'start') ? '시작 시간 선택' : '종료 시간 선택';
+    const base  = (mode === 'start') ? (selectedStartTime || new Date()) : new Date();
 
-  if (timePickerTitle) timePickerTitle.textContent = title;
-}
+    let h = base.getHours();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; h = h ? h : 12;
+
+    if (ampmSelect)   ampmSelect.value = ampm;
+    if (hourSelect)   hourSelect.value = String(h);
+    if (minuteSelect) minuteSelect.value = String(base.getMinutes());
+
+    todayBtn?.classList.add('active');
+    dayBeforeBtn?.classList.remove('active');
+
+    if (timePickerTitle) timePickerTitle.textContent = title;
+  }
 
   // ===== 6) 시작/종료 =====
   async function startFasting() {
@@ -747,14 +732,11 @@ function openTimePicker(mode /* 'start'|'end' */) {
     }
   }
 
-  // 종료 플로우(버튼 클릭 시) — 종료시간 선택 모달 열기
   function openEndTimePickerForStop() {
-  if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
-  openTimePicker('end'); // 종료시간 선택 띄우기 (기본값=지금)
+    if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
+    openTimePicker('end');
   }
-  stopBtn?.addEventListener('click', openEndTimePickerForStop);
 
-  // 실제 종료 처리 (선택된 종료시간 사용)
   async function finalizeStopFasting(endDate /* Date */) {
     if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
 
@@ -762,7 +744,6 @@ function openTimePicker(mode /* 'start'|'end' */) {
     fastingState = 'idle';
 
     if (!currentUser) {
-      // 사용자 없으면 UI만 초기화
       if (progressArc)     progressArc.style.strokeDasharray = '0 100';
       if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
       if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
@@ -796,10 +777,8 @@ function openTimePicker(mode /* 'start'|'end' */) {
     } catch (e) {
       console.error('단식 기록 저장/상태 삭제 실패:', e);
       showToast('기록 저장에 실패했습니다. 다시 시도해주세요.');
-      // 실패해도 UI 초기화는 진행
     }
 
-    // UI 초기화
     if (progressArc)     progressArc.style.strokeDasharray = '0 100';
     if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
     if (statusMessage)   statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
@@ -818,7 +797,6 @@ function openTimePicker(mode /* 'start'|'end' */) {
     eventsWired = true;
 
     startBtn?.addEventListener('click', startFasting);
-    // 종료 버튼은 ‘종료시간 선택 → 저장 시 finalizeStopFasting’ 플로우
     stopBtn?.addEventListener('click', openEndTimePickerForStop);
     modelSelect?.addEventListener('change', handleModelChange);
 
@@ -971,61 +949,68 @@ function openTimePicker(mode /* 'start'|'end' */) {
   }
 
   // ===== 9) 인증 리스너 =====
-  if (auth) {
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        currentUser   = null;
-        fastingState  = 'idle';
-        initializeTime();
-        resetSelectOptions();
-        updateUIState();
+  if (!window.__PAGE_AUTH_WIRED__) {
+    window.__PAGE_AUTH_WIRED__ = true;
 
-        if (location.pathname !== '/login.html' && location.pathname !== '/signup.html') {
-          location.href = '/login.html';
-        }
-        return;
-      }
-
-      currentUser = user;
-
-      try {
-        const profile = await getUserDoc(user.uid);
-        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
-        setUserChip(nickname);
-
-        const savedFasting = profile?.currentFasting;
-        if (savedFasting?.startTime) {
-          fastingState = 'running';
-          selectedStartTime = (savedFasting.startTime.toDate ? savedFasting.startTime.toDate() : new Date(savedFasting.startTime));
-          targetHours = Number(savedFasting.targetHours) || 16;
-          if (modelSelect) modelSelect.value = String(targetHours);
-          if (fastingInterval) clearInterval(fastingInterval);
-          fastingInterval = setInterval(updateTimer, 1000);
-          updateTimer();          // 즉시 갱신
-          updateTimeDisplays();
-          updateSelectOptions();
-        } else {
+    if (!auth) {
+      initializeTime();
+      resetSelectOptions();
+      updateUIState();
+    } else {
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          // 라우팅은 firebase-init.js에서 처리
+          currentUser  = null;
           fastingState = 'idle';
           initializeTime();
-          updateTimeDisplays();
           resetSelectOptions();
+          updateUIState();
+          if (userChip) userChip.style.display = 'none';
+          return;
         }
 
-        updateUIState();
-        if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+        currentUser = user;
 
-        // 이벤트는 1회만 바인딩
-        wireEventsOnce();
+        try {
+          const profile  = await getUserDoc(user.uid);
 
-      } catch (error) {
-        console.error('앱 초기화 중 오류:', error);
-        alert('앱 초기화 실패. 새로고침 해주세요.');
-      }
-    });
-  } else {
-    // auth가 아직 없을 때도 타임피커는 동작하도록 와이어
-    initializeTime();
-    wireEventsOnce();
+          // >>> 변경된 딱 한 줄: pfNickname 최우선 <<<
+          const nickname = profile?.pfNickname ?? profile?.nickname ?? profile?.displayName ?? user.displayName ?? '사용자';
+          setUserChip(nickname);
+
+          const savedFasting = profile?.currentFasting;
+          if (savedFasting?.startTime) {
+            fastingState = 'running';
+            selectedStartTime = (savedFasting.startTime.toDate
+              ? savedFasting.startTime.toDate()
+              : new Date(savedFasting.startTime));
+            targetHours = Number(savedFasting.targetHours) || 16;
+            if (modelSelect) modelSelect.value = String(targetHours);
+
+            if (fastingInterval) clearInterval(fastingInterval);
+            fastingInterval = setInterval(updateTimer, 1000);
+
+            updateTimer();
+            updateTimeDisplays();
+            updateSelectOptions();
+          } else {
+            fastingState = 'idle';
+            initializeTime();
+            updateTimeDisplays();
+            resetSelectOptions();
+          }
+
+          updateUIState();
+          if (saltTip)
+            saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+
+          wireEventsOnce();
+        } catch (e) {
+          console.error('앱 초기화 중 오류:', e);
+          alert('앱 초기화 실패. 새로고침 해주세요.');
+        }
+      });
+    }
   }
 });
 </script>
