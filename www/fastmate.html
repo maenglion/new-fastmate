@@ -288,7 +288,34 @@
 
 <script>
  
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // --- 1. 인증 상태가 준비될 때까지 기다리고, 비로그인 사용자는 즉시 리디렉션 ---
+  try {
+    // firebase-init.js에 만들어 둔 authReady Promise를 기다립니다.
+    const user = await window.fastmateApp.authReady;
+    
+    // Promise가 user 객체(로그인) 또는 null(로그아웃)로 resolve됩니다.
+    if (!user) {
+      // 사용자가 없으면 로그인 페이지로 보냅니다.
+      // location.replace를 사용해 뒤로가기 히스토리를 남기지 않습니다.
+      location.replace('/login.html');
+      // 리디렉션 후 아래 코드가 실행되지 않도록 여기서 중단합니다.
+      return; 
+    }
+    
+    // 이 지점은 사용자가 확실히 로그인된 상태입니다.
+    // 사용자 정보를 기반으로 앱 초기화를 진행합니다.
+    initializeAppForUser(user);
+
+  } catch (e) {
+    console.error("인증 가드 실행 중 오류:", e);
+    alert("인증 상태를 확인하는 중 문제가 발생했습니다. 페이지를 새로고침해주세요.");
+    // 오류 발생 시에도 로그인 페이지로 보내 안전을 확보합니다.
+    location.replace('/login.html');
+    return;
+  }
+
   
 
 // '선장'이 준비해 둔 공용 도구를 가져옵니다.
@@ -706,6 +733,13 @@ function initializeTimePicker() {
     stopBtn?.addEventListener('click', stopFasting);
     modelSelect?.addEventListener('change', handleModelChange);
 
+        // ▼▼▼ [버그 수정] 시작 시간 조정 박스 클릭 이벤트 바인딩 ▼▼▼
+    startTimeBox?.addEventListener('click', openTimePicker);
+
+    userChip?.addEventListener('click', () => {
+      window.location.href = '/mypage.html'; 
+    });
+
     userChip?.addEventListener('click', () => {
     // TODO: 실제 마이페이지 경로로 수정하세요.
     window.location.href = '/mypage.html'; 
@@ -930,76 +964,6 @@ if (!user) { showToast('로그인이 필요합니다.'); return; }
     
     initializeTimePicker();
 }
-
-   // =================================================================
-    // 6. 메인 로직: 인증 상태 리스너 (모든 작업의 단일 시작점)
-    // =================================================================
-auth.onAuthStateChanged(async user => {
-    if (!user) {
-        // ... (로그아웃 상태 로직은 동일)
-        currentUser   = null;
-        fastingState  = 'idle';
-        initializeTime();
-        resetSelectOptions(); // 로그아웃 시에도 초기화
-        updateUIState();
-
-// 로그아웃 시 로그인 페이지로 이동시키는 로직 추가
-        if (location.pathname !== '/login.html' && location.pathname !== '/signup.html') {
-            location.href = '/login.html';
-        }
-
-        return;
-    }
-
-    currentUser = user;
-
-    try {
-        const profile = await getUserDoc(user.uid);
-
-        const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
-        if (userChipName) userChipName.textContent = nickname;
-        if (userChip) userChip.style.display = 'flex';
-
-        const savedFasting = profile?.currentFasting;
-
-        if (savedFasting?.startTime) {
-            // [상태 1] 저장된 단식이 있을 때 (진행 중)
-            fastingState = 'running';
-            selectedStartTime = savedFasting.startTime.toDate();
-            targetHours = Number(savedFasting.targetHours) || 16;
-            
-            if (modelSelect) modelSelect.value = String(targetHours);
-
-            if (fastingInterval) clearInterval(fastingInterval);
-            fastingInterval = setInterval(updateTimer, 1000);
-
-            // [개선 1] UI 업데이트 로직을 이 블록 안으로 이동
-            updateTimer();          // 타이머 UI 즉시 업데이트
-            updateTimeDisplays();   // 시간 표시부 업데이트
-            updateSelectOptions();  // 드롭다운에 '(진행중)' 표시
-            
-        } else {
-            // [상태 2] 저장된 단식이 없을 때 (휴식 중)
-            fastingState = 'idle';
-
-            // [개선 2] UI 초기화 로직을 명확하게 그룹화
-            initializeTime();       // 시간 관련 변수 초기화
-            updateTimeDisplays();   // 시간 표시부 초기화된 값으로 업데이트
-            resetSelectOptions();   // 드롭다운 초기화
-        }
-
-        // [개선 3] 전체적인 UI 상태 (버튼 활성화 등)는 마지막에 한 번만 호출
-        updateUIState();
-        if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
-
-        wireEventsOnce();
-
-    } catch (error) {
-        console.error("앱 초기화 중 오류:", error);
-        alert("앱 초기화 실패. 새로고침 해주세요.");
-    }
-});
-
 
 // 문제가 생기면 지울 줄 
 function openTimePicker() {
