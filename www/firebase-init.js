@@ -1,5 +1,12 @@
-// /firebase-init.js — 단일 파일, 최소 로직
+// --- hard guard: must run before anything ---
+// 어떤 경우에도 showApp 함수가 존재하도록 보장하는 코드
+window.showApp = window.showApp || function () {
+  const s = document.getElementById('splash-screen');
+  if (s) { s.classList.add('fade-out'); setTimeout(() => (s.style.display = 'none'), 500); }
+  document.body?.classList?.add?.('loaded');
+};
 
+// /firebase-init.js — 단일 파일, 최소 로직
 if (!window.__AUTH_BOOT__) {
   window.__AUTH_BOOT__ = true;
 
@@ -41,7 +48,7 @@ if (!window.__AUTH_BOOT__) {
     }
   };
 
-  // 3) 인증 준비 완료 Promise 생성 (핵심)
+  // 3) 인증 준비 완료 Promise 생성
   let authReadyResolver;
   window.fastmateApp.authReady = new Promise((resolve) => {
     authReadyResolver = resolve;
@@ -57,7 +64,6 @@ if (!window.__AUTH_BOOT__) {
         const googleCred = firebase.auth.GoogleAuthProvider.credential(result.credential?.idToken);
         await firebase.auth().signInWithCredential(googleCred);
         console.log("네이티브 로그인 성공!");
-        // 네이티브 로그인 성공 후 페이지 이동은 onAuthStateChanged가 처리하도록 둡니다.
       } catch (error) {
         if (error.message && error.message.toLowerCase().includes('canceled')) {
            console.log('네이티브 로그인이 사용자에 의해 취소되었습니다.');
@@ -95,16 +101,17 @@ if (!window.__AUTH_BOOT__) {
   // 6) 인증 플로우 실행
   (async function initAuth() {
     
-    // [수정] showApp 함수를 initAuth 내부 최상단으로 이동
-    function showApp() {
-      const splash = document.getElementById('splash-screen');
-      if (splash) {
-        splash.classList.add('fade-out');
-        setTimeout(() => { 
-          splash.style.display = 'none'; 
-        }, 500);
+    const path = () => location.pathname;
+    const isAuthPage  = () => /\/(login|signup)(?:\.html)?$/i.test(path());
+    const isProtected = () => /\/(fastmate|signup-step2)(?:\.html)?$/i.test(path());
+
+    function routeAfterAuth(user) {
+      if (!user && isProtected()) {
+        return location.replace('/login.html');
       }
-      document.body.classList.add('loaded');
+      if (user && isAuthPage()) {
+        return location.replace('/fastmate.html');
+      }
     }
 
     try {
@@ -124,7 +131,7 @@ if (!window.__AUTH_BOOT__) {
         
         authReadyResolver(r.user);
         const destination = r.additionalUserInfo?.isNewUser ? '/signup-step2.html' : '/fastmate.html';
-        if (location.pathname !== destination) {
+        if (path() !== destination) {
             location.replace(destination);
         }
         return;
@@ -132,8 +139,9 @@ if (!window.__AUTH_BOOT__) {
 
       let resolved = false;
       auth.onAuthStateChanged(async (user) => {
-        console.log('[auth] state=', !!user, 'path=', location.pathname);
-        showApp();
+        console.log('[auth] state=', !!user, 'path=', path());
+        window.showApp();
+        routeAfterAuth(user);
         
         if (!resolved) {
           resolved = true;
@@ -144,7 +152,7 @@ if (!window.__AUTH_BOOT__) {
     } catch (e) {
       console.error('[auth init]', e);
       alert(`인증 초기화 오류: ${e.message}`);
-      showApp(); 
+      window.showApp(); 
       authReadyResolver(null);
     }
   })();
