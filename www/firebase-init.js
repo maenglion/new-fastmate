@@ -51,10 +51,14 @@ if (!window.__AUTH_BOOT__) {
 
   
   // 3) 라우팅 가드(필요한 최소만)
-  const path = () => location.pathname;
-  const isAuthPage = () => /\/(login|signup)\.html$/i.test(path());
-  const isProtected = () => /\/(fastmate|signup-step2)\.html$/i.test(path()); // app.html 안 씀
-  const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
+
+// 변경 (확장자 유무/슬래시 허용)
+const AUTH_RE = /\/(login|signup)(?:\.html)?(?:\/)?$/i;
+const APP_RE  = /\/(fastmate|signup-step2)(?:\.html)?(?:\/)?$/i;
+
+const p = location.pathname;
+if (!user && APP_RE.test(p))  location.replace('/login');     // 확장자 없는 경로로 통일
+if ( user && AUTH_RE.test(p)) location.replace('/fastmate');  // 확장자 없는 경로로 통일
 
   // 4) 로그인 시작(버튼 클릭용)
 // Firebase JS SDK에서 가져오는 것이 아니라, Capacitor 플러그인을 직접 사용합니다.
@@ -67,13 +71,16 @@ if (!window.__AUTH_BOOT__) {
         const result = await window.FirebaseAuthentication.signInWithGoogle();
         const googleCred = firebase.auth.GoogleAuthProvider.credential(result.credential?.idToken);
         await firebase.auth().signInWithCredential(googleCred);
-        console.log("네이티브 로그인 성공!");
+        console.log("웹 로그인 성공!");
+        // 신규 유저면 온보딩으로, 아니면 앱으로
+const isNew = !!result?.additionalUserInfo?.isNewUser;
+location.replace(isNew ? '/signup-step2' : '/fastmate');
       } catch (error) {
         if (error.message && error.message.toLowerCase().includes('canceled')) {
-           console.log('네이티브 로그인이 사용자에 의해 취소되었습니다.');
+           console.log('웹 로그인이 사용자에 의해 취소되었습니다.');
         } else {
-          console.error("네이티브 로그인 오류", error);
-          alert('네이티브 로그인에 실패했습니다.');
+          console.error("웹 로그인 오류", error);
+          alert('웹 로그인에 실패했습니다.');
         }
       }
     } else {
@@ -129,18 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // 4) 인증 플로우 실행
   (async function initAuth() {
     
-    function showApp() {
-      const splash = document.getElementById('splash-screen');
-      if (splash) {
-        splash.classList.add('fade-out');
-        setTimeout(() => { 
-          splash.style.display = 'none'; 
-        }, 500);
-      }
-      document.body.classList.add('loaded');
-    }
-
-    try {
+     try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
       const r = await auth.getRedirectResult();
