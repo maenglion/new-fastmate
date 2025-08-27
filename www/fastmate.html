@@ -287,6 +287,10 @@
 
 
 <script>
+if (sessionStorage.getItem('oauthBusy') === '1') {
+  document.body.classList.add('oauth-busy');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // ===== 0) Firebase 핸들(선행 스크립트에서 노출됨) =====
   const app = window.fastmateApp || {};
@@ -356,6 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingTargetHours = null;
   let completionFired = false;
   let toastTimeout = null;
+
+
 
   // 타임피커 모드: 'start' | 'end' | null
   let timePickerMode = null;
@@ -743,8 +749,8 @@ function openTimePicker(mode /* 'start'|'end' */) {
   function openEndTimePickerForStop() {
   if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
   openTimePicker('end'); // 종료시간 선택 띄우기 (기본값=지금)
-}
-stopBtn?.addEventListener('click', openEndTimePickerForStop);
+  }
+  stopBtn?.addEventListener('click', openEndTimePickerForStop);
 
   // 실제 종료 처리 (선택된 종료시간 사용)
   async function finalizeStopFasting(endDate /* Date */) {

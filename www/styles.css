@@ -269,6 +269,10 @@
             bottom: 50px;
         }
 
+.oauth-busy #splash-screen { display:flex !important; }
+.oauth-busy .container { display:none !important; }
+
+
         /* --- 온보딩 모달 스타일 시작 --- */
         #appShield {
             position: fixed;
