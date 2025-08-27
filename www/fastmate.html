@@ -369,15 +369,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const milestones = { 10:false, 25:false, 50:false, 75:false, 90:false, 110:false, 120:false, 150:false, 200:false };
 
   // 타임피커 z-index 보정
-  (() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      #timePickerModal{ z-index:9999 !important; }
-      #timePickerModal .time-picker-content{ transform:none !important; }
-      #timePickerModal select{ pointer-events:auto; -webkit-appearance:menulist; appearance:auto; }
-    `;
-    document.head.appendChild(style);
-  })();
+(() => {
+  const style = document.createElement('style');
+  style.textContent = `
+    #timePickerModal{ z-index:9999 !important; }
+    #timePickerModal .time-picker-content{ transform:none !important; }
+-   #timePickerModal select{ pointer-events:auto; -webkit-appearance:menulist; appearance:auto; }
++   #timePickerModal select{
++     pointer-events:auto;
++     -webkit-appearance:menulist !important;
++     appearance:auto !important;
++     background-image:none !important;
++   }
++   /* 커스텀 화살표/오버레이 제거 (있을 경우 모두 무력화) */
++   #timePickerModal .time-selector::after,
++   #timePickerModal .time-selector::before,
++   #timePickerModal .time-selector .chevron,
++   #timePickerModal .time-selector .select-arrow,
++   #timePickerModal select::-ms-expand{
++     display:none !important;
++     content:none !important;
++   }
++   #timePickerModal .time-selector{
++     position:static !important;
++     background-image:none !important;
++   }
++   #timePickerModal .time-selector .chevron,
++   #timePickerModal .time-selector .select-arrow{
++     pointer-events:none !important; /* 터치 가로채기 방지 */
++   }
+  `;
+  document.head.appendChild(style);
+})();
+
 
   // ===== 3) 유틸 =====
   function showToast(msg) {
@@ -979,21 +1003,22 @@ document.addEventListener('DOMContentLoaded', () => {
           setUserChip(nickname);
 
           const savedFasting = profile?.currentFasting;
-          if (savedFasting?.startTime) {
-            fastingState = 'running';
-            selectedStartTime = (savedFasting.startTime.toDate
-              ? savedFasting.startTime.toDate()
-              : new Date(savedFasting.startTime));
-            targetHours = Number(savedFasting.targetHours) || 16;
-            if (modelSelect) modelSelect.value = String(targetHours);
+         if (savedFasting?.startTime) {
+  fastingState = 'running';
+  selectedStartTime = (savedFasting.startTime.toDate
+    ? savedFasting.startTime.toDate()
+    : new Date(savedFasting.startTime));
+  targetHours = Number(savedFasting.targetHours) || 16;
+  if (modelSelect) modelSelect.value = String(targetHours);
 
-            if (fastingInterval) clearInterval(fastingInterval);
-            fastingInterval = setInterval(updateTimer, 1000);
+  if (fastingInterval) clearInterval(fastingInterval);
+  fastingInterval = setInterval(updateTimer, 1000);
 
-            updateTimer();
-            updateTimeDisplays();
-            updateSelectOptions();
-          } else {
+  updateTimer();
+  updateTimeDisplays();
+  updateSelectOptions();
++ initializeTimePicker(); // ← running에서도 saveTimeBtn 리스너 보장
+} else {
             fastingState = 'idle';
             initializeTime();
             updateTimeDisplays();
