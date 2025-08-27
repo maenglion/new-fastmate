@@ -39,7 +39,6 @@ if (!window.__AUTH_BOOT__) {
           alert('로그아웃 중 오류가 발생했습니다.');
         });
     }
-    // 참고: sendPasswordReset 함수는 login.html 페이지에서만 필요하므로 여기서는 제외해도 됩니다.
   };
 
   // =================================================================
@@ -60,37 +59,40 @@ if (!window.__AUTH_BOOT__) {
   // 4) 로그인 시작(버튼 클릭용)
 // Firebase JS SDK에서 가져오는 것이 아니라, Capacitor 플러그인을 직접 사용합니다.
 
-window.signInWithGoogle = async function () {
-  const provider = new firebase.auth.GoogleAuthProvider();
+ window.signInWithGoogle = async function () {
+    const provider = new firebase.auth.GoogleAuthProvider();
 
-  // Capacitor 앱 환경인지 확인
-  if (window.Capacitor?.isNativePlatform()) {
-       try {
-      // ⬇️ 여기 3줄이 핵심
-      const { credential } = await window.FirebaseAuthentication.signInWithGoogle();
-      const googleCred = firebase.auth.GoogleAuthProvider.credential(credential?.idToken);
-      await firebase.auth().signInWithCredential(googleCred);
-      console.log("웹 로그인 성공!");
-    } catch (error) {
-      if (error.message !== 'canceled') {
-        console.error("웹 로그인 오류", error);
-        alert('웹 로그인에 실패했습니다.');
+    if (window.Capacitor?.isNativePlatform() && window.FirebaseAuthentication) {
+      try {
+        const result = await window.FirebaseAuthentication.signInWithGoogle();
+        const googleCred = firebase.auth.GoogleAuthProvider.credential(result.credential?.idToken);
+        await firebase.auth().signInWithCredential(googleCred);
+        console.log("네이티브 로그인 성공!");
+      } catch (error) {
+        if (error.message && error.message.toLowerCase().includes('canceled')) {
+           console.log('네이티브 로그인이 사용자에 의해 취소되었습니다.');
+        } else {
+          console.error("네이티브 로그인 오류", error);
+          alert('네이티브 로그인에 실패했습니다.');
+        }
+      }
+    } else {
+      try {
+        await auth.signInWithPopup(provider);
+        console.log("웹 팝업 로그인 성공!");
+      } catch (error) {
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+          console.log('팝업이 차단되어 리디렉션 방식으로 로그인합니다.');
+          await auth.signInWithRedirect(provider);
+        } else if (error.code !== 'auth/popup-closed-by-user') {
+          console.error("웹 로그인 오류", error);
+          alert('로그인에 실패했습니다: ' + error.message);
+        } else {
+          console.log('로그인 팝업이 사용자에 의해 닫혔습니다.');
+        }
       }
     }
-  } else {
-    try {
-      await auth.signInWithPopup(provider);
-    } catch (error) {
-      // 팝업 차단 시엔 자동으로 리다이렉트로 폴백
-      if (error.code === 'auth/popup-blocked') {
-        await auth.signInWithRedirect(provider);
-      } else {
-        console.error("웹 로그인 오류", error);
-        alert('로그인에 실패했습니다: ' + error.message);
-      }
-    }
-  }
-};;
+  };
 
   // 5) 로그인 버튼 자동 바인딩(있으면만)
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,9 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 4) 인증 플로우 실행
   (async function initAuth() {
     
-    // =================================================================
-    // ▼▼▼ [버그 수정] showApp 함수를 initAuth 내부로 이동 ▼▼▼
-    // =================================================================
     function showApp() {
       const splash = document.getElementById('splash-screen');
       if (splash) {
@@ -144,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-      // (A) 리디렉션 결과 우선 처리 (Google 로그인 등)
       const r = await auth.getRedirectResult();
       if (r?.user) {
         try {
@@ -165,30 +163,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // (B) 일반 상태 감지 리스너
       let resolved = false;
-       auth.onAuthStateChanged(async (user) => {
-    console.log('[auth] state=', !!user, 'path=', location.pathname);
-    showApp();
+      auth.onAuthStateChanged(async (user) => {
+        console.log('[auth] state=', !!user, 'path=', location.pathname);
+        showApp();
+        
+        // =================================================================
+        // ▼▼▼ [핵심 수정] 충돌을 일으키는 리디렉션 로직을 모두 제거합니다. ▼▼▼
+        // =================================================================
+        
+        // 첫 인증 상태가 확정되면 authReady Promise를 resolve합니다.
+        // 페이지 이동은 각 페이지(fastmate.html, login.html)가 이 신호를 받은 후 직접 처리합니다.
+        if (!resolved) {
+          resolved = true;
+          authReadyResolver(user);
+        }
+      });
 
-    const p = location.pathname;
-    if (!user && /\/(fastmate|signup-step2)\.html$/i.test(p)) { 
-      location.replace('/login.html'); 
-      return;                     // ← 선택: 리다이렉트 후 추가 실행 방지
+    } catch (e) {
+      console.error('[auth init]', e);
+      alert(`인증 초기화 오류: ${e.message}`);
+      showApp(); 
+      authReadyResolver(null);
     }
-    if ( user && /\/(login|signup)\.html$/i.test(p)) { 
-      location.replace('/fastmate.html'); 
-      return;                     // ← 선택
-    }
-
-    if (!resolved) { resolved = true; authReadyResolver(user); }
-  });
-
-} catch (e) {
-  console.error('[auth init]', e);
-  alert(`인증 초기화 오류: ${e.message}`);
-  showApp();
-  authReadyResolver(null);
-}
-})();   // ← IIFE 닫기
+  })();
 }
