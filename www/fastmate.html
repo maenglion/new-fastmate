@@ -556,6 +556,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 // 전역 헬퍼 (파일 내 아무 함수보다 위여도 되고, 아래여도 됨)
+// 옵션 주입 함수가 있다면 재호출 가능하도록 유지
+
+let timePickerWired = false;
+
+
 function ensureTimepickerOptions() {
   if (hourSelect && hourSelect.options.length === 0) {
     for (let i = 1; i <= 12; i++) {
@@ -568,23 +573,34 @@ function ensureTimepickerOptions() {
   if (minuteSelect && minuteSelect.options.length === 0) {
     for (let i = 0; i < 60; i++) {
       const o = document.createElement('option');
-      o.value = String(i);                  // 값: 0~59 (패딩 X)
+      o.value = String(i);                      // 값: 0~59
       o.textContent = String(i).padStart(2,'0'); // 표시: 00~59
       minuteSelect.appendChild(o);
     }
   }
 }
 
-let timePickerWired = false;
 function initializeTimePicker() {
   if (!timePickerModal || timePickerWired) return;
   timePickerWired = true;
 
-  ensureTimepickerOptions(); // ← 호출만
+  // 네이티브 화살표 사용(커스텀 꺾쇠 제거)
+  [ampmSelect, hourSelect, minuteSelect].forEach((sel) => {
+    if (!sel) return;
+    sel.style.backgroundImage = 'none';
+    sel.style.appearance = 'auto';
+    sel.style.webkitAppearance = 'menulist';
+    sel.disabled = false;
+    sel.style.pointerEvents = 'auto';
+    sel.addEventListener('click', (e) => e.stopPropagation());
+    sel.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+    sel.addEventListener('mousedown', (e) => e.stopPropagation());
+  });
 
+  // 옵션 보장
+  ensureTimepickerOptions();
 
-
-  // 시작시간 박스 클릭 → 'start' 모드 모달
+  // 시작시간 박스 → 시작 모드
   startTimeBox?.addEventListener('click', () => openTimePicker('start'));
 
   // 날짜 토글
@@ -599,31 +615,27 @@ function initializeTimePicker() {
     dayBeforeBtn.classList.remove('active');
   });
 
-  // 사파리/오버레이 이슈 우회: select가 클릭 먹도록 보장
-  [ampmSelect, hourSelect, minuteSelect].forEach((sel) => {
-    if (!sel) return;
-    sel.disabled = false;
-    sel.style.pointerEvents = 'auto';
-    sel.style.webkitAppearance = 'menulist';
-    sel.style.appearance = 'auto';
-    sel.addEventListener('click', (e) => e.stopPropagation());
-    sel.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
-    sel.addEventListener('mousedown', (e) => e.stopPropagation());
-  });
-
   // 저장
   saveTimeBtn?.addEventListener('click', async (e) => {
     e.stopPropagation();
 
-    let hour = parseInt(hourSelect.value, 10);
-    const minute = parseInt(minuteSelect.value, 10);
-    const isPM = ampmSelect.value === 'PM';
-    if (isPM && hour < 12) hour += 12;
-    if (!isPM && hour === 12) hour = 0;
+    // 혹시 모를 레이스 대비: 옵션 재보장
+    ensureTimepickerOptions();
+
+    const h12  = parseInt(hourSelect?.value ?? '', 10);
+    const mm   = parseInt(minuteSelect?.value ?? '', 10);
+    const ampm = ampmSelect?.value;
+    if (Number.isNaN(h12) || Number.isNaN(mm) || !ampm) {
+      console.warn('[timepicker] invalid', { h12, mm, ampm });
+      return showToast('시간을 다시 선택해주세요.');
+    }
+
+    let hour = h12 % 12;
+    if (ampm === 'PM') hour += 12;
 
     const picked = new Date();
     if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
-    picked.setHours(hour, minute, 0, 0);
+    picked.setHours(hour, mm, 0, 0);
 
     if (timePickerMode === 'start') {
       // 시작시간 저장/업데이트
@@ -648,7 +660,10 @@ function initializeTimePicker() {
     } else if (timePickerMode === 'end') {
       if (picked < selectedStartTime) return showToast('종료 시간은 시작 시간 이후여야 합니다.');
       timePickerModal.style.display = 'none';
-      finalizeStopFasting(picked); // 선택한 종료시간으로 기록 종료
+      finalizeStopFasting(picked); // 선택한 종료시간으로 종료 기록
+    } else {
+      console.warn('[timepicker] mode is null');
+      showToast('잠시 후 다시 시도해주세요.');
     }
   });
 
@@ -657,7 +672,6 @@ function initializeTimePicker() {
     if (e.target === timePickerModal) timePickerModal.style.display = 'none';
   });
 }
-
 
 // openTimePicker(mode) 전체 교체
 function openTimePicker(mode /* 'start'|'end' */) {
