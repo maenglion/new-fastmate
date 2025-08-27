@@ -547,95 +547,133 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== 5) 타임피커(시작/종료 공용) =====
   let timePickerWired = false;
-  function initializeTimePicker() {
-    if (!timePickerModal || timePickerWired) return;
-    timePickerWired = true;
+function initializeTimePicker() {
+  if (!timePickerModal || timePickerWired) return;
+  timePickerWired = true;
 
-    // 옵션 채우기 (1~12시, 0~59분)
-    hourSelect.innerHTML = '';
-    for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
-    minuteSelect.innerHTML = '';
-    for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
-
-    // 시작시간 상자 클릭 => 'start' 모드로 열기 (단식 중에도 허용)
-    startTimeBox?.addEventListener('click', () => openTimePicker('start'));
-
-    // 날짜 토글
-    dayBeforeBtn?.addEventListener('click', () => { dayBeforeBtn.classList.add('active'); todayBtn.classList.remove('active'); });
-    todayBtn?.addEventListener('click', () => { todayBtn.classList.add('active'); dayBeforeBtn.classList.remove('active'); });
-
-    // 저장
-    saveTimeBtn?.addEventListener('click', async () => {
-      let hour = parseInt(hourSelect.value, 10);
-      const minute = parseInt(minuteSelect.value, 10);
-      const isPM = ampmSelect.value === 'PM';
-      if (isPM && hour < 12) hour += 12;
-      if (!isPM && hour === 12) hour = 0;
-
-      const picked = new Date();
-      if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
-      picked.setHours(hour, minute, 0, 0);
-
-      if (timePickerMode === 'start') {
-        timePickerUsed = true;
-        selectedStartTime = picked;
-        updateTimeDisplays();
-        timePickerModal.style.display = 'none';
-
-        if (fastingState === 'running') {
-          if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
-          try {
-            await db.collection('users').doc(currentUser.uid).set({
-              currentFasting: { startTime: selectedStartTime, targetHours }
-            }, { merge: true });
-            updateTimer();
-            showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
-          } catch (err) {
-            console.error('Error updating start time:', err);
-            showToast('시간 변경에 실패했습니다.');
-          }
-        }
-      } else if (timePickerMode === 'end') {
-        // 종료시간 검증
-        if (picked < selectedStartTime) {
-          return showToast('종료 시간은 시작 시간 이후여야 합니다.');
-        }
-        timePickerModal.style.display = 'none';
-        finalizeStopFasting(picked); // ← 선택된 종료시간으로 종료
+  // 옵션 주입 (한 번만)
+  const ensureOptions = () => {
+    if (hourSelect && hourSelect.options.length === 0) {
+      for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = String(i);
+        hourSelect.appendChild(opt);
       }
-    });
+    }
+    if (minuteSelect && minuteSelect.options.length === 0) {
+      for (let i = 0; i < 60; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = String(i).padStart(2, '0');
+        minuteSelect.appendChild(opt);
+      }
+    }
+  };
+  ensureOptions();
 
-    // 모달 밖 클릭 닫기
-    window.addEventListener('click', (e) => {
-      if (e.target === timePickerModal) timePickerModal.style.display = 'none';
-    });
-  }
+  // 시작시간 박스 클릭 → 'start' 모드 모달
+  startTimeBox?.addEventListener('click', () => openTimePicker('start'));
+
+  // 날짜 토글
+  dayBeforeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dayBeforeBtn.classList.add('active');
+    todayBtn.classList.remove('active');
+  });
+  todayBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    todayBtn.classList.add('active');
+    dayBeforeBtn.classList.remove('active');
+  });
+
+  // 사파리/오버레이 이슈 우회: select가 클릭 먹도록 보장
+  [ampmSelect, hourSelect, minuteSelect].forEach((sel) => {
+    if (!sel) return;
+    sel.disabled = false;
+    sel.style.pointerEvents = 'auto';
+    sel.style.webkitAppearance = 'menulist';
+    sel.style.appearance = 'auto';
+    sel.addEventListener('click', (e) => e.stopPropagation());
+    sel.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+    sel.addEventListener('mousedown', (e) => e.stopPropagation());
+  });
+
+  // 저장
+  saveTimeBtn?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+
+    let hour = parseInt(hourSelect.value, 10);
+    const minute = parseInt(minuteSelect.value, 10);
+    const isPM = ampmSelect.value === 'PM';
+    if (isPM && hour < 12) hour += 12;
+    if (!isPM && hour === 12) hour = 0;
+
+    const picked = new Date();
+    if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
+    picked.setHours(hour, minute, 0, 0);
+
+    if (timePickerMode === 'start') {
+      // 시작시간 저장/업데이트
+      timePickerUsed = true;
+      selectedStartTime = picked;
+      updateTimeDisplays();
+      timePickerModal.style.display = 'none';
+
+      if (fastingState === 'running') {
+        if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
+        try {
+          await db.collection('users').doc(currentUser.uid).set({
+            currentFasting: { startTime: selectedStartTime, targetHours }
+          }, { merge: true });
+          updateTimer();
+          showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
+        } catch (err) {
+          console.error('Error updating start time:', err);
+          showToast('시간 변경에 실패했습니다.');
+        }
+      }
+    } else if (timePickerMode === 'end') {
+      if (picked < selectedStartTime) return showToast('종료 시간은 시작 시간 이후여야 합니다.');
+      timePickerModal.style.display = 'none';
+      finalizeStopFasting(picked); // 선택한 종료시간으로 기록 종료
+    }
+  });
+
+  // 모달 바깥 클릭 시 닫기
+  window.addEventListener('click', (e) => {
+    if (e.target === timePickerModal) timePickerModal.style.display = 'none';
+  });
+}
+
 
   function openTimePicker(mode /* 'start'|'end' */) {
-    if (!timePickerModal) return;
-    timePickerMode = mode;
+  if (!timePickerModal) return;
+  timePickerMode = mode;
 
-    // 타이틀 변경
-    if (timePickerTitle) {
-      timePickerTitle.textContent = mode === 'start' ? '시작 시간 선택' : '종료 시간 선택';
-    }
+  // 최상단 보장 (일부 환경에서 드롭다운이 오버레이 뒤로 깔리는 문제 회피)
+  timePickerModal.style.zIndex = '9999';
+  timePickerModal.style.display = 'flex';
 
-    // 기본값 채우기
-    const base = (mode === 'start') ? (selectedStartTime || new Date()) : new Date();
-    let h = base.getHours();
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12; h = h ? h : 12;
+  // 타이틀
+  const title = (mode === 'start') ? '시작 시간 선택' : '종료 시간 선택';
+  const base  = (mode === 'start') ? (selectedStartTime || new Date()) : new Date(); // ← 종료는 “지금”이 기본값!
 
-    hourSelect.value = h;
-    minuteSelect.value = base.getMinutes();
-    ampmSelect.value = ampm;
+  // 기본값 채우기
+  let h = base.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; h = h ? h : 12;
 
-    // 오늘/어제 토글 (종료는 기본 '오늘')
-    todayBtn?.classList.add('active');
-    dayBeforeBtn?.classList.remove('active');
+  if (ampmSelect) ampmSelect.value = ampm;
+  if (hourSelect) hourSelect.value = String(h);
+  if (minuteSelect) minuteSelect.value = String(base.getMinutes());
 
-    timePickerModal.style.display = 'flex';
-  }
+  // 날짜 버튼: 종료는 무조건 '오늘' 기본
+  todayBtn?.classList.add('active');
+  dayBeforeBtn?.classList.remove('active');
+
+  if (timePickerTitle) timePickerTitle.textContent = title;
+}
 
   // ===== 6) 시작/종료 =====
   async function startFasting() {
@@ -674,10 +712,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 종료 플로우(버튼 클릭 시) — 종료시간 선택 모달 열기
   function openEndTimePickerForStop() {
-    if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
-    // ‘end’ 모드로 타임피커 오픈
-    openTimePicker('end');
-  }
+  if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
+  openTimePicker('end'); // 종료시간 선택 띄우기 (기본값=지금)
+}
+stopBtn?.addEventListener('click', openEndTimePickerForStop);
 
   // 실제 종료 처리 (선택된 종료시간 사용)
   async function finalizeStopFasting(endDate /* Date */) {
