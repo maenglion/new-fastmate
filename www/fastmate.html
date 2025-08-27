@@ -370,34 +370,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 타임피커 z-index 보정
 (() => {
+
   const style = document.createElement('style');
   style.textContent = `
-    #timePickerModal{ z-index:9999 !important; }
-    #timePickerModal .time-picker-content{ transform:none !important; }
--   #timePickerModal select{ pointer-events:auto; -webkit-appearance:menulist; appearance:auto; }
-+   #timePickerModal select{
-+     pointer-events:auto;
-+     -webkit-appearance:menulist !important;
-+     appearance:auto !important;
-+     background-image:none !important;
-+   }
-+   /* 커스텀 화살표/오버레이 제거 (있을 경우 모두 무력화) */
-+   #timePickerModal .time-selector::after,
-+   #timePickerModal .time-selector::before,
-+   #timePickerModal .time-selector .chevron,
-+   #timePickerModal .time-selector .select-arrow,
-+   #timePickerModal select::-ms-expand{
-+     display:none !important;
-+     content:none !important;
-+   }
-+   #timePickerModal .time-selector{
-+     position:static !important;
-+     background-image:none !important;
-+   }
-+   #timePickerModal .time-selector .chevron,
-+   #timePickerModal .time-selector .select-arrow{
-+     pointer-events:none !important; /* 터치 가로채기 방지 */
-+   }
+    #timePickerModal { z-index:9999 !important; }
+    #timePickerModal .time-picker-content { transform:none !important; }
+    #timePickerModal select {
+        pointer-events:auto;
+        -webkit-appearance:menulist !important;
+        appearance:auto !important;
+        background-image:none !important;
+    }
+    /* 커스텀 화살표/오버레이 제거 (있을 경우 모두 무력화) */
+    #timePickerModal .time-selector::after,
+    #timePickerModal .time-selector::before,
+    #timePickerModal .time-selector .chevron,
+    #timePickerModal .time-selector .select-arrow,
+    #timePickerModal select::-ms-expand {
+        display:none !important;
+        content:none !important;
+    }
+    #timePickerModal .time-selector {
+        position:static !important;
+        background-image:none !important;
+    }
+    #timePickerModal .time-selector .chevron,
+    #timePickerModal .time-selector .select-arrow {
+        pointer-events:none !important; /* 터치 가로채기 방지 */
+    }
   `;
   document.head.appendChild(style);
 })();
@@ -1028,6 +1028,13 @@ document.addEventListener('DOMContentLoaded', () => {
           updateUIState();
           if (saltTip)
             saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+
+                      // ▼▼▼ 스플래시 스크린 숨기는 코드 추가 ▼▼▼
+          const splashScreen = document.getElementById('splash-screen');
+          if (splashScreen) {
+            splashScreen.style.display = 'none';
+          }
+          // ▲▲▲ 스플래시 스크린 숨기는 코드 추가 ▲▲▲
 
           wireEventsOnce();
         } catch (e) {
