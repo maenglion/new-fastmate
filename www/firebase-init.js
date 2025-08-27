@@ -19,48 +19,38 @@ if (!window.__AUTH_BOOT__) {
 
   // 2) 전역(필요 시 사용할 수 있게)
 window.fastmateApp = {
-  auth,
-  db,
-  // 원래 버전이 ID도 함께 반환해서 조금 더 좋습니다.
-  getUserDoc: async (uid) => {
-    if (!uid) return null;
-    try {
-      const s = await db.collection('users').doc(uid).get();
-      return s.exists ? { id: s.id, ...s.data() } : null;
-    } catch (e) { console.error('[getUserDoc]', e); return null; }
-  },
-  // 새로 추가하신 비밀번호 재설정 함수 (완벽합니다)
-  sendPasswordReset: function() {
-    // login.html이 아닌 forgot-password.html의 id를 사용해야 합니다.
-    const emailInput = document.getElementById('reset-email'); 
-    
-    if (!emailInput) {
-      // 이 함수는 forgot-password.html 페이지에서만 호출되므로,
-      // 다른 페이지에서는 버튼이 없어 호출되지 않는 것이 정상입니다.
-      return; 
-    }
+    auth,
+    db,
+    getUserDoc: async (uid) => {
+      if (!uid) return null;
+      try {
+        const s = await db.collection('users').doc(uid).get();
+        return s.exists ? { id: s.id, ...s.data() } : null;
+      } catch (e) { console.error('[getUserDoc]', e); return null; }
+    },
+    sendPasswordReset: function() {
+      const emailInput = document.getElementById('reset-email'); 
+      if (!emailInput) return; 
 
-    const email = emailInput.value;
-    if (!email) {
-      alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
-      return;
-    }
+      const email = emailInput.value;
+      if (!email) {
+        alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
+        return;
+      }
 
-    auth.sendPasswordResetEmail(email)
-      .then(() => {
-        alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
-      })
-      .catch((error) => {
-        console.error("Password reset error:", error);
-        alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
-      });
-  },
-
-   signOutUser: function() {
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`);
+        })
+        .catch((error) => {
+          console.error("Password reset error:", error);
+          alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
+        });
+    },
+    signOutUser: function() {
       auth.signOut()
         .then(() => {
           console.log('User signed out successfully');
-          // 로그아웃 성공 후, 로그인 페이지로 이동시킵니다.
           window.location.href = '/login.html';
         })
         .catch((error) => {
@@ -71,6 +61,11 @@ window.fastmateApp = {
   };
 
 
+  let authReadyResolver;
+  window.fastmateApp.authReady = new Promise((resolve) => {
+    authReadyResolver = resolve; // resolve 함수를 외부에서 호출할 수 있도록 저장
+  });
+
   
   // 3) 라우팅 가드(필요한 최소만)
   const path = () => location.pathname;
@@ -79,13 +74,36 @@ window.fastmateApp = {
   const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
 
   // 4) 로그인 시작(버튼 클릭용)
-  window.signInWithGoogle = function () {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithRedirect(provider).catch(e => {
-      console.error('[signInWithRedirect]', e);
-      alert('로그인 시작 오류 발생함');
-    });
-  };
+// Firebase JS SDK에서 가져오는 것이 아니라, Capacitor 플러그인을 직접 사용합니다.
+
+window.signInWithGoogle = async function () {
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  // Capacitor 앱 환경인지 확인
+  if (window.Capacitor?.isNativePlatform()) {
+    // --- 앱(안드로이드/iOS)을 위한 네이티브 로그인 코드 ---
+    try {
+      console.log('FirebaseAuthentication 플러그인 객체:', window.FirebaseAuthentication);
+      const result = await window.FirebaseAuthentication.signInWithGoogle();
+      await auth.signInWithCustomToken(result.token);
+      console.log("네이티브 로그인 성공!", result.user);
+    } catch (error) {
+      if (error.message !== 'canceled') {
+        console.error("네이티브 로그인 오류", error);
+        alert('네이티브 로그인에 실패했습니다.');
+      }
+    }
+  } else {
+    // --- 일반 웹사이트를 위한 팝업 로그인 코드 ---
+    try {
+      const result = await auth.signInWithPopup(provider);
+      console.log("웹 로그인 성공!", result.user);
+    } catch (error) {
+      console.error("웹 로그인 오류", error);
+      alert('로그인에 실패했습니다: ' + error.message);
+    }
+  }
+};
 
   // 5) 로그인 버튼 자동 바인딩(있으면만)
   document.addEventListener('DOMContentLoaded', () => {
@@ -126,23 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
   // 6) 인증 플로우
-  (async function initAuth() {
-
-function showApp() {
-  const splash = document.getElementById('splash-screen');
-  if (splash) {
-    splash.classList.add('fade-out');
-    setTimeout(() => { 
-      splash.style.display = 'none'; 
-    }, 500);
-  }
-  document.body.classList.add('loaded');
-}
-
+(async function initAuth() {
     try {
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-      // (A) 리디렉션 결과 우선
+      // (A) 리디렉션 결과 우선 처리 (Google 로그인 등)
       const r = await auth.getRedirectResult();
       if (r?.user) {
         try {
@@ -154,57 +160,39 @@ function showApp() {
             lastLogin: new Date()
           }, { merge: true });
         } catch (e) { console.error('user upsert fail', e); }
-        return r.additionalUserInfo?.isNewUser ? goOnce('/signup-step2.html') : goOnce('/fastmate.html');
-      }
-
-      // (B) 일반 상태 감지
-      auth.onAuthStateChanged(async (user) => {
-  console.log('[auth] state=', !!user, 'path=', path());
-
-  // --- 1단계: 페이지를 떠나야 하는가? (리디렉션) ---
-  // 리디렉션이 필요하면 가장 먼저 처리하고 함수를 즉시 종료합니다.
-  if (user && isAuthPage()) {
-    return goOnce('/fastmate.html');
-  }
-  if (!user && isProtected()) {
-    return goOnce('/login.html');
-  }
-
-  // --- 2단계: 페이지에 머무는 것이 확정! ---
-  // 이제 "일단 먼저" 스플래시 스크린부터 치웁니다.
-  showApp();
-
-  // --- 3단계: 스플래시가 사라진 후, 필요한 데이터를 화면에 표시합니다. ---
-  // 사용자가 로그인한 상태일 때만 데이터 로딩 로직을 실행합니다.
-   if (user) {
-        if (/\/fastmate\.html$/i.test(path())) {
-          try {
-            const userChip = document.getElementById('userChip');
-            const userChipName = document.getElementById('userChipName');
-            if (userChip && userChipName) {
-              userChipName.textContent = user.displayName || '사용자';
-              userChip.style.display = 'flex';
-            }
-            const profile = await window.fastmateApp.getUserDoc(user.uid);
-            const savedFasting = profile?.currentFasting;
-            if (savedFasting && window.hydrateFastingTimer) {
-              window.hydrateFastingTimer(savedFasting);
-            } else {
-              if(window.initializeTime) window.initializeTime();
-            }
-          } catch (e) { console.warn('[fastmate hook]', e); }
-          
-          if(window.updateUIState) window.updateUIState();
-          if (!window.__WIRED__) { window.__WIRED__ = true; if (window.wireEventsOnce) try { window.wireEventsOnce(); } catch(e){} }
+        
+        // 리디렉션 후에는 Promise를 즉시 resolve하고 페이지 이동
+        authReadyResolver(r.user);
+        const destination = r.additionalUserInfo?.isNewUser ? '/signup-step2.html' : '/fastmate.html';
+        if (location.pathname !== destination) {
+            location.replace(destination);
         }
+        return;
       }
-    });
 
-  // ▼ 여기가 바로 그 "안전망" 역할을 하는 부분입니다.
-  } catch (e) {
-    console.error('[auth init]', e);
-    alert(`인증 초기화 오류: ${e.message}`);
-    showApp(); 
-  }
-})();
+      // (B) 일반 상태 감지 리스너
+      let resolved = false;
+      auth.onAuthStateChanged(async (user) => {
+        console.log('[auth] state=', !!user, 'path=', location.pathname);
+
+        // ▼▼▼ [핵심 수정] 페이지 이동(리디렉션) 로직 제거 ▼▼▼
+        // 페이지 이동은 각 페이지가 authReady를 기다린 후 직접 처리합니다.
+        
+        // 스플래시 스크린은 여기서 숨겨줍니다.
+        showApp();
+        
+        // 첫 인증 상태가 확정되면 authReady Promise를 resolve합니다.
+        if (!resolved) {
+          resolved = true;
+          authReadyResolver(user);
+        }
+      });
+
+    } catch (e) {
+      console.error('[auth init]', e);
+      alert(`인증 초기화 오류: ${e.message}`);
+      showApp(); 
+      authReadyResolver(null); // 오류 발생 시에도 Promise를 풀어주어 무한 대기 방지
+    }
+  })();
 }
