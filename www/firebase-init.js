@@ -168,16 +168,18 @@ window.signInWithGoogle = function () {
 
         // 3) 로그인 상태에서만 fastmate 초기 UI 수화
         if (user && /\/fastmate(?:\.html)?$/i.test(path())) {
-          try {
+ try {
             const userChip = document.getElementById('userChip');
-            const userChipName = document.getElementById('userChipName');
-            if (userChip && userChipName) {
-              userChipName.textContent = user.displayName || '사용자';
-              userChip.style.display = 'flex';
-            }
-
+            const userChipName = document.getElementById('userChipName');            
             const profile = await window.fastmateApp.getUserDoc(user.uid);
-            const savedFasting = profile?.currentFasting;
+
+if (userChip && userChipName) {
+  const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
+  userChipName.textContent = nickname;
+  userChip.style.display = 'flex';
+}
+
+const savedFasting = profile?.currentFasting;
             if (savedFasting && window.hydrateFastingTimer) {
               window.hydrateFastingTimer(savedFasting);
             } else {
