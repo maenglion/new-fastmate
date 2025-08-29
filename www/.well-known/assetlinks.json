@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kr.fastmate.twa",
+      "sha256_cert_fingerprints": [
+        "39:A6:5D:A2:96:82:31:84:E2:13:56:47:A9:69:C5:3A:1E:78:9F:28:9B:59:A9:70:7A:03:19:C0:6D:B2:F6:AD"
+      ]
+    }
+  }
+]
