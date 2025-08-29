@@ -32,6 +32,8 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || event.request.url.includes('firebase') || event.request.url.includes('googleapis')) {
     return; 
   }
+  if (event.request.url.includes('/.well-known/')) return; // 그냥 네트워크로
+
 
   // 그 외의 요청(HTML, CSS 등)은 캐시 우선 전략을 사용합니다.
   event.respondWith(
