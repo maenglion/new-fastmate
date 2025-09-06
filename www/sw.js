@@ -17,6 +17,12 @@ const urlsToCache = [
   // 여기에 캐시할 이미지나 폰트 파일 경로를 추가할 수 있습니다.
 ];
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(console.error);
+  });
+}
+
 // 1. 서비스 워커 설치 및 기본 파일 캐싱
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -47,6 +53,8 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+
 
 // 3. 이전 버전의 캐시 정리
 self.addEventListener('activate', event => {
