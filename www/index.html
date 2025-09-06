@@ -1,60 +1,84 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-    <script defer src="./firebase-init.js"></script>
-    <script src="/signup.js?v=20250820" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>fastmate</title>
 
-    <title>fastmate</title>
-    <link rel="stylesheet" href="./styles.css">
-    <link rel="manifest" href="/manifest.json">
-    <style>
-        /* [추가] 로딩 중 내용 숨기기 */
-        .intro-container {
-            visibility: hidden; /* 일단 숨김 */
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-        .intro-container.show {
-            visibility: visible;
-            opacity: 1;
-        }
-    </style>
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+
+  <!-- firebase-init: 모듈X, 그냥 defer로 -->
+  <script defer src="/firebase-init.js"></script>
+
+  <!-- (파일이 실제로 있을 때만 사용) -->
+  <!-- <script defer src="/signup.js?v=20250820"></script> -->
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/styles.css" />
+
+  <style>
+    /* 첫 로드 시 일단 숨김(Transition용) */
+    .intro-container {
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity .3s ease-in-out;
+    }
+    .intro-container.show {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
 </head>
-
 <body>
 
-    <div class="intro-container">
-        <h1 class="logo">fastmate</h1>
-        <p class="intro-text">단식을<br>쉽게 관리하세요.</p>
-        <button onclick="window.location.href='./signup.html'" class="main-button">시작하기</button>
-        <p class="login-link">
-            이미 회원이라면 <a href="./login.html">로그인</a>
-        </p>
-    </div>
+  <div class="intro-container">
+    <h1 class="logo">fastmate</h1>
+    <p class="intro-text">단식을<br>쉽게 관리하세요.</p>
+    <button onclick="location.assign('/signup.html')" class="main-button">시작하기</button>
+    <p class="login-link">
+      이미 회원이라면 <a href="/login.html">로그인</a>
+    </p>
+  </div>
 
-    <script>
+  <!-- JS가 아예 돌지 않아도 1.5초 내 노출되도록 안전복구 타이머 -->
+  <script>
+    window.__showFallback = setTimeout(() => {
+      document.querySelector('.intro-container')?.classList.add('show');
+    }, 1500);
+  </script>
+
+  <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const introContainer = document.querySelector('.intro-container');
+      const intro = document.querySelector('.intro-container');
 
-        firebase.auth().onAuthStateChanged((user) => {
+      // path 이동은 항상 루트상대경로 사용(모든 origin에서 동작)
+      const go = (p) => location.assign(p.startsWith('/') ? p : '/' + p);
+
+      // onAuthStateChanged가 실패/지연되어도 화면은 열린 상태여야 함
+      try {
+        firebase.auth().onAuthStateChanged(
+          (user) => {
+            clearTimeout(window.__showFallback);
             if (user) {
-                // 로그인된 사용자는 즉시 메인 앱으로 이동시킵니다.
-                // 최종 판단은 fastmate.html이 알아서 할 것입니다.
-                window.location.replace('./fastmate.html');
+              go('/fastmate.html');    // 로그인 상태면 앱으로
             } else {
-                // 로그인되지 않은 사용자일 때만 내용을 보여줍니다.
-                if (introContainer) {
-                    introContainer.classList.add('show');
-                }
+              intro?.classList.add('show'); // 비로그인은 인트로 노출
             }
-        });
+          },
+          (err) => {
+            console.error('[auth listener error]', err);
+            intro?.classList.add('show');   // 에러여도 보여준다
+          }
+        );
+      } catch (e) {
+        console.error('[auth listener exception]', e);
+        intro?.classList.add('show');       // 예외여도 보여준다
+      }
     });
-</script>
-    
+  </script>
+
 </body>
 </html>

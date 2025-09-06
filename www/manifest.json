@@ -6,6 +6,7 @@
   "start_url": "https://fastmate.kr/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
+  "scope": "/",
   "theme_color": "#1c8e3e",
    "icons": [
     {

@@ -1,0 +1,10 @@
+# Dependency directory
+node_modules/
+
+# Capacitor native project folders
+/android/
+/ios/
+
+# IDE files & System files
+.vscode/
+.DS_Store
