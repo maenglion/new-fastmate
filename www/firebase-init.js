@@ -128,13 +128,41 @@ auth.getRedirectResult()
   })
   .catch((e) => console.warn('[redirectResult]', e.code, e.message));
 
+// 기존
+// auth.onAuthStateChanged(async (user) => { ... });
+
+// 교체 버전 (헬퍼 유지)
 auth.onAuthStateChanged(async (user) => {
-  console.log('[auth] state=', !!user, 'path=', path());
+  const p = path().toLowerCase();
+  const isEntry =
+    p === '/' || p.endsWith('/index.html') ||
+    p.endsWith('/login.html') || p.endsWith('/signup.html');
+
+  console.log('[auth] state=', !!user, 'path=', p);
   window.showApp?.();
 
-  if (!user && isProtected()) return goOnce(toUrl('login'));
-  if (user) await afterAuth(user);
+  // 비로그인 + 보호 페이지면 로그인으로
+  if (!user) {
+    if (isProtected()) return goOnce(toUrl('login'));
+    return; // 공개 페이지면 머무름
+  }
+
+  // (선택) Firestore 안정화
+  try {
+    firebase.firestore()
+      .settings({ experimentalAutoDetectLongPolling: true, useFetchStreams: false });
+  } catch (e) {
+    console.warn('[auth] firestore settings fail (ok):', e);
+  }
+
+  // 여기서는 UI/유저 문서 갱신만! (리다이렉트 금지)
+  await afterAuth(user);
+
+  // ✅ 자동 입장 이동은 "입장 페이지에서만"
+  const NEXT = '/fastmate.html';
+  if (isEntry && !p.endsWith(NEXT)) return goOnce(NEXT);
 });
+
 
 // (8) 공통 후처리: users 업서트 + 온보딩/라우팅
 async function afterAuth(user, info){
