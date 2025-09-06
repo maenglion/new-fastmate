@@ -1,5 +1,14 @@
 // /firebase-init.js  — 단일 파일, 최소 로직
 
+// 리디렉션 후 복귀했는데 바디가 'oauth-busy'로 남아있을 수 있으니 즉시 해제 시도
+try {
+  if (sessionStorage.getItem('oauthBusy') === '1') {
+    document.body.classList.remove('oauth-busy');
+    // 해제는 일단 하고, 실제 로그인 시 다시 붙음
+    sessionStorage.removeItem('oauthBusy');
+  }
+} catch {}
+
 // (0) showApp 전역 하드가드: 어떤 스크립트가 먼저 호출해도 안전
 if (!window.showApp) {
   window.showApp = function () {
@@ -154,6 +163,11 @@ window.signInWithGoogle = function () {
           ? goOnce(toUrl('signup-step2'))
           : goOnce(toUrl('fastmate'));
       }
+
+      // redirect 결과가 없으면 바디 막힘 방지
+document.body.classList.remove('oauth-busy');
+sessionStorage.removeItem('oauthBusy');
+
 
       // (B) 일반 상태 감지
       auth.onAuthStateChanged(async (user) => {
