@@ -1,16 +1,16 @@
-// =============== firebase-init.js (Fastmate, login.html + signup.html 공용) ===============
+// =============== firebase-init.js (Fastmate, v8 전용 공용) ===============
 'use strict';
 
-const APP_VERSION = '2025.09.06-3';
+const APP_VERSION = '2025.09.06-v8.1';
 window.__APP_VERSION__ = APP_VERSION;
 console.log('[fastmate] version', APP_VERSION);
 
-// (1) Firebase 단일 초기화(중복 방지)
+// (1) Firebase 초기화 (v8 전용)
 const cfg = {
   apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-  authDomain: "auth.fastmate.kr",                    // ★ 커스텀 auth 도메인
+  authDomain: "auth.fastmate.kr",                     // 커스텀 auth 도메인
   projectId: "fasting-b4ccb",
-  storageBucket: "fasting-b4ccb.firebasestorage.app", // (선택) 사용 안하면 무시됨
+  storageBucket: "fasting-b4ccb.firebasestorage.app", // (미사용 시 무시됨)
   messagingSenderId: "879518503068",
   appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
   measurementId: "G-EX5HR2CB35"
@@ -23,6 +23,14 @@ window.firebaseApp = app;
 const auth = firebase.auth();
 const db   = firebase.firestore();
 if (auth.useDeviceLanguage) auth.useDeviceLanguage();
+
+// ✅ v8 Firestore 네트워크 안정화: 초기화 직후 "단 1회"
+try {
+  db.settings({ experimentalForceLongPolling: true });
+} catch (e) {
+  // v8에서 settings 중복호출 방지
+  console.warn('[firestore settings]', e?.message || e);
+}
 
 // (2) 리디렉션 복귀 시 스플래시 락 해제(있으면)
 try {
@@ -43,10 +51,10 @@ if (!window.showApp) {
 
 // (4) 라우팅 헬퍼
 const ROUTES = {
-  index:   '/index.html',
-  login:   '/login.html',
-  signup:  '/signup.html',
-  fastmate:'/fastmate.html'
+  index   : '/index.html',
+  login   : '/login.html',
+  signup  : '/signup.html',
+  fastmate: '/fastmate.html'
 };
 const path = () => location.pathname || '/';
 const isIndex    = () => path() === '/' || /\/index\.html$/i.test(path());
@@ -59,12 +67,12 @@ const toUrl = (key) => {
   const useHtmlStyle = /\.html$/i.test(location.pathname);
   const final = useHtmlStyle ? base : base.replace(/\/index\.html$/i, '/');
   const u = new URL(final, location.origin);
-  u.searchParams.set('authcb', Date.now().toString()); // SW 캐시 회피
+  u.searchParams.set('authcb', Date.now().toString()); // SW/캐시 회피
   return u.toString();
 };
 const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
 
-// (5) 환경 감지(안드 크롬 탭=팝업 우선, iOS/인앱/PWA=리디렉션)
+// (5) 환경 감지
 function isStandalonePWA(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
@@ -80,12 +88,12 @@ function isAndroidChromeTab(){
 // (6) 전역 함수: 구글 로그인/로그아웃
 window.signInWithGoogle = function () {
   if (isInApp()) {
-    alert('인앱 브라우저에서는 Google 로그인이 제한됨. 우상단 메뉴에서 “기본 브라우저로 열기(Chrome/Safari)” 선택 바람.');
+    alert('인앱 브라우저에서는 Google 로그인이 제한됩니다. 메뉴에서 “기본 브라우저로 열기(Chrome/Safari)”를 선택해주세요.');
     return;
   }
   const provider = new firebase.auth.GoogleAuthProvider();
 
-  // iOS/인앱/PWA = redirect 고정, 안드 크롬 탭 = 팝업 우선
+  // iOS/인앱/PWA = redirect, 안드 크롬 탭 = popup 우선
   const ua  = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua);
   const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
@@ -128,28 +136,24 @@ auth.getRedirectResult()
   })
   .catch((e) => console.warn('[redirectResult]', e.code, e.message));
 
-// 기존
-// auth.onAuthStateChanged(async (user) => { ... });
-
-// 교체 버전 (헬퍼 유지)
+// (8) 인증 상태 반응 (v8 스타일)
 firebase.auth().onAuthStateChanged(async (user) => {
-  const path = location.pathname.toLowerCase();
+  const p = location.pathname.toLowerCase();
   const isEntry =
-    path === '/' || path.endsWith('/index.html') ||
-    path.endsWith('/login.html') || path.endsWith('/signup.html');
+    p === '/' || p.endsWith('/index.html') ||
+    p.endsWith('/login.html') || p.endsWith('/signup.html');
 
-  console.log('[auth] state=', !!user, 'path=', path);
+  console.log('[auth] state=', !!user, 'path=', p);
 
   if (!user) {
-    if (!path.endsWith('/login.html') && !path.endsWith('/signup.html')) {
+    if (!p.endsWith('/login.html') && !p.endsWith('/signup.html')) {
       location.replace('/login.html');
     }
     return;
   }
 
+  // 업서트는 실패해도 흐름은 진행
   try {
-    const db = firebase.firestore();
-    db.settings({ experimentalForceLongPolling: true }); // ← v8
     await db.collection('users').doc(user.uid).set({
       uid: user.uid,
       email: user.email || null,
@@ -162,11 +166,10 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
 
   const NEXT = '/fastmate.html';
-  if (isEntry && !path.endsWith(NEXT)) location.replace(NEXT);
+  if (isEntry && !p.endsWith(NEXT)) location.replace(NEXT);
 });
 
-
-// (8) 공통 후처리: users 업서트 + 온보딩/라우팅
+// (9) 공통 후처리: users 업서트 + 온보딩/라우팅
 async function afterAuth(user, info){
   try { await upsertUserDoc(user); } catch(e){ console.error('[upsert fail]', e); }
 
@@ -203,7 +206,7 @@ async function afterAuth(user, info){
   }
 }
 
-// (9) 전역 데이터 유틸
+// (10) 전역 데이터 유틸
 function hasValue(x){ return Array.isArray(x) ? x.length>0 : (x!=null && String(x).trim()!==''); }
 function isProfileDone(u){
   const nick = u?.nickname;
@@ -244,7 +247,7 @@ window.ensureUserProfile = async function(data){
 };
 window.upsertUserDoc = upsertUserDoc;
 
-// (10) 버튼 바인딩 (login.html / signup.html 공용)
+// (11) 버튼 바인딩 (login.html / signup.html 공용)
 document.addEventListener('DOMContentLoaded', () => {
   const g1 = document.getElementById('google-login-btn'); // login.html
   const g2 = document.getElementById('googleSignupBtn');  // signup.html
@@ -268,23 +271,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// (11) 최후 안전장치(렌더 막힘 방지)
-// [최후 안전장치] 과도 표출 방지: 렌더 여부/페이지 체크 후만 메시지 노출함
+// (12) 최후 안전장치(렌더 막힘 방지)
 setTimeout(() => {
   try {
-    // 1) 이미 fastmate 화면이 렌더되었으면 아무 것도 하지 않음
     const container = document.getElementById('app') || document.querySelector('#root,#app-root,main');
     if (!container) return;
     if (container.childElementCount > 0 || document.querySelector('[data-fastmate-ready]')) return;
 
-    // 2) 보호 페이지에서 비로그인 상태면 스킵(정상 동작)
-    const path = location.pathname || '/';
-    const isFastmate = /\/fastmate(?:\.html)?$/i.test(path);
-    const isSignup   = /\/signup(?:\.html)?$/i.test(path);
-    const isLogin    = /\/login(?:\.html)?$/i.test(path);
-    if (isFastmate || isSignup || isLogin) return; // 주요 화면에서는 띄우지 않음
+    const p = location.pathname || '/';
+    const isFastmate = /\/fastmate(?:\.html)?$/i.test(p);
+    const isSignup   = /\/signup(?:\.html)?$/i.test(p);
+    const isLogin    = /\/login(?:\.html)?$/i.test(p);
+    if (isFastmate || isSignup || isLogin) return;
 
-    // 3) 정말 아무 것도 못 그렸을 때만 표시함
     container.innerHTML =
       '<div style="padding:16px;font-family:sans-serif">로그인은 되었지만 다음 화면으로 이동하지 못했습니다. 새로고침을 눌러주세요.</div>';
   } catch {}
