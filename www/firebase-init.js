@@ -239,11 +239,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // (11) 최후 안전장치(렌더 막힘 방지)
+// [최후 안전장치] 과도 표출 방지: 렌더 여부/페이지 체크 후만 메시지 노출함
 setTimeout(() => {
-  const appRoot = document.getElementById('app') || document.querySelector('#root,#app-root,main');
-  if (appRoot && !appRoot.childElementCount) {
-    appRoot.innerHTML = '<div style="padding:16px;font-family:sans-serif">로그인은 되었지만 다음 화면으로 이동하지 못했습니다. 새로고침을 눌러주세요.</div>';
-  }
-}, 4000);
+  try {
+    // 1) 이미 fastmate 화면이 렌더되었으면 아무 것도 하지 않음
+    const container = document.getElementById('app') || document.querySelector('#root,#app-root,main');
+    if (!container) return;
+    if (container.childElementCount > 0 || document.querySelector('[data-fastmate-ready]')) return;
 
-// =============== /firebase-init.js =======================================================
+    // 2) 보호 페이지에서 비로그인 상태면 스킵(정상 동작)
+    const path = location.pathname || '/';
+    const isFastmate = /\/fastmate(?:\.html)?$/i.test(path);
+    const isSignup   = /\/signup(?:\.html)?$/i.test(path);
+    const isLogin    = /\/login(?:\.html)?$/i.test(path);
+    if (isFastmate || isSignup || isLogin) return; // 주요 화면에서는 띄우지 않음
+
+    // 3) 정말 아무 것도 못 그렸을 때만 표시함
+    container.innerHTML =
+      '<div style="padding:16px;font-family:sans-serif">로그인은 되었지만 다음 화면으로 이동하지 못했습니다. 새로고침을 눌러주세요.</div>';
+  } catch {}
+}, 4000);
