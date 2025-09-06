@@ -1,218 +1,249 @@
-// /firebase-init.js  — 단일 파일, 최소 로직
+// =============== firebase-init.js (Fastmate, login.html + signup.html 공용) ===============
+'use strict';
 
-// 리디렉션 후 복귀했는데 바디가 'oauth-busy'로 남아있을 수 있으니 즉시 해제 시도
+const APP_VERSION = '2025.09.06-3';
+window.__APP_VERSION__ = APP_VERSION;
+console.log('[fastmate] version', APP_VERSION);
+
+// (1) Firebase 단일 초기화(중복 방지)
+const cfg = {
+  apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
+  authDomain: "auth.fastmate.kr",                    // ★ 커스텀 auth 도메인
+  projectId: "fasting-b4ccb",
+  storageBucket: "fasting-b4ccb.firebasestorage.app", // (선택) 사용 안하면 무시됨
+  messagingSenderId: "879518503068",
+  appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
+  measurementId: "G-EX5HR2CB35"
+};
+Object.freeze(cfg);
+
+const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
+window.firebaseApp = app;
+
+const auth = firebase.auth();
+const db   = firebase.firestore();
+if (auth.useDeviceLanguage) auth.useDeviceLanguage();
+
+// (2) 리디렉션 복귀 시 스플래시 락 해제(있으면)
 try {
   if (sessionStorage.getItem('oauthBusy') === '1') {
     document.body.classList.remove('oauth-busy');
-    // 해제는 일단 하고, 실제 로그인 시 다시 붙음
     sessionStorage.removeItem('oauthBusy');
   }
 } catch {}
 
-// (0) showApp 전역 하드가드: 어떤 스크립트가 먼저 호출해도 안전
+// (3) 공용 유틸/UI 헬퍼
 if (!window.showApp) {
   window.showApp = function () {
     const s = document.getElementById('splash-screen');
-    if (s) { s.classList.add('fade-out'); setTimeout(() => (s.style.display = 'none'), 500); }
+    if (s) { s.classList.add('fade-out'); setTimeout(() => (s.style.display = 'none'), 400); }
     document.body?.classList?.add?.('loaded');
   };
 }
 
-if (!window.__AUTH_BOOT__) {
-  window.__AUTH_BOOT__ = true;
+// (4) 라우팅 헬퍼
+const ROUTES = {
+  index:   '/index.html',
+  login:   '/login.html',
+  signup:  '/signup.html',
+  fastmate:'/fastmate.html'
+};
+const path = () => location.pathname || '/';
+const isIndex    = () => path() === '/' || /\/index\.html$/i.test(path());
+const isLogin    = () => /\/login(?:\.html)?$/i.test(path());
+const isSignup   = () => /\/signup(?:\.html)?$/i.test(path());
+const isFastmate = () => /\/fastmate(?:\.html)?$/i.test(path());
+const isProtected= () => isFastmate(); // fastmate만 보호
+const toUrl = (key) => {
+  const base = ROUTES[key] || '/';
+  const useHtmlStyle = /\.html$/i.test(location.pathname);
+  const final = useHtmlStyle ? base : base.replace(/\/index\.html$/i, '/');
+  const u = new URL(final, location.origin);
+  u.searchParams.set('authcb', Date.now().toString()); // SW 캐시 회피
+  return u.toString();
+};
+const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
 
-  // 1) Firebase 초기화 (현재 설정 유지)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
-    authDomain: "auth.fastmate.kr",
-    projectId: "fasting-b4ccb",
-    storageBucket: "fasting-b4ccb.firebasestorage.app",
-    messagingSenderId: "879518503068",
-    appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
-    measurementId: "G-EX5HR2CB35"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
+// (5) 환경 감지(안드 크롬 탭=팝업 우선, iOS/인앱/PWA=리디렉션)
+function isStandalonePWA(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isInApp(){
+  const ua = navigator.userAgent || '';
+  return /; wv\)/i.test(ua) || /FBAN|FBAV|FB_IAB|Instagram|KAKAOTALK|NAVER|DaumApps/i.test(ua);
+}
+function isAndroidChromeTab(){
+  const ua = navigator.userAgent || '';
+  return /Android/.test(ua) && /Chrome/.test(ua) && !isStandalonePWA() && !isInApp();
+}
 
-  // 2) 전역(필요 시 사용할 수 있게)
-  window.fastmateApp = {
-    auth,
-    db,
-    getUserDoc: async (uid) => {
-      if (!uid) return null;
-      try {
-        const s = await db.collection('users').doc(uid).get();
-        return s.exists ? { id: s.id, ...s.data() } : null;
-      } catch (e) { console.error('[getUserDoc]', e); return null; }
-    },
-    sendPasswordReset: function() {
-      const emailInput = document.getElementById('reset-email');
-      if (!emailInput) return; // forgot-password.html에서만 존재
-      const email = emailInput.value;
-      if (!email) return alert('비밀번호를 찾으려는 이메일 주소를 입력해주세요.');
-      auth.sendPasswordResetEmail(email)
-        .then(() => alert(`'${email}' 주소로 비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해주세요.`))
-        .catch((error) => {
-          console.error("Password reset error:", error);
-          alert(`오류가 발생했습니다. 이메일 주소를 확인해주세요. (${error.code})`);
-        });
-    },
-    signOutUser: function () {
-      auth.signOut()
-        .then(() => {
-          console.log('User signed out successfully');
-          // 현재 페이지의 스타일(.html 유무)에 맞춰 이동
-          const useHtml = /\.html$/i.test(location.pathname);
-          location.href = `/login${useHtml ? '.html' : ''}`;
-        })
-        .catch((error) => {
-          console.error('Sign out error:', error);
-          alert('로그아웃 중 오류가 발생했습니다.');
-        });
-    }
-  };
-
-  // 3) 라우팅 가드(필요한 최소만)
-  const path = () => location.pathname;
-  const isAuthPage   = () => /\/(login|signup)(?:\.html)?$/i.test(path());
-  const isProtected  = () => /\/(fastmate|signup-step2)(?:\.html)?$/i.test(path());
-  const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
-  const toUrl = (base) => `/${base}${/\.html$/i.test(path()) ? '.html' : ''}`; // 현재 URL 스타일 따라감
-
-  // 4) 로그인 시작(버튼 클릭용)
-
+// (6) 전역 함수: 구글 로그인/로그아웃
 window.signInWithGoogle = function () {
+  if (isInApp()) {
+    alert('인앱 브라우저에서는 Google 로그인이 제한됨. 우상단 메뉴에서 “기본 브라우저로 열기(Chrome/Safari)” 선택 바람.');
+    return;
+  }
   const provider = new firebase.auth.GoogleAuthProvider();
 
-  // 플래그: OAuth 중엔 스플래시만 보이게
+  // iOS/인앱/PWA = redirect 고정, 안드 크롬 탭 = 팝업 우선
+  const ua  = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  const preferRedirect = (isIOS && !isStandalonePWA()) || isSafari || isInApp();
+
   sessionStorage.setItem('oauthBusy', '1');
   document.body.classList.add('oauth-busy');
 
-  const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-  const preferRedirect = (isIOS && !standalone) || isSafari; // iOS 웹뷰/Safari는 redirect가 안전
-
   if (preferRedirect) {
-    firebase.auth().signInWithRedirect(provider).catch(err => {
-      sessionStorage.removeItem('oauthBusy');
-      document.body.classList.remove('oauth-busy');
-      console.error(err); alert('로그인 시작 오류');
+    auth.signInWithRedirect(provider).catch(err => {
+      console.error('[redirect start err]', err);
+      sessionStorage.removeItem('oauthBusy'); document.body.classList.remove('oauth-busy');
+      alert('로그인 시작 오류: ' + (err.message || err.code));
     });
   } else {
-    firebase.auth().signInWithPopup(provider).then(async (r) => {
-      // 사용자 upsert
-      const u = r.user;
-      try {
-        await firebase.firestore().collection('users').doc(u.uid).set({
-          uid: u.uid, email: u.email || null,
-          displayName: u.displayName || null, photoURL: u.photoURL || null,
-          lastLogin: new Date()
-        }, { merge: true });
-      } catch(e){ console.warn('upsert fail', e); }
-
-      // 바로 진입
-      location.replace('/fastmate.html');
-    }).catch(err => {
-      console.error(err); alert('로그인 실패');
-    }).finally(() => {
-      sessionStorage.removeItem('oauthBusy');
-      document.body.classList.remove('oauth-busy');
-    });
+    auth.signInWithPopup(provider)
+      .then(async (r) => { if (r?.user) await upsertUserDoc(r.user); })
+      .catch(async (err) => {
+        console.warn('[popup err]', err?.code, err?.message);
+        if (String(err?.code || '').includes('popup')) return auth.signInWithRedirect(provider);
+        alert('로그인 실패: ' + (err.message || err.code));
+      })
+      .finally(() => {
+        sessionStorage.removeItem('oauthBusy');
+        document.body.classList.remove('oauth-busy');
+      });
   }
 };
+window.signOutFastmate = function(){
+  return auth.signOut().then(() => location.replace(toUrl('login')));
+};
 
+// (7) 영속성 + 리디렉션 결과 먼저 회수 → onAuthStateChanged
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch(() => auth.setPersistence(firebase.auth.Auth.Persistence.SESSION));
 
+auth.getRedirectResult()
+  .then(async (res) => {
+    if (res?.user) await afterAuth(res.user, res.additionalUserInfo);
+  })
+  .catch((e) => console.warn('[redirectResult]', e.code, e.message));
 
-  // 5) 로그인/비밀번호찾기 버튼 자동 바인딩(있으면만)
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('google-login-btn') || document.querySelector('[data-role="google-login"]');
+auth.onAuthStateChanged(async (user) => {
+  console.log('[auth] state=', !!user, 'path=', path());
+  window.showApp?.();
+
+  if (!user && isProtected()) return goOnce(toUrl('login'));
+  if (user) await afterAuth(user);
+});
+
+// (8) 공통 후처리: users 업서트 + 온보딩/라우팅
+async function afterAuth(user, info){
+  try { await upsertUserDoc(user); } catch(e){ console.error('[upsert fail]', e); }
+
+  const isNew = info?.isNewUser === true;
+  const currentPath = path();
+
+  // signup.html에서는 로그인된 사용자에게 step=1을 절대 노출하지 않음
+  if (currentPath === '/signup.html'){
+    const url = new URL(location.href);
+    url.searchParams.set('step', isNew ? '2' : 'final');
+    history.replaceState(null, '', url.toString());
+  }
+
+  // 프로필 완료 여부 판단
+  const prof = await getUserDoc();
+  const done = isProfileDone(prof);
+
+  if (!done && !isSignup()) return goOnce(toUrl('signup'));               // 가입 미완성 → signup
+  if (done && (isIndex() || isLogin() || isSignup())) return goOnce(toUrl('fastmate')); // 완료 → fastmate
+
+  // fastmate.html 진입 시 UI 수화
+  if (isFastmate()) {
+    try {
+      const userChip     = document.getElementById('userChip');
+      const userChipName = document.getElementById('userChipName');
+      const nickname = prof?.nickname || prof?.displayName || user.displayName || '사용자';
+      if (userChip && userChipName) { userChipName.textContent = nickname; userChip.style.display = 'flex'; }
+      const saved = prof?.currentFasting;
+      if (saved && window.hydrateFastingTimer) window.hydrateFastingTimer(saved);
+      else if (window.initializeTime) window.initializeTime();
+      window.updateUIState?.();
+      if (!window.__WIRED__) { window.__WIRED__ = true; try { window.wireEventsOnce?.(); } catch {} }
+    } catch (e) { console.warn('[fastmate hydrate]', e); }
+  }
+}
+
+// (9) 전역 데이터 유틸
+function hasValue(x){ return Array.isArray(x) ? x.length>0 : (x!=null && String(x).trim()!==''); }
+function isProfileDone(u){
+  const nick = u?.nickname;
+  const goals = u?.goals ?? u?.purpose ?? u?.joinPurpose ?? u?.onboarding?.reasons;
+  const completed = u?.onboarding?.completed === true;
+  return hasValue(nick) && (hasValue(goals) || completed);
+}
+async function getUserDoc(uid){
+  const id = uid || auth.currentUser?.uid;
+  if (!id) return null;
+  try {
+    const s = await db.collection('users').doc(id).get();
+    return s.exists ? { id: s.id, ...s.data() } : null;
+  } catch (e) {
+    console.error('[getUserDoc]', e);
+    return null;
+  }
+}
+async function upsertUserDoc(user){
+  const ref = db.collection('users').doc(user.uid);
+  await ref.set({
+    uid: user.uid,
+    email: user.email ?? '',
+    displayName: user.displayName ?? '',
+    photoURL: user.photoURL ?? '',
+    provider: user.providerData?.[0]?.providerId ?? 'unknown',
+    lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdAt : firebase.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+}
+
+// 전역 노출(기존 코드 호환)
+window.getUserDoc = getUserDoc;
+window.ensureUserProfile = async function(data){
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('not-authenticated');
+  await db.collection('users').doc(uid).set(data, { merge:true });
+};
+window.upsertUserDoc = upsertUserDoc;
+
+// (10) 버튼 바인딩 (login.html / signup.html 공용)
+document.addEventListener('DOMContentLoaded', () => {
+  const g1 = document.getElementById('google-login-btn'); // login.html
+  const g2 = document.getElementById('googleSignupBtn');  // signup.html
+  [g1, g2].forEach(btn => {
     if (btn && !btn.__BOUND__) {
       btn.__BOUND__ = true;
-      btn.addEventListener('click', e => { e.preventDefault(); window.signInWithGoogle(); });
-    }
-
-    const resetBtn = document.getElementById('send-reset-email-btn');
-    if (resetBtn && !resetBtn.__BOUND__) {
-      resetBtn.__BOUND__ = true;
-      resetBtn.addEventListener('click', () => window.fastmateApp.sendPasswordReset());
+      btn.addEventListener('click', (e) => { e.preventDefault(); window.signInWithGoogle(); });
     }
   });
 
-  // 6) 인증 플로우
-  (async function initAuth() {
-    try {
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  const resetBtn = document.getElementById('send-reset-email-btn'); // 있으면 작동
+  if (resetBtn && !resetBtn.__BOUND__) {
+    resetBtn.__BOUND__ = true;
+    resetBtn.addEventListener('click', () => {
+      const email = document.getElementById('reset-email')?.value?.trim();
+      if (!email) return alert('비밀번호를 찾을 이메일을 입력해주세요.');
+      auth.sendPasswordResetEmail(email)
+        .then(() => alert(`'${email}'로 재설정 메일을 보냈습니다.`))
+        .catch(e => alert(`오류: ${e.code}`));
+    });
+  }
+});
 
-      // (A) 리디렉션 결과 우선
-      const r = await auth.getRedirectResult();
-      if (r?.user) {
-        try {
-          await db.collection('users').doc(r.user.uid).set({
-            uid: r.user.uid,
-            email: r.user.email || null,
-            displayName: r.user.displayName || null,
-            photoURL: r.user.photoURL || null,
-            lastLogin: new Date()
-          }, { merge: true });
-        } catch (e) { console.error('user upsert fail', e); }
+// (11) 최후 안전장치(렌더 막힘 방지)
+setTimeout(() => {
+  const appRoot = document.getElementById('app') || document.querySelector('#root,#app-root,main');
+  if (appRoot && !appRoot.childElementCount) {
+    appRoot.innerHTML = '<div style="padding:16px;font-family:sans-serif">로그인은 되었지만 다음 화면으로 이동하지 못했습니다. 새로고침을 눌러주세요.</div>';
+  }
+}, 4000);
 
-        return r.additionalUserInfo?.isNewUser
-          ? goOnce(toUrl('signup-step2'))
-          : goOnce(toUrl('fastmate'));
-      }
-
-      // redirect 결과가 없으면 바디 막힘 방지
-document.body.classList.remove('oauth-busy');
-sessionStorage.removeItem('oauthBusy');
-
-
-      // (B) 일반 상태 감지
-      auth.onAuthStateChanged(async (user) => {
-        console.log('[auth] state=', !!user, 'path=', path());
-
-        // 1) 먼저 리디렉션 여부 결론
-        if (user && isAuthPage())  return goOnce(toUrl('fastmate'));
-        if (!user && isProtected()) return goOnce(toUrl('login'));
-
-        // 2) 페이지에 머무는 게 확정 → 스플래시 먼저 치움(전역 가드 사용)
-        window.showApp?.();
-
-        // 3) 로그인 상태에서만 fastmate 초기 UI 수화
-        if (user && /\/fastmate(?:\.html)?$/i.test(path())) {
- try {
-            const userChip = document.getElementById('userChip');
-            const userChipName = document.getElementById('userChipName');            
-            const profile = await window.fastmateApp.getUserDoc(user.uid);
-
-if (userChip && userChipName) {
-  const nickname = profile?.nickname || profile?.displayName || user.displayName || '사용자';
-  userChipName.textContent = nickname;
-  userChip.style.display = 'flex';
-}
-
-const savedFasting = profile?.currentFasting;
-            if (savedFasting && window.hydrateFastingTimer) {
-              window.hydrateFastingTimer(savedFasting);
-            } else {
-              if (window.initializeTime) window.initializeTime();
-            }
-          } catch (e) { console.warn('[fastmate hook]', e); }
-
-          if (window.updateUIState) window.updateUIState();
-          if (!window.__WIRED__) {
-            window.__WIRED__ = true;
-            if (window.wireEventsOnce) { try { window.wireEventsOnce(); } catch (e) {} }
-          }
-        }
-      });
-
-    } catch (e) {
-      console.error('[auth init]', e);
-      alert(`인증 초기화 오류: ${e.message}`);
-      window.showApp?.(); // 안전하게 스플래시 제거
-    }
-  })();
-}
+// =============== /firebase-init.js =======================================================

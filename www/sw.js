@@ -1,6 +1,9 @@
 // sw.js 파일 전체를 이 코드로 교체해주세요.
 
-const CACHE_NAME = 'fastmate-cache-v2'; // 캐시 이름을 변경하여 새 버전임을 알립니다.
+const APP_VERSION = '2025.09.06-1';
+const CACHE_PREFIX = 'fastmate-cache-';
+const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
+
 const urlsToCache = [
   '/',
   '/index.html',

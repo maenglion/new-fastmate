@@ -11,7 +11,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 
   <!-- firebase-init: 모듈X, 그냥 defer로 -->
-  <script defer src="/firebase-init.js"></script>
+ <script src="/firebase-init.js?v=2025.09.06-3" defer></script>
+
 
   <!-- (파일이 실제로 있을 때만 사용) -->
   <!-- <script defer src="/signup.js?v=20250820"></script> -->
@@ -78,6 +79,12 @@
         intro?.classList.add('show');       // 예외여도 보여준다
       }
     });
+
+    if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(console.error);
+  });
+}
   </script>
 
 </body>
