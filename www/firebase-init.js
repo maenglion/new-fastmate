@@ -132,35 +132,37 @@ auth.getRedirectResult()
 // auth.onAuthStateChanged(async (user) => { ... });
 
 // 교체 버전 (헬퍼 유지)
-auth.onAuthStateChanged(async (user) => {
-  const p = path().toLowerCase();
+firebase.auth().onAuthStateChanged(async (user) => {
+  const path = location.pathname.toLowerCase();
   const isEntry =
-    p === '/' || p.endsWith('/index.html') ||
-    p.endsWith('/login.html') || p.endsWith('/signup.html');
+    path === '/' || path.endsWith('/index.html') ||
+    path.endsWith('/login.html') || path.endsWith('/signup.html');
 
-  console.log('[auth] state=', !!user, 'path=', p);
-  window.showApp?.();
+  console.log('[auth] state=', !!user, 'path=', path);
 
-  // 비로그인 + 보호 페이지면 로그인으로
   if (!user) {
-    if (isProtected()) return goOnce(toUrl('login'));
-    return; // 공개 페이지면 머무름
+    if (!path.endsWith('/login.html') && !path.endsWith('/signup.html')) {
+      location.replace('/login.html');
+    }
+    return;
   }
 
-  // (선택) Firestore 안정화
   try {
-    firebase.firestore()
-      .settings({ experimentalAutoDetectLongPolling: true, useFetchStreams: false });
+    const db = firebase.firestore();
+    db.settings({ experimentalForceLongPolling: true }); // ← v8
+    await db.collection('users').doc(user.uid).set({
+      uid: user.uid,
+      email: user.email || null,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
   } catch (e) {
-    console.warn('[auth] firestore settings fail (ok):', e);
+    console.warn('[auth] upsert user failed (non-blocking):', e);
   }
 
-  // 여기서는 UI/유저 문서 갱신만! (리다이렉트 금지)
-  await afterAuth(user);
-
-  // ✅ 자동 입장 이동은 "입장 페이지에서만"
   const NEXT = '/fastmate.html';
-  if (isEntry && !p.endsWith(NEXT)) return goOnce(NEXT);
+  if (isEntry && !path.endsWith(NEXT)) location.replace(NEXT);
 });
 
 
