@@ -52,9 +52,12 @@
         }
 
         .user-chip {
-            position: absolute;
-            top: 16px;
-            right: 16px;
+    /* position을 absolute에서 fixed로 변경 */
+    position: fixed; 
+
+    /* body에 준 padding 값을 고려하여 top, right 값 재조정 */
+    top: calc(20px + env(safe-area-inset-top, 0px));
+    right: calc(20px + env(safe-area-inset-right, 0px));
             display: flex;
             align-items: center;
             gap: 8px;
