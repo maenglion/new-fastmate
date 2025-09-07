@@ -214,17 +214,30 @@
       })
       .catch(e => console.warn('[redirectResult]', e?.code, e?.message));
 
-  // ---------- 일반 상태 감지 ----------
-  auth.onAuthStateChanged(async (user) => {
-    const p = path();
-    console.log('[auth] state=', !!user, 'path=', p);
 
-    if (!user) {
-      // 보호 페이지에서만 로그인으로 강제
-      if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
-      window.showApp?.();
+// 파일 상단 전역 근처
+let firstAuthEvent = true;
+
+  // ---------- 일반 상태 감지 ----------
+auth.onAuthStateChanged(async (user) => {
+  const p = path();
+  console.log('[auth] state=', !!user, 'first=', firstAuthEvent, 'path=', p);
+
+   if (!user) {
+    // 🔴 첫 이벤트는 로그인 복원 레이스일 수 있으니, 리다이렉트 금지
+    if (firstAuthEvent) {
+      firstAuthEvent = false;
+      window.showApp?.();         // 스플래시 걷어냄(하얀 화면 방지)
       return;
     }
+    // 두 번째 이후부터만 보호 라우트 -> 로그인으로 보냄
+    if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
+    window.showApp?.();
+    return;
+  }
+
+  // 여기서부턴 로그인 확정
+  firstAuthEvent = false;
 
     // upsert는 non-blocking
     upsertUserDoc(user).catch(e => console.warn('[upsert]', e));

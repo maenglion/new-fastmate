@@ -1,4 +1,4 @@
-const APP_VERSION = '2025.09.06-5'; // 반드시 버전 올리기
+const APP_VERSION = '2025.09.07-1'; // 반드시 버전 올리기
 self.addEventListener('install', e => {
   self.skipWaiting(); // 새 SW 즉시 활성화
 });
