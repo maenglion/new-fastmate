@@ -481,19 +481,6 @@ window.hydrateFastingTimer = function(saved){
   __fastTimer = setInterval(tickOnce, 1000);
 };
 
-function tickOnce(){
-  const now = Date.now();
-  const remain = Math.max(0, __fastEndMs - now);       // ★ 누적 금지: 무조건 end-now
-  // 남은 시간 렌더(시:분:초)
-  renderRemain(remain);
-
-  // 프로그레스(원형 게이지 쓰면)
-  if (__fastTotalMs > 0 && window.renderProgress) {
-    const ratio = 1 - (remain / __fastTotalMs);        // 진행 비율 0~1
-    window.renderProgress(Math.min(1, Math.max(0, ratio)));
-  }
-}
-
 // 예: 시작/종료/기간을 바꿀 때 호출(핸들러에서)
 async function applyTimeChange({ newStartMs, newEndMs, keepDuration }) {
   // start만 바뀌면 기존 지속시간 유지
@@ -518,12 +505,47 @@ function renderRemain(ms){
   const hh = String(Math.floor(s/3600)).padStart(2,'0');
   const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
   const ss = String(s%60).padStart(2,'0');
-  document.getElementById('remainText').textContent = `${hh}:${mm}:${ss}`;
+  document.getElementById('remainingTime').textContent = `${hh}:${mm}:${ss}`;
 }
 
+function resetMilestones() {
+    for (const key in milestones) {
+        milestones[key] = false;
+    }
+}
 
+// 진행률을 인자로 받는 새로운 checkMilestones 함수
+function checkMilestones(progressPercent) {
+    // 모든 마일스톤을 순회하며 확인
+    Object.keys(milestones).forEach(p => {
+        const milestonePercent = parseInt(p, 10);
+        // 현재 진행률이 마일스톤을 넘었고, 아직 메시지를 보여주지 않았다면
+        if (progressPercent >= milestonePercent && !milestones[p]) {
+            showToast(milestoneMessages[p]); // 메시지 표시
+            milestones[p] = true;            // 보여줬다고 기록
+        }
+    });
+}
 
+// 기존 tickOnce 함수를 아래와 같이 수정
+function tickOnce() {
+    const now = Date.now();
+    const remain = Math.max(0, __fastEndMs - now);
+    renderRemain(remain);
 
+    if (__fastTotalMs > 0) {
+        const ratio = 1 - (remain / __fastTotalMs);    // 진행 비율 (0~1)
+        const progressPercent = ratio * 100;           // 진행률 (%)
+
+        // 프로그레스바 렌더링
+        if (window.renderProgress) {
+            window.renderProgress(Math.min(1, ratio));
+        }
+
+        // ▼▼▼ 여기에 마일스톤 체크 로직 호출 추가 ▼▼▼
+        checkMilestones(progressPercent);
+    }
+}
 
   function updateTimeDisplays() {
     const start = selectedStartTime;
@@ -537,87 +559,42 @@ function renderRemain(ms){
     if (endTimeValue)   endTimeValue.textContent   = fmt(end);
   }
 
-  function checkMilestones() {
-    const now = new Date();
-    const elapsed = now - selectedStartTime;
-    const target  = parseFloat(targetHours) * 3600000;
-    const actualProgress = (elapsed / target) * 100;
-
-    const messages = {
-      10:  "시작이 반! 물 한 잔으로 몸을 깨워주세요. 💧",
-      25:  "25% 달성! 순조롭게 진행 중이에요.",
-      50:  "절반이나 왔어요! 정말 대단해요. 시원한 물 한 잔 잊지 마세요! 💧",
-      75:  "75% 돌파! 거의 다 왔습니다. 조금만 더 힘내세요!",
-      90:  "90% 돌파! 목표가 바로 눈앞에 있어요. 화이팅! 💧",
-      110: "110% 초과 달성! 몸이 보내는 신호에 귀를 기울여 주세요.",
-      120: "120% 초과 달성! 정말 대단한 의지입니다!",
-      150: "150% 초과 달성! 새로운 기록을 쓰고 계시는군요!",
-      200: "200% 달성! 컨디션 조절은 필수입니다. 충분한 휴식을 잊지 마세요."
-    };
-
-    Object.keys(milestones).forEach((p) => {
-      const pi = parseInt(p, 10);
-      if (actualProgress >= pi && !milestones[p]) {
-        showToast(messages[p]);
-        milestones[p] = true;
-      }
-    });
-  }
-
-  function updateTimer() {
-    const now = new Date();
-    const elapsed = now - selectedStartTime;
-    const target  = parseFloat(targetHours) * 3600000;
-    const progress = Math.min((elapsed / target) * 100, 100);
-
-    const timerLabel = document.querySelector('.timer-display .label');
-
-    // 비어있으면 1회 채우기
-    if ((startTimeValue?.textContent === '-' || endTimeValue?.textContent === '-') && selectedStartTime) {
-      const fmt = (d) =>
-        `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
-      startTimeValue.textContent = fmt(selectedStartTime);
-      endTimeValue.textContent = fmt(new Date(selectedStartTime.getTime() + (parseFloat(targetHours) * 3600000)));
+   async function applyDurationChange(newHours) {
+    if (!currentUser) {
+        showToast('로그인 정보가 없어 변경사항을 저장할 수 없습니다.');
+        modelSelect.value = targetHours; // 변경 전으로 되돌림
+        return;
     }
 
-    if (elapsed < target) {
-      // 목표 전
-      if (timerLabel) timerLabel.textContent = '남은 시간';
-      if (progressArc) progressArc.setAttribute('stroke', 'url(#progGrad)');
-      const remain = target - elapsed;
-      const h = Math.floor(remain / 3600000);
-      const m = Math.floor((remain % 3600000) / 60000);
-      const s = Math.floor((remain % 60000) / 1000);
-      if (remainingTimeEl) remainingTimeEl.textContent =
-        `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      if (statusMessage) {
-        statusMessage.innerHTML =
-          `<span style="color: var(--primary-color); font-weight: 700;">${targetHours}시간</span> 단식 진행중...`;
-      }
-    } else {
-      // 목표 초과
-      if (timerLabel) timerLabel.textContent = '초과 시간';
-      if (progressArc) progressArc.setAttribute('stroke', 'url(#overtimeGrad)');
-      const overtime = elapsed - target;
-      const h = Math.floor(overtime / 3600000);
-      const m = Math.floor((overtime % 3600000) / 60000);
-      const s = Math.floor((overtime % 60000) / 1000);
-      if (remainingTimeEl) remainingTimeEl.textContent =
-        `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      if (statusMessage) statusMessage.textContent = '목표 달성! 대단해요!';
+    // 1. 핵심 상태(State) 변수 업데이트
+    targetHours = newHours;
+    
+    // 2. 🔔 새로운 타이머 로직에 변경사항 반영 및 재시작
+    const startMs = selectedStartTime.getTime();
+    const endMs = startMs + (targetHours * 3600000);
+    window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+
+    // 3. 관련된 모든 UI 즉시 업데이트
+    updateTimeDisplays();
+    updateSelectOptions();
+    if (saltTip) {
+        saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
     }
 
-    if (progressArc) progressArc.style.strokeDasharray = `${progress} 100`;
-    checkMilestones();
-
-    if (progress >= 100 && !completionFired) {
-      completionFired = true;
-      if (completionOverlay) {
-        completionOverlay.classList.add('show');
-        setTimeout(() => completionOverlay.classList.remove('show'), 4000);
-      }
+    // 4. 변경된 목표 시간을 Firebase DB에 저장
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            currentFasting: {
+                startTime: selectedStartTime,
+                targetHours: targetHours
+            }
+        }, { merge: true });
+        showToast('단식 목표가 변경되었습니다.');
+    } catch (err) {
+        console.error('Error updating target hours:', err);
+        showToast('목표 변경 저장에 실패했습니다.');
     }
-  }
+}
 
   function initializeTime() {
     selectedStartTime = new Date();
@@ -625,30 +602,35 @@ function renderRemain(ms){
     initializeTimePicker(); // 안전: 항상 와이어
   }
 
-  // ===== 4) 모델 변경 =====
-  function handleModelChange(e) {
+// ===== (기존 handleModelChange 함수를 이걸로 교체) =====
+
+function handleModelChange(e) {
     const newTarget = parseInt(e.target.value, 10);
+
     if (fastingState === 'running' && newTarget !== targetHours) {
-      pendingTargetHours = newTarget;
-      if (confirmChangeModal && confirmMessage) {
-        confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
-        confirmChangeModal.style.display = 'flex';
-      } else {
-        if (confirm(`단식 목표를 ${targetHours}시간 → ${newTarget}시간으로 변경할까요?`)) {
-          targetHours = newTarget;
-          modelSelect.value = targetHours;
-          updateTimeDisplays(); updateTimer();
-          if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-          showToast('단식 목표가 변경되었습니다.');
+        // 단식 진행 중 목표 변경 시
+        pendingTargetHours = newTarget; // 임시로 새로운 목표 저장
+        
+        // 커스텀 확인 모달이 있다면 사용
+        if (confirmChangeModal && confirmMessage) {
+            confirmMessage.textContent = `단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`;
+            confirmChangeModal.style.display = 'flex';
         } else {
-          modelSelect.value = targetHours;
+            // 없다면 브라우저 기본 confirm 사용
+            if (confirm(`단식 목표를 ${targetHours}시간에서 ${newTarget}시간으로 변경하시겠습니까?`)) {
+                // 사용자가 '확인'을 누르면 즉시 변경 함수 호출
+                applyDurationChange(newTarget);
+            } else {
+                // '취소'를 누르면 select 메뉴를 원래대로 되돌림
+                modelSelect.value = targetHours;
+            }
         }
-      }
     } else if (fastingState !== 'running') {
-      targetHours = newTarget;
-      updateTimeDisplays();
+        // 단식 미진행 중일 때는 이전처럼 바로 반영
+        targetHours = newTarget;
+        updateTimeDisplays();
     }
-  }
+}
 
   // ===== 5) 타임피커 =====
   let timePickerWired = false;
@@ -787,35 +769,44 @@ function renderRemain(ms){
     if (fastingState === 'running') return showToast('이미 단식이 진행 중입니다.');
     if (!getSignedInUser()) return showToast('로그인이 필요합니다.');
 
-    if (!timePickerUsed) selectedStartTime = new Date();
-
+    // 1. 마일스톤 초기화 및 상태 설정
+    resetMilestones();
     fastingState = 'running';
     targetHours = parseFloat(modelSelect.value || targetHours);
 
-    updateTimeDisplays();
-    updateUIState();
-    updateSelectOptions();
-
-    if (fastingInterval) clearInterval(fastingInterval);
-    fastingInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-
-    try {
-      await db.collection('users').doc(currentUser.uid).set({
-        currentFasting: { startTime: selectedStartTime, targetHours }
-      }, { merge: true });
-      showToast(`${targetHours}시간 단식을 시작합니다!`);
-    } catch (err) {
-      console.error('Firestore 저장 실패:', err);
-      showToast('단식 시작 저장에 실패했습니다.');
-      clearInterval(fastingInterval);
-      fastingState = 'idle';
-      updateUIState();
-      resetSelectOptions();
-    } finally {
-      timePickerUsed = false;
+    // 2. 시작 시간 확정 (TimePicker를 썼다면 그 시간, 아니면 현재 시간)
+    if (!timePickerUsed) {
+        selectedStartTime = new Date();
     }
-  }
+
+    // 3. 🔔 새로운 타이머 로직 호출
+    const startMs = selectedStartTime.getTime();
+    const endMs = startMs + (targetHours * 3600000);
+    window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+    
+    // 4. DB 저장 및 UI 업데이트
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
+        }, { merge: true });
+        
+        showToast(`${targetHours}시간 단식을 시작합니다!`);
+        updateTimeDisplays();
+        updateUIState();
+        updateSelectOptions();
+        
+    } catch (err) {
+        console.error('Firestore 저장 실패:', err);
+        showToast('단식 시작 저장에 실패했습니다.');
+        // 실패 시 상태 원복
+        clearInterval(__fastTimer);
+        fastingState = 'idle';
+        updateUIState();
+        resetSelectOptions();
+    } finally {
+        timePickerUsed = false;
+    }
+}
 
   function openEndTimePickerForStop() {
     if (fastingState !== 'running') return showToast('시작된 단식이 없습니다.');
@@ -887,19 +878,17 @@ function renderRemain(ms){
 
     userChip?.addEventListener('click', () => { window.location.href = 'mypage.html'; });
 
-    confirmYesBtn?.addEventListener('click', () => {
-      if (pendingTargetHours == null) return;
-      targetHours = pendingTargetHours; pendingTargetHours = null;
-      modelSelect.value = targetHours;
-      updateTimeDisplays(); updateTimer();
-      if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-      showToast('단식 목표가 변경되었습니다.');
-      confirmChangeModal.style.display = 'none';
-    });
-    confirmNoBtn?.addEventListener('click', () => {
-      if (modelSelect) modelSelect.value = targetHours;
-      confirmChangeModal.style.display = 'none';
-    });
+  // ===== wireEventsOnce() 함수 내에서 이 부분을 찾아서 수정 =====
+
+confirmYesBtn?.addEventListener('click', () => {
+    if (pendingTargetHours == null) return;
+    
+    // 기존의 복잡한 로직 대신, 새로 만든 함수를 호출
+    applyDurationChange(pendingTargetHours);
+
+    pendingTargetHours = null; // 임시 변수 초기화
+    confirmChangeModal.style.display = 'none';
+});
 
     // 공통 모달 닫기
     document.addEventListener('click', (e) => {
@@ -1063,22 +1052,29 @@ function renderRemain(ms){
           const nickname = profile?.pfNickname ?? profile?.nickname ?? profile?.displayName ?? user.displayName ?? '사용자';
           setUserChip(nickname);
 
-          const savedFasting = profile?.currentFasting;
-         if (savedFasting?.startTime) {
-  fastingState = 'running';
-  selectedStartTime = (savedFasting.startTime.toDate
-    ? savedFasting.startTime.toDate()
-    : new Date(savedFasting.startTime));
-  targetHours = Number(savedFasting.targetHours) || 16;
-  if (modelSelect) modelSelect.value = String(targetHours);
+        // ... try 블록 내부 ...
+const savedFasting = profile?.currentFasting;
 
-  if (fastingInterval) clearInterval(fastingInterval);
-  fastingInterval = setInterval(updateTimer, 1000);
+// ▼▼▼ 위 블록을 이 코드로 교체하세요 ▼▼▼
+if (savedFasting?.startTime && savedFasting.targetHours) {
+    // --- 단식이 진행 중이던 경우 ---
+    fastingState = 'running';
 
-  updateTimer();
-  updateTimeDisplays();
-  updateSelectOptions();
-+ initializeTimePicker(); // ← running에서도 saveTimeBtn 리스너 보장
+    // 1. 다른 함수들이 참조할 전역 변수들을 설정해줍니다.
+    selectedStartTime = savedFasting.startTime.toDate();
+    targetHours = Number(savedFasting.targetHours) || 16;
+    if (modelSelect) modelSelect.value = String(targetHours);
+
+    // 2. 🔔 새로운 타이머 로직을 호출하여 타이머를 시작/복원합니다.
+    const startMs = selectedStartTime.getTime();
+    const endMs = startMs + (targetHours * 3600000);
+    window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+
+    // 3. 타이머 외의 다른 UI 컴포넌트들(시간 표시 박스, select 메뉴 스타일 등)을 업데이트합니다.
+    updateTimeDisplays();
+    updateSelectOptions();
+    initializeTimePicker();
+
 } else {
             fastingState = 'idle';
             initializeTime();
