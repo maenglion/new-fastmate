@@ -33,14 +33,14 @@
             background-color: var(--card-bg);
             border-radius: 16px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            padding-top: calc(16px + var(--safe-top));
+            padding: 60px 25px 25px 25px; 
             box-sizing: border-box;
             position: relative;
         }
 
         .user-chip {
             position: absolute;
-            top: calc(16px + var(--safe-top)); right: 16px;
+            top: 16px;
             right: 16px;
             display: flex;
             align-items: center;
