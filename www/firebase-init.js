@@ -1,5 +1,33 @@
 // /firebase-init.js — v8.5 (공통)
 
+// panic refresh: https://fastmate.kr/fastmate.html?nocache=1 로 들어오면 캐시/서비스워커 제거
+(function panicRefresh(){
+  try {
+    const u = new URL(location.href);
+    if (u.searchParams.get('nocache') === '1') {
+      (async () => {
+        try {
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        } catch {}
+        try {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          }
+        } catch {}
+        try { localStorage.clear(); sessionStorage.clear(); } catch {}
+        u.searchParams.delete('nocache');
+        location.replace(u.toString());
+      })();
+    }
+  } catch {}
+})();
+
+
+
 (() => {
   'use strict';
 
@@ -34,7 +62,8 @@
 
   // Firestore settings — 한 번만
   if (!db.__SETTINGS_APPLIED__) {
-    try { db.settings({ experimentalForceLongPolling: true }); } catch(_) {}
+    try { db.settings({ experimentalForceLongPolling: true }); }
+    catch(_) {}
     db.__SETTINGS_APPLIED__ = true;
   }
 
@@ -50,7 +79,6 @@
       return s.exists ? { id: s.id, ...s.data() } : null;
     } catch (e) { console.error('[getUserDoc]', e); return null; }
   }
-
   async function upsertUserDoc(user) {
     const ref = db.collection('users').doc(user.uid);
     await ref.set({
@@ -63,13 +91,11 @@
       createdAt  : firebase.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
   }
-
   async function ensureUserProfile(data){
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error('not-authenticated');
     await db.collection('users').doc(uid).set(data, { merge:true });
   }
-
   function hasValue(x){ return Array.isArray(x) ? x.length>0 : (x!=null && String(x).trim()!==''); }
   function isProfileDone(u){
     const nick = u?.nickname;
@@ -78,11 +104,17 @@
     return hasValue(nick) && (hasValue(goals) || completed);
   }
 
-  // 전역 export
+  // 전역 export (예전 코드에서 전역 함수로 직접 호출하므로 그대로 노출)
   window.fastmateApp = { auth, db, getUserDoc, ensureUserProfile, upsertUserDoc };
   window.getUserDoc = getUserDoc;
   window.ensureUserProfile = ensureUserProfile;
   window.upsertUserDoc = upsertUserDoc;
+  // ✅ 원래 쓰던 onAuthStateChanged 로직 유지 (리다이렉트/하이드레이션/마지막에 window.showApp())
+
+// ⛑ 세이프가드: DOM 붙자마자/로드 직후 한 번씩 showApp 시도(중복 호출 안전)
+document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.showApp?.(), 0); });
+window.addEventListener('load', () => { setTimeout(() => window.showApp?.(), 200); });
+
 
   // ---------- 라우팅 헬퍼 ----------
   const ROUTES = {
@@ -107,7 +139,7 @@
   };
   const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
 
-  // 인앱/웹뷰 감지 + 경고
+  // 인앱/웹뷰 감지 + 예쁜 경고
   function isInApp(){
     const ua = navigator.userAgent || '';
     return /; wv\)/i.test(ua) || /FBAN|FBAV|FB_IAB|Instagram|KAKAOTALK|NAVER|DaumApps/i.test(ua);
@@ -214,30 +246,17 @@
       })
       .catch(e => console.warn('[redirectResult]', e?.code, e?.message));
 
-
-// 파일 상단 전역 근처
-let firstAuthEvent = true;
-
   // ---------- 일반 상태 감지 ----------
-auth.onAuthStateChanged(async (user) => {
-  const p = path();
-  console.log('[auth] state=', !!user, 'first=', firstAuthEvent, 'path=', p);
+  auth.onAuthStateChanged(async (user) => {
+    const p = path();
+    console.log('[auth] state=', !!user, 'path=', p);
 
-   if (!user) {
-    // 🔴 첫 이벤트는 로그인 복원 레이스일 수 있으니, 리다이렉트 금지
-    if (firstAuthEvent) {
-      firstAuthEvent = false;
-      window.showApp?.();         // 스플래시 걷어냄(하얀 화면 방지)
+    if (!user) {
+      // 보호 페이지에서만 로그인으로 강제
+      if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
+      window.showApp?.();
       return;
     }
-    // 두 번째 이후부터만 보호 라우트 -> 로그인으로 보냄
-    if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
-    window.showApp?.();
-    return;
-  }
-
-  // 여기서부턴 로그인 확정
-  firstAuthEvent = false;
 
     // upsert는 non-blocking
     upsertUserDoc(user).catch(e => console.warn('[upsert]', e));
@@ -315,23 +334,6 @@ auth.onAuthStateChanged(async (user) => {
       } catch(e){ alert('저장 오류'); }
     });
   }
+  })();
 
-})(); // end main IIFE
-
-// 안전여백 보정 (Z 폴드 등)
-(() => {
-  'use strict';
-  function applySafeInsets() {
-    const vv = window.visualViewport;
-    const top = vv ? Math.max(0, vv.offsetTop) : 0;
-    const right = vv ? Math.max(0, window.innerWidth - vv.width - vv.offsetLeft) : 0;
-    document.documentElement.style.setProperty('--safe-top',  top + 'px');
-    document.documentElement.style.setProperty('--safe-right', right + 'px');
-  }
-  applySafeInsets();
-  window.addEventListener('resize', applySafeInsets, { passive: true });
-  if (window.visualViewport) {
-    visualViewport.addEventListener('resize', applySafeInsets, { passive: true });
-    visualViewport.addEventListener('scroll', applySafeInsets, { passive: true });
-  }
-})();
+  
