@@ -481,24 +481,6 @@ window.hydrateFastingTimer = function(saved){
   __fastTimer = setInterval(tickOnce, 1000);
 };
 
-// 예: 시작/종료/기간을 바꿀 때 호출(핸들러에서)
-async function applyTimeChange({ newStartMs, newEndMs, keepDuration }) {
-  // start만 바뀌면 기존 지속시간 유지
-  if (keepDuration && newStartMs && !newEndMs) {
-    newEndMs = newStartMs + __fastTotalMs;
-  }
-  // end만 바뀌면 그대로 사용
-  const payload = { startAt: newStartMs ?? ( __fastEndMs - __fastTotalMs ),
-                    endAt  : newEndMs   ?? __fastEndMs };
-
-  // DB 반영 후 바로 다시 하이드레이트
-  const uid = firebase.auth().currentUser.uid;
-  await firebase.firestore().collection('users').doc(uid)
-    .set({ currentFasting: { ...payload, status:'running', updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge:true });
-
-  window.hydrateFastingTimer(payload);   // ★ 누적 방지: 새 값으로 재시작
-}
-
 // 화면 텍스트 갱신(네가 쓰는 함수 이름으로 연결)
 function renderRemain(ms){
   const s = Math.floor(ms/1000);
@@ -822,7 +804,7 @@ if (fastingState === 'running') {
 
   async function finalizeStopFasting(endDate /* Date */) {
     if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
-    
+
 clearInterval(__fastTimer);
     fastingState = 'idle';
 
