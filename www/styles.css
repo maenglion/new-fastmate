@@ -16,16 +16,29 @@
             --dark-gray-hover: #5a6268;
         }
 
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
+    body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+
+    /* --- 정렬 관련 속성 (한 번만 선언) --- */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    /* --- 크기 및 박스 모델 관련 속성 --- */
+    min-height: 100dvh;
+    box-sizing: border-box; /* 패딩을 높이에 포함시켜 계산 */
+
+    /* --- 여백 관련 속성 --- */
+    /* safe-area를 지원하지 않는 브라우저를 위한 기본값 */
+    padding: 20px; 
+    /* safe-area를 지원하는 브라우저에서 덮어쓸 값 */
+    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+}
 
         .container {
             width: 100%;
