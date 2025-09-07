@@ -710,19 +710,26 @@ function handleModelChange(e) {
         updateTimeDisplays();
         timePickerModal.style.display = 'none';
 
-        if (fastingState === 'running') {
-          if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
-          try {
-            await db.collection('users').doc(currentUser.uid).set({
-              currentFasting: { startTime: selectedStartTime, targetHours }
-            }, { merge: true });
-            updateTimer();
-            showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
-          } catch (err) {
-            console.error('Error updating start time:', err);
-            showToast('시간 변경에 실패했습니다.');
-          }
-        }
+      // ...
+if (fastingState === 'running') {
+    if (!currentUser) return showToast('사용자 정보가 없습니다. 다시 시도해주세요.');
+    
+    // 🔔 새로운 타이머 로직으로 시작 시간 변경 반영
+    const startMs = selectedStartTime.getTime();
+    const endMs = startMs + (targetHours * 3600000);
+    window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+
+    // DB 저장 로직은 그대로 유지
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
+        }, { merge: true });
+        showToast('진행 중인 단식의 시작 시간을 변경했습니다.');
+    } catch (err) {
+        console.error('Error updating start time:', err);
+        showToast('시간 변경 저장에 실패했습니다.');
+    }
+}
       } else if (timePickerMode === 'end') {
         if (picked < selectedStartTime) return showToast('종료 시간은 시작 시간 이후여야 합니다.');
         timePickerModal.style.display = 'none';
@@ -815,8 +822,8 @@ function handleModelChange(e) {
 
   async function finalizeStopFasting(endDate /* Date */) {
     if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
-
-    clearInterval(fastingInterval);
+    
+clearInterval(__fastTimer);
     fastingState = 'idle';
 
     if (!currentUser) {
