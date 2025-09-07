@@ -46,7 +46,7 @@
             background-color: var(--card-bg);
             border-radius: 16px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            padding: 30px 25px 25px 25px; 
+            padding: 40px 25px 25px 25px; 
             box-sizing: border-box;
             position: relative;
         }
@@ -68,6 +68,8 @@
             font-size: .85rem;
             cursor: pointer;
             transition: background-color 0.2s;
+             transform: scale(0.8);
+    transform-origin: top right; /* 중요: 오른쪽 상단 모서리를 기준으로 축소 */
         }
         .user-chip:hover { background-color: #f8f9fa; }
         .user-chip svg { width: 16px; height: 16px; stroke: var(--text-light); }
