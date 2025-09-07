@@ -14,8 +14,8 @@
             --gauge-track-color: #f6f3e7;
             --dark-gray-color: #6c757d;
             --dark-gray-hover: #5a6268;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
+              --safe-top: 0px;
+  --safe-right: 0px;
         }
 
         body {
@@ -40,46 +40,27 @@
             position: relative;
         }
 
-        #userChip { display: flex !important; }/* 네임칩은 항상 보이게 고정 */
-#userChip { display: flex !important; }
-body.fasting #userChip,
-[data-fasting="on"] #userChip,
-body.running #userChip { display: flex !important; }
+        .user-chip {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            background: #ffffff;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+            font-weight: 600;
+            font-size: .85rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .user-chip:hover { background-color: #f8f9fa; }
+        .user-chip svg { width: 16px; height: 16px; stroke: var(--text-light); }
 
-
-       .user-chip{
-  position: fixed;
-  top: calc(var(--safe-top) + 12px);
-  right: calc(var(--safe-right) + 12px);
-  z-index: 4000;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 9999px;
-  background: #fff;
-  color: var(--text-color, #111);
-  border: 1px solid var(--border-color, #e5e7eb);
-  box-shadow: 0 4px 18px rgba(0,0,0,.08);
-  font-weight: 600;
-  font-size: .85rem;
-  cursor: pointer;
-  transition: background-color .2s;
-
-  /* 화면 밖으로 튀지 않도록 폭 제한 */
-  max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
-}
-.user-chip:hover{ background-color: #f8f9fa; }
-.user-chip svg{ width:16px; height:16px; stroke: currentColor; }
-.user-chip #userChipName{
-  display:block;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  max-width: 60vw; /* 문구가 너무 길어도 안전 */
-}
-
-/* 혹시 상단이 잘리는 기기에서 전체 레이아웃이 숨지 않도록 */
-html, body { overflow-x: hidden; }
 
         .main-title {
             text-align: center;
