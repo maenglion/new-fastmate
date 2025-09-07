@@ -34,8 +34,7 @@
 
   // Firestore settings — 한 번만
   if (!db.__SETTINGS_APPLIED__) {
-    try { db.settings({ experimentalForceLongPolling: true }); }
-    catch(_) {}
+    try { db.settings({ experimentalForceLongPolling: true }); } catch(_) {}
     db.__SETTINGS_APPLIED__ = true;
   }
 
@@ -51,6 +50,7 @@
       return s.exists ? { id: s.id, ...s.data() } : null;
     } catch (e) { console.error('[getUserDoc]', e); return null; }
   }
+
   async function upsertUserDoc(user) {
     const ref = db.collection('users').doc(user.uid);
     await ref.set({
@@ -63,11 +63,13 @@
       createdAt  : firebase.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
   }
+
   async function ensureUserProfile(data){
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error('not-authenticated');
     await db.collection('users').doc(uid).set(data, { merge:true });
   }
+
   function hasValue(x){ return Array.isArray(x) ? x.length>0 : (x!=null && String(x).trim()!==''); }
   function isProfileDone(u){
     const nick = u?.nickname;
@@ -76,7 +78,7 @@
     return hasValue(nick) && (hasValue(goals) || completed);
   }
 
-  // 전역 export (예전 코드에서 전역 함수로 직접 호출하므로 그대로 노출)
+  // 전역 export
   window.fastmateApp = { auth, db, getUserDoc, ensureUserProfile, upsertUserDoc };
   window.getUserDoc = getUserDoc;
   window.ensureUserProfile = ensureUserProfile;
@@ -105,7 +107,7 @@
   };
   const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
 
-  // 인앱/웹뷰 감지 + 예쁜 경고
+  // 인앱/웹뷰 감지 + 경고
   function isInApp(){
     const ua = navigator.userAgent || '';
     return /; wv\)/i.test(ua) || /FBAN|FBAV|FB_IAB|Instagram|KAKAOTALK|NAVER|DaumApps/i.test(ua);
@@ -301,4 +303,22 @@
     });
   }
 
+})(); // end main IIFE
+
+// 안전여백 보정 (Z 폴드 등)
+(() => {
+  'use strict';
+  function applySafeInsets() {
+    const vv = window.visualViewport;
+    const top = vv ? Math.max(0, vv.offsetTop) : 0;
+    const right = vv ? Math.max(0, window.innerWidth - vv.width - vv.offsetLeft) : 0;
+    document.documentElement.style.setProperty('--safe-top',  top + 'px');
+    document.documentElement.style.setProperty('--safe-right', right + 'px');
+  }
+  applySafeInsets();
+  window.addEventListener('resize', applySafeInsets, { passive: true });
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', applySafeInsets, { passive: true });
+    visualViewport.addEventListener('scroll', applySafeInsets, { passive: true });
+  }
 })();

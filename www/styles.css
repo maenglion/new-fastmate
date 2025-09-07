@@ -14,6 +14,8 @@
             --gauge-track-color: #f6f3e7;
             --dark-gray-color: #6c757d;
             --dark-gray-hover: #5a6268;
+              --safe-top: 0px;
+  --safe-right: 0px;
         }
 
         body {
@@ -38,8 +40,15 @@
             position: relative;
         }
 
+        #userChip { display: flex !important; }/* 네임칩은 항상 보이게 고정 */
+#userChip { display: flex !important; }
+body.fasting #userChip,
+[data-fasting="on"] #userChip,
+body.running #userChip { display: flex !important; }
+
+
         .user-chip {
-            position: absolute;
+            position: fixed;   
             top: 16px;
             right: 16px;
             display: flex;
@@ -55,6 +64,7 @@
             font-size: .85rem;
             cursor: pointer;
             transition: background-color 0.2s;
+            z-index: 1000;                /* 오버레이 위로 */
         }
         .user-chip:hover { background-color: #f8f9fa; }
         .user-chip svg { width: 16px; height: 16px; stroke: var(--text-light); }
