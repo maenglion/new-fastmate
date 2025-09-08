@@ -799,33 +799,47 @@ body {
             text-decoration: underline;
         }
 
-        /* =============================================== */
+/* =============================================== */
 /* 넓은 화면 (Z폴드 등)을 위한 반응형 레이아웃       */
 /* =============================================== */
 
-@media (min-width: 600px) {
+@media (min-width: 650px) {
 
-    /* 전체 컨테이너를 2열 그리드로 변경하고 최대 너비 증가 */
+    /* 컨테이너를 2열 그리드로 변경하고 최대 너비를 늘립니다. */
     .container {
         display: grid;
         grid-template-columns: 2fr 1fr; /* 메인 콘텐츠와 사이드 메뉴 비율 2:1 */
-        gap: 30px;
-        max-width: 800px;
-        align-items: start; /* 컬럼 높이가 달라도 상단 정렬 */
+        gap: 25px;
+        max-width: 850px;
+        align-items: start; /* 높이가 달라도 상단 정렬 */
     }
 
-    /* 메인 콘텐츠 영역에 position 기준점 설정 */
+    /* 메인 콘텐츠(왼쪽 기둥)에 카드 스타일을 적용합니다. */
     .main-content {
-        position: relative;
+        background-color: var(--card-bg);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        padding: 25px;
+        box-sizing: border-box; /* 패딩이 크기에 포함되도록 설정 */
+    }
+    
+    /* 사이드 메뉴(오른쪽 기둥) 스타일 */
+    .side-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 20px; /* 네임칩과 버튼 목록 사이 간격 */
     }
 
-    /* 닉네임 칩이 메인 콘텐츠 우측 상단에 붙도록 재조정 */
-    .user-chip {
-        top: 0;
-        right: 0;
+    /* 오른쪽 기둥으로 옮겨진 네임칩 스타일을 재정의합니다. */
+    .side-menu .user-chip {
+        position: static; /* absolute 포지셔닝 해제 */
+        transform: none;  /* 크기 조절 해제 */
+        margin: 0 auto;   /* 수평 중앙 정렬 */
+        order: -1;        /* 다른 요소들보다 위로 배치 */
+        width: auto;
     }
 
-    /* 사이드 메뉴 영역 스타일 */
+    /* 오른쪽 기둥의 버튼 목록 스타일 */
     .side-menu .bottom-nav {
         flex-direction: column;   /* 버튼들을 세로로 쌓음 */
         align-items: stretch;     /* 버튼들이 꽉 차도록 늘림 */
@@ -835,18 +849,14 @@ body {
         gap: 10px;                /* 버튼 사이 간격 추가 */
     }
 
-    /* 사이드 메뉴의 각 버튼 스타일 조정 */
+    /* 오른쪽 기둥의 각 버튼 스타일 */
     .side-menu .nav-btn {
         flex-direction: row;      /* 아이콘과 텍스트를 가로로 배치 */
         justify-content: flex-start; /* 왼쪽 정렬 */
         padding: 12px 15px;
-        background-color: #f8f9fa; /* 배경색 추가 */
+        background-color: var(--card-bg); /* 배경색 추가 */
+        border: 1px solid var(--border-color);
         border-radius: 12px;
         gap: 12px;
     }
-    
-    /* 다크 모드일 때 사이드 메뉴 버튼 배경색 */
-    :root:has(body[data-theme="dark"]) .side-menu .nav-btn {
-        background-color: #2a2a2a;
-    }
-}
+} 
