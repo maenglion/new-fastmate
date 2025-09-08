@@ -20,15 +20,6 @@
 
 </head>
 <body>
-네, 알겠습니다. 코드 구조가 약간 꼬여있네요. container와 main-content가 splash-screen 안에 잘못 들어가 있고, 서로 분리되어 있습니다. 제가 올바른 구조로 수정해 드릴게요.
-
-## 해결 방법: fastmate.html의 <body> 내부 전체 교체
-기존 fastmate.html 파일에서 <body> 태그 바로 아래부터 </body> 태그 바로 위까지의 모든 내용을 삭제하시고, 아래의 완성된 코드로 교체해주세요.
-
-이 코드는 스플래시 스크린, 메인 콘텐츠, 사이드 메뉴, 푸터, 모든 모달의 위치를 올바르게 잡은 최종 버전입니다.
-
-HTML
-
 <script>
     if (sessionStorage.getItem('oauthBusy') === '1') {
       document.body.classList.add('oauth-busy');
