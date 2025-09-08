@@ -798,3 +798,55 @@ body {
         .app-footer a:hover {
             text-decoration: underline;
         }
+
+        /* =============================================== */
+/* 넓은 화면 (Z폴드 등)을 위한 반응형 레이아웃       */
+/* =============================================== */
+
+@media (min-width: 600px) {
+
+    /* 전체 컨테이너를 2열 그리드로 변경하고 최대 너비 증가 */
+    .container {
+        display: grid;
+        grid-template-columns: 2fr 1fr; /* 메인 콘텐츠와 사이드 메뉴 비율 2:1 */
+        gap: 30px;
+        max-width: 800px;
+        align-items: start; /* 컬럼 높이가 달라도 상단 정렬 */
+    }
+
+    /* 메인 콘텐츠 영역에 position 기준점 설정 */
+    .main-content {
+        position: relative;
+    }
+
+    /* 닉네임 칩이 메인 콘텐츠 우측 상단에 붙도록 재조정 */
+    .user-chip {
+        top: 0;
+        right: 0;
+    }
+
+    /* 사이드 메뉴 영역 스타일 */
+    .side-menu .bottom-nav {
+        flex-direction: column;   /* 버튼들을 세로로 쌓음 */
+        align-items: stretch;     /* 버튼들이 꽉 차도록 늘림 */
+        border-top: none;         /* 모바일용 상단 구분선 제거 */
+        margin-top: 0;
+        padding-top: 0;
+        gap: 10px;                /* 버튼 사이 간격 추가 */
+    }
+
+    /* 사이드 메뉴의 각 버튼 스타일 조정 */
+    .side-menu .nav-btn {
+        flex-direction: row;      /* 아이콘과 텍스트를 가로로 배치 */
+        justify-content: flex-start; /* 왼쪽 정렬 */
+        padding: 12px 15px;
+        background-color: #f8f9fa; /* 배경색 추가 */
+        border-radius: 12px;
+        gap: 12px;
+    }
+    
+    /* 다크 모드일 때 사이드 메뉴 버튼 배경색 */
+    :root:has(body[data-theme="dark"]) .side-menu .nav-btn {
+        background-color: #2a2a2a;
+    }
+}

@@ -34,129 +34,117 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
   <main class="page-content">
     </main>
     <!-- 앱 메인 컨텐츠 -->
-   <div class="container">
-        <div id="userChip" class="user-chip" style="display:none">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span id="userChipName">-</span>님
-        </div>
+<div class="container">
 
-        <h1 class="main-title">fastmate</h1>
-        
-        <div class="ring-wrap">
-            <svg class="ring" viewBox="0 0 120 120">
-     <defs>
-    <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
-    <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="var(--gauge-start-color)"/>
-        <stop offset="100%" stop-color="var(--primary-color)"/>
-    </linearGradient>
-    <linearGradient id="overtimeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#FF690B"/>
-        <stop offset="100%" stop-color="var(--gauge-start-color)"/>
-    </linearGradient>
-</defs>
-                <circle cx="60" cy="60" r="54" stroke="url(#trackGrad)" stroke-width="12" fill="none"/>
-                <circle id="progressArc" cx="60" cy="60" r="54" stroke="url(#progGrad)" stroke-width="12" fill="none" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
-            </svg>
-            <div class="timer-display">
-                <div class="label">남은 시간</div>
-                <div id="remainingTime" class="time">00:00:00</div>
+        <div class="main-content">
+            <div id="userChip" class="user-chip" style="display:none">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span id="userChipName">-</span>님
             </div>
-        </div>
-
-        <div id="status-message" class="status-message">단식 계획을 선택하고 시작하세요.</div>
-
-        <div class="time-info">
-            <div id="startTimeBox" class="time-box" title="클릭하여 시간 변경">
-                <span class="label">시작 시간</span>
-                <span id="startTimeValue" class="value">-</span>
-                <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </div>
-            <div class="time-box">
-                <span class="label">종료 예정</span>
-                <span id="endTimeValue" class="value">-</span>
-            </div>
-        </div>
-        <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-        <div class="time-picker-content">
-            <h3 class="onb-title">시작 시간 선택</h3>
-            <input type="date" id="datePickerInput" class="onb-input" style="margin-bottom: 20px; text-align: center;">
-            <div class="time-selector">
-                <select id="ampmSelect">
-                    <option>AM</option>
-                    <option>PM</option>
-                </select>
-                <select id="hourSelect"></select>
-                <span>:</span>
-                <select id="minuteSelect"></select>
-            </div>
-            <div class="onb-actions">
-                <button type="button" data-close="timePickerModal" class="onb-btn onb-ghost">취소</button>
-                <button id="saveTimeBtn" type="button" class="onb-btn onb-primary">확인</button>
-            </div>
-        </div>
-    </div>
-        <div id="completionOverlay" class="completion-overlay">
-        <div class="completion-content">
-            <div class="confetti"></div>
-            <div class="confetti"></div>
-            <div class="confetti"></div>
-            <div class="confetti"></div>
-            <div class="confetti"></div>
-            <div class="confetti"></div>
-            <h2>목표 달성!</h2>
-            <p>축하합니다! 성공적으로 단식을 마쳤습니다.</p>
-        </div>
-    </div>
     
-        <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
+            <h1 class="main-title">fastmate</h1>
+            
+            <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 120 120">
+                    <defs>
+                        <linearGradient id="trackGrad"><stop stop-color="var(--gauge-track-color)"/></linearGradient>
+                        <linearGradient id="progGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="var(--gauge-start-color)"/>
+                            <stop offset="100%" stop-color="var(--primary-color)"/>
+                        </linearGradient>
+                        <linearGradient id="overtimeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#FF690B"/>
+                            <stop offset="100%" stop-color="var(--gauge-start-color)"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="60" cy="60" r="54" stroke="url(#trackGrad)" stroke-width="12" fill="none"/>
+                    <circle id="progressArc" cx="60" cy="60" r="54" stroke="url(#progGrad)" stroke-width="12" fill="none" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
+                </svg>
+                <div class="timer-display">
+                    <div class="label">남은 시간</div>
+                    <div id="remainingTime" class="time">00:00:00</div>
+                </div>
+            </div>
+    
+            <div id="status-message" class="status-message">단식 계획을 선택하고 시작하세요.</div>
+    
+            <div class="time-info">
+                <div id="startTimeBox" class="time-box" title="클릭하여 시간 변경">
+                    <span class="label">시작 시간</span>
+                    <span id="startTimeValue" class="value">-</span>
+                    <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </div>
+                <div class="time-box">
+                    <span class="label">종료 예정</span>
+                    <span id="endTimeValue" class="value">-</span>
+                </div>
+            </div>
+            
+            <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
+    
+            <div class="controls">
+                <select id="fastingModelSelect">
+                    <option value="8">8:16 (8시간 단식,야식끊기)</option>  
+                    <option value="12">12:12 (12시간 단식,초보)</option>  
+                    <option value="16">16:8 (16시간 단식,인기)</option>
+                    <option value="18">18:6 (18시간 단식,인기)</option>
+                    <option value="20">20:4 (20시간 단식,고급)</option>
+                    <option value="24">24시간 (1일 단식,고급)</option>
+                    <option value="36">36시간(1.5일 단식,고급)</option>
+                    <option value="48">48시간 (2일 단식,고급)</option>
+                    <option value="72">72시간 (3일 단식,고급)</option>
+                </select>
+                <div class="button-group">
+                    <button id="startBtn" class="start-btn">단식 시작</button>
+                    <button id="stopBtn" class="stop-btn">단식 종료</button>
+                </div>
+            </div>
+    
+            <footer class="app-footer">
+                <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
+                <p>© 2025 2e-studio. All rights reserved.</p>
+                <p class="faq-link">
+                  <a href="https://www.notion.so/maenglionworld/FASTMATE-FAQ-256bcdc037cd80de887dfb24a7cae5a1?source=copy_link" target="_blank" rel="noopener noreferrer">
+                    이용이 어려우신가요? (FAQ)
+                  </a>
+                </p>
+            </footer>
+        </div>
 
-        <div class="controls">
-            <select id="fastingModelSelect">
-              <option value="8">8:16 (8시간 단식,야식끊기)</option>  
-              <option value="12">12:12 (12시간 단식,초보)</option>  
-              <option value="16">16:8 (16시간 단식,인기)</option>
-                <option value="18">18:6 (18시간 단식,인기)</option>
-                <option value="20">20:4 (20시간 단식,고급)</option>
-                <option value="24">24시간 (1일 단식,고급)</option>
-                <option value="36">36시간(1.5일 단식,고급)</option>
-                <option value="48">48시간 (2일 단식,고급)</option>
-                <option value="72">72시간 (3일 단식,고급)</option>
-            </select>
-            <div class="button-group">
-                <button id="startBtn" class="start-btn">단식 시작</button>
-                <button id="stopBtn" class="stop-btn">단식 종료</button>
+        <div class="side-menu">
+            <div class="bottom-nav">
+                <button class="nav-btn" id="weightBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3L2 9l10 6 10-6-10-6zM2 15l10 6 10-6"></path><path d="M2 9v6"></path><path d="M22 9v6"></path><path d="M12 21v-6"></path>
+                    </svg>
+                    <span>체중 기록</span>
+                </button>
+                <button class="nav-btn" id="bloodSugarBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    <span>혈당 기록</span>
+                </button>
+                <button class="nav-btn" id="ketoneBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M7 7h10"/><path d="M7 17h10"/></svg>
+                    <span>케톤 기록</span>
+                </button>
+                <button class="nav-btn" id="exerciseBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 6v12M18 6v12"/>
+                        <path d="M3 10v4M21 10v4"/>
+                        <path d="M6 12h12"/>
+                    </svg>
+                    <span>운동 기록</span>
+                </button>
+                <button class="nav-btn" id="challengeBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="m9 12 2 2 4-4"></path>
+                    </svg>
+                    <span>챌린지</span>
+                </button>
             </div>
         </div>
-
-        <div class="bottom-nav">
-               <button class="nav-btn" id="weightBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3L2 9l10 6 10-6-10-6zM2 15l10 6 10-6"></path><path d="M2 9v6"></path><path d="M22 9v6"></path><path d="M12 21v-6"></path>
-        </svg>
-        <span>체중 기록</span>
-            </button>
-            <button class="nav-btn" id="bloodSugarBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-                <span>혈당 기록</span>
-            </button>
-            <button class="nav-btn" id="ketoneBtn">
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M7 7h10"/><path d="M7 17h10"/></svg>
-  <span>케톤 기록</span>
-</button>
-
-<button class="nav-btn" id="exerciseBtn">
-  <svg xmlns="http://www.w3.org/2000/svg" 
-       viewBox="0 0 24 24" fill="none" 
-       stroke="currentColor" stroke-width="2" 
-       stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 6v12M18 6v12"/>
-    <path d="M3 10v4M21 10v4"/>
-    <path d="M6 12h12"/>
-  </svg>
-  <span>운동 기록</span>
-</button>
-        </div>
+    </div>
 
        
         <!-- 체중 기록 모달 -->
