@@ -22,13 +22,9 @@ body {
     margin: 0;
     
  /* 화면을 항상 중앙에 배치하고, 상단 여백을 안전하게 확보합니다. */
-    display: flex;
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
-    padding: 20px;
-    padding-top: calc(30px + env(safe-area-inset-top));
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     box-sizing: border-box;
 }
 
@@ -41,6 +37,7 @@ body {
     padding: 25px;
     box-sizing: border-box;
     position: relative; /* 네임칩 위치의 기준점 */
+    margin: 30px auto; /* 위아래 30px, 좌우 자동(중앙 정렬) */
 }
 
 /* ▼▼▼ 이 미디어 쿼리를 .container 바로 아래나 CSS 파일 맨 아래에 추가 ▼▼▼ */

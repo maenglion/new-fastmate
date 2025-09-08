@@ -1128,7 +1128,7 @@ async function postAutoComment(type, data) {
                     const nickname = profile?.nickname || user.displayName || '사용자';
                     setUserChip(nickname);
 
-/* 
+
 challengesRef = db.collection('challenges');
     const query = challengesRef
         .where('participantUids', 'array-contains', user.uid)
@@ -1143,7 +1143,7 @@ challengesRef = db.collection('challenges');
     } else {
         activeChallengeId = null;
     }  
-        */
+       
 
 
                     const savedFasting = profile?.currentFasting;
