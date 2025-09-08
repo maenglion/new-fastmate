@@ -89,11 +89,110 @@
 </div>
 
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // 이 페이지의 JavaScript 로직은 다음 단계에서 작성합니다.
-        });
-    </script>
+   <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Firebase 및 전역 객체 가져오기
+    const auth = window.fastmateApp.auth;
+    const db = window.fastmateApp.db;
+    let currentUser = null;
+
+    // 2. DOM 요소 캐시
+    const createChallengeBtn = document.getElementById('createChallengeBtn');
+    const createChallengeModal = document.getElementById('createChallengeModal');
+    const closeCreateChallengeModalBtn = document.getElementById('closeCreateChallengeModalBtn');
+    const saveChallengeBtn = document.getElementById('saveChallengeBtn');
+    const challengeModelSelect = document.getElementById('challengeModelSelect');
+    const challengeDatePicker = document.getElementById('challengeDatePicker');
+    const challengeTimePicker = document.getElementById('challengeTimePicker');
+    const challengeDetailedGoal = document.getElementById('challengeDetailedGoal');
+
+    // 3. 모달 열고 닫는 기능
+    createChallengeBtn?.addEventListener('click', () => {
+        if (!currentUser) return alert('챌린지를 만들려면 로그인이 필요합니다.');
+        
+        // 날짜와 시간 기본값 설정
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        challengeDatePicker.value = `${year}-${month}-${day}`;
+        challengeTimePicker.value = now.toTimeString().slice(0, 5);
+
+        createChallengeModal.style.display = 'flex';
+    });
+
+    closeCreateChallengeModalBtn?.addEventListener('click', () => {
+        createChallengeModal.style.display = 'none';
+    });
+
+    // 4. ⭐ 챌린지 저장 및 링크 복사 기능 ⭐
+    saveChallengeBtn?.addEventListener('click', async () => {
+        // 입력값 가져오기
+        const fastingHours = parseInt(challengeModelSelect.value, 10);
+        const dateString = challengeDatePicker.value;
+        const timeString = challengeTimePicker.value;
+        const detailedGoal = challengeDetailedGoal.value.trim();
+
+        // 유효성 검사
+        if (!dateString || !timeString) {
+            return alert('시작 날짜와 시간을 모두 선택해주세요.');
+        }
+
+        // 시작 시간 Date 객체로 변환
+        const startTime = new Date(`${dateString}T${timeString}`);
+        if (startTime < new Date()) {
+            return alert('시작 시간은 현재 시간 이후여야 합니다.');
+        }
+
+        // 저장할 데이터 객체 생성
+        const challengeData = {
+            hostUid: currentUser.uid,
+            hostNickname: currentUser.displayName || '사용자',
+            challengeName: `${currentUser.displayName || '사용자'}님의 ${fastingHours}시간 단식`,
+            fastingHours: fastingHours,
+            detailedGoal: detailedGoal,
+            startTime: firebase.firestore.Timestamp.fromDate(startTime),
+            status: "upcoming",
+            participantUids: [currentUser.uid],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            // Firestore 'challenges' 컬렉션에 데이터 추가
+            const docRef = await db.collection('challenges').add(challengeData);
+            
+            // 초대 링크 생성
+            const inviteLink = `${window.location.origin}/challenge-invite.html?id=${docRef.id}`;
+
+            // 링크 클립보드에 복사
+            await navigator.clipboard.writeText(inviteLink);
+
+            // 모달 닫고 사용자에게 알림
+            createChallengeModal.style.display = 'none';
+            alert('챌린지가 성공적으로 생성되었습니다!\n초대 링크가 클립보드에 복사되었으니 친구에게 공유해주세요.');
+
+            // (선택사항) 챌린지 목록 새로고침
+            // loadChallenges(); 
+
+        } catch (error) {
+            console.error("챌린지 생성 오류:", error);
+            alert("챌린지 생성에 실패했습니다. 다시 시도해주세요.");
+        }
+    });
+
+    // 5. 인증 상태 확인
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            // (나중에 추가) 로그인 시, 챌린지 목록 불러오는 함수 호출
+            // loadChallenges();
+        } else {
+            currentUser = null;
+            // (나중에 추가) 로그아웃 시, 챌린지 목록 비우기
+        }
+    });
+});
+</script>
 
 </body>
 </html>
