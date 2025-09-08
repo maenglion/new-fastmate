@@ -794,14 +794,24 @@ picked.setHours(hour, mm, 0, 0);
       if (!v || v <= 0) return showToast('올바른 체중을 입력하세요.');
       const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       try {
-       await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
-          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            challengeId: activeChallengeId || null
-           });
-      } catch (e) {
-        console.error('save weight failed:', e);
-        showToast('서버 저장 실패(체중)… 잠시 후 다시 시도해주세요.');
-      }
+    const weightData = {
+        date: new Date(),
+        value: v,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        challengeId: activeChallengeId || null
+    };
+
+    await db.collection('users').doc(user.uid)
+        .collection('measurements').doc('weight')
+        .collection('items').add(weightData);
+
+    // 자동 댓글 생성 (postAutoComment 함수가 알아서 이전 기록과 비교해줍니다)
+    postAutoComment('weight', { value: v });
+
+} catch (e) {
+    console.error('save weight failed:', e);
+    showToast('서버 저장 실패(체중)… 잠시 후 다시 시도해주세요.');
+}
       weightInput.value = '';
       weightModal.style.display = 'none';
       showToast('체중이 저장되었습니다.');
@@ -828,14 +838,24 @@ picked.setHours(hour, mm, 0, 0);
       const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
-          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            challengeId: activeChallengeId || null
-           });
-      } catch (e) {
-        console.error('save blood sugar failed:', e);
-        showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
-      }
+    const bloodSugarData = {
+        date: recordDate,
+        value: v,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        challengeId: activeChallengeId || null
+    };
+    
+    await db.collection('users').doc(user.uid)
+        .collection('measurements').doc('bloodSugar')
+        .collection('items').add(bloodSugarData);
+
+    // 자동 댓글 생성
+    postAutoComment('bloodSugar', { value: v });
+
+} catch (e) {
+    console.error('save blood sugar failed:', e);
+    showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
+}
       bloodSugarInput.value = '';
       bloodSugarModal.style.display = 'none';
       showToast('혈당 수치가 저장되었습니다.');
@@ -849,14 +869,24 @@ picked.setHours(hour, mm, 0, 0);
       const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
-          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            challengeId: activeChallengeId || null
-           });
-      } catch (e) {
-        console.error('save ketone failed:', e);
-        showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
-      }
+    const ketoneData = {
+        date: new Date(),
+        value: v,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        challengeId: activeChallengeId || null
+    };
+
+    await db.collection('users').doc(user.uid)
+        .collection('measurements').doc('ketone')
+        .collection('items').add(ketoneData);
+
+    // 자동 댓글 생성
+    postAutoComment('ketone', { value: v });
+
+} catch (e) {
+    console.error('save ketone failed:', e);
+    showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
+}
       ketoneInput.value = '';
       ketoneModal.style.display = 'none';
       showToast('케톤 수치가 저장되었습니다.');
@@ -880,12 +910,25 @@ picked.setHours(hour, mm, 0, 0);
       const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       const rec = { date:new Date().toISOString(), type: sel.dataset.value, duration, calories };
       saveLocalList('exerciseData', rec);
-      try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('exercise')
-       await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
-          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            challengeId: activeChallengeId || null
-           });
+     try {
+    // 1. 저장할 '운동 데이터'를 올바르게 만듭니다.
+    const exerciseData = {
+        date: new Date(),
+        type: sel.dataset.value, // sel (선택된 태그)에서 운동 종류 가져오기
+        duration: duration,      // duration 변수 사용
+        calories: calories ?? 0, // calories 변수 사용
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        challengeId: activeChallengeId || null
+    };
+
+    // 2. 올바른 '운동 데이터'를 저장합니다.
+    await db.collection('users').doc(user.uid)
+        .collection('measurements').doc('exercise')
+        .collection('items').add(exerciseData);
+
+    // 3. '운동 데이터'로 자동 댓글을 생성합니다.
+    postAutoComment('exercise', { type: exerciseData.type, duration: exerciseData.duration });
+
       } catch (e) {
         console.error('save exercise failed:', e);
         showToast('서버 저장 실패(운동)… 잠시 후 다시 시도해주세요.');
@@ -942,6 +985,68 @@ challengeBtn?.addEventListener('click', () => { window.location.href = 'challeng
     localStorage.setItem(key, JSON.stringify(arr));
   }
 
+
+  /**
+ * 챌린지에 자동 댓글을 포스트하는 함수
+ * @param {string} type - 'weight', 'exercise', 'bloodSugar', 'ketone' 등 기록의 종류
+ * @param {object} data - 댓글 내용 생성에 필요한 데이터
+ */
+async function postAutoComment(type, data) {
+    if (!activeChallengeId || !currentUser) return;
+
+    let commentText = '';
+
+    switch (type) {
+        case 'weight':
+            // 체중 기록은 이전 값과 비교해야 하므로, 가장 최근 데이터를 가져옵니다.
+            const weightRef = db.collection('users').doc(currentUser.uid)
+                .collection('measurements').doc('weight').collection('items')
+                .orderBy('date', 'desc').limit(2); // 현재+이전 기록 2개
+            
+            const weightSnap = await weightRef.get();
+            if (weightSnap.docs.length > 1) {
+                const latest = weightSnap.docs[0].data().value;
+                const previous = weightSnap.docs[1].data().value;
+                const diff = Math.abs(latest - previous).toFixed(1);
+
+                if (latest < previous) {
+                    commentText = `${currentUser.displayName || '사용자'}님이 ${diff}kg 감량에 성공했습니다! 🎉`;
+                } else if (latest > previous) {
+                    commentText = `${currentUser.displayName || '사용자'}님이 ${diff}kg 증량했습니다.`;
+                }
+                // 몸무게가 같으면 댓글을 달지 않을 수 있습니다.
+            }
+            break;
+
+        case 'exercise':
+            commentText = `${currentUser.displayName || '사용자'}님이 '${data.type}' ${data.duration}분 기록을 완료했습니다.`;
+            break;
+
+        case 'bloodSugar':
+            commentText = `${currentUser.displayName || '사용자'}님이 혈당 ${data.value} (mg/dL)을 기록했습니다.`;
+            break;
+        
+        case 'ketone':
+             commentText = `${currentUser.displayName || '사용자'}님이 케톤 ${data.value} (mmol/L)을 기록했습니다.`;
+            break;
+    }
+
+    // 생성된 메시지가 있을 경우에만 댓글을 저장합니다.
+    if (commentText) {
+        try {
+            await db.collection('challenges').doc(activeChallengeId).collection('comments').add({
+                uid: currentUser.uid,
+                nickname: currentUser.displayName || '사용자',
+                text: commentText,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                isAutoComment: true, // 자동 댓글임을 표시
+                parentId: null       // 최상위 댓글
+            });
+        } catch (error) {
+            console.error("자동 댓글 생성 실패:", error);
+        }
+    }
+}
 
    // ========================================
     // ===== 9) 앱 초기화 및 인증 리스너

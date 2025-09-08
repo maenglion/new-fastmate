@@ -39,34 +39,19 @@ body {
     padding-right: calc(20px + env(safe-area-inset-right));
 }
 
-.container {
-    width: 100%;
-    position: relative;
-    flex-grow: 1;
-    max-width: 420px; /* 모바일 화면 기본 최대 너비 */
-}
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px 25px 25px 25px; 
+            box-sizing: border-box;
+            position: relative;
+            flex-grow: 1; 
+        }
 
-/* --- 3. 공통 컴포넌트 스타일 (1단 레이아웃 기준) --- */
-.main-content, .side-menu {
-    width: 100%;
-}
-.main-content {
-    background-color: var(--card-bg);
-    border-radius: 16px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    padding: 25px;
-    box-sizing: border-box;
-    position: relative;
-}
-.main-title {
-    text-align: center;
-    color: var(--primary-color);
-    margin: 15px 0 20px 0;
-    font-weight: 700;
-    font-size: 1.8rem; }
-
-
-    .user-chip {
+        .user-chip {
             position: absolute;
             top: 16px;
             right: 16px;
@@ -90,7 +75,14 @@ body {
         .user-chip svg { width: 16px; height: 16px; stroke: var(--text-light); }
 
 
-
+        .main-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-top: 15px;
+        }
 
         .ring-wrap {
             position: relative;
@@ -222,6 +214,7 @@ body {
         .stop-btn:hover { background-color: var(--dark-gray-hover); }
 
         .bottom-nav { 
+            border-top: 1px solid var(--border-color); 
             margin-top: 25px; 
             padding-top: 15px; 
             display: flex;
@@ -253,10 +246,10 @@ body {
         }
 
         .app-footer {
-    text-align: center;
-    margin-top: 20px;
-    padding: 15px 0 0 0;
-    width: 100%;
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
         }
         .app-footer a, .app-footer p {
             font-size: 0.8rem;
@@ -806,43 +799,3 @@ body {
             text-decoration: underline;
         }
 
-/* --- 4. 넓은 화면 (Z폴드 등)을 위한 반응형 레이아웃 --- */
-@media (min-width: 650px) {
-    .container {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 25px;
-        max-width: 850px;
-        align-items: start;
-        background: none; /* 그리드 컨테이너는 투명하게 */
-        box-shadow: none;
-    }
-    .side-menu .user-chip {
-        position: static;
-        transform: none;
-        margin: 0 auto 20px;
-        order: -1;
-    }
-    .side-menu {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .side-menu .bottom-nav {
-        flex-direction: column;
-        align-items: stretch;
-        border-top: none;
-        margin-top: 0;
-        padding-top: 0;
-        gap: 10px;
-    }
-    .side-menu .nav-btn {
-        flex-direction: row;
-        justify-content: flex-start;
-        padding: 12px 15px;
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        gap: 12px;
-    }
-}
