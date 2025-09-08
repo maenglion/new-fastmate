@@ -80,10 +80,7 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
         <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
         <div class="time-picker-content">
             <h3 class="onb-title">시작 시간 선택</h3>
-            <div class="date-selector">
-                <button id="dayBeforeBtn" type="button" class="date-btn">어제</button>
-                <button id="todayBtn" type="button" class="date-btn active">오늘</button>
-            </div>
+            <input type="date" id="datePickerInput" class="onb-input" style="margin-bottom: 20px; text-align: center;">
             <div class="time-selector">
                 <select id="ampmSelect">
                     <option>AM</option>
@@ -349,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveExerciseBtn = document.getElementById('saveExerciseBtn');
     const privacyPolicyLink = document.getElementById('privacyPolicyLink');
     const toast = document.getElementById('toast');
+    const datePickerInput = document.getElementById('datePickerInput');
 
     // ========================================
     // ===== 2) 상태 변수 (State)
@@ -662,10 +660,19 @@ async function applyDurationChange(newHours) {
             
             let hour = h12 % 12;
             if (ampm === 'PM') hour += 12;
-            const picked = new Date();
-            if (dayBeforeBtn?.classList.contains('active')) picked.setDate(picked.getDate() - 1);
-            picked.setHours(hour, mm, 0, 0);
+         // ...
+if (!datePickerInput || !datePickerInput.value) {
+    return showToast('날짜를 선택해주세요.');
+}
 
+// datePickerInput에서 년, 월, 일을 가져옴
+const [year, month, day] = datePickerInput.value.split('-').map(Number);
+
+// 새로운 Date 객체를 만들고 시간 설정
+const picked = new Date();
+picked.setFullYear(year, month - 1, day); // month는 0부터 시작하므로 1을 빼줍니다.
+picked.setHours(hour, mm, 0, 0);
+// ...
             timePickerModal.style.display = 'none';
 
             if (timePickerMode === 'start') {
@@ -705,6 +712,15 @@ async function applyDurationChange(newHours) {
         timePickerModal.style.display = 'flex';
         const title = (mode === 'start') ? '시작 시간 선택' : '종료 시간 선택';
         if(timePickerTitle) timePickerTitle.textContent = title;
+
+            // ▼▼▼ 이 부분을 추가하세요 ▼▼▼
+    if (datePickerInput) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        datePickerInput.value = `${year}-${month}-${day}`;
+    }
 
         const base = (mode === 'start') ? (selectedStartTime || new Date()) : new Date();
         let h = base.getHours();
