@@ -512,14 +512,15 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSelectOptions();
     }
 
-    function updateTimeDisplays() {
-        const start = selectedStartTime;
-        const duration = parseInt(targetHours, 10);
-        const end = new Date(start.getTime() + duration * 3600000);
-        const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-        if (startTimeValue) startTimeValue.textContent = fmt(start);
-        if (endTimeValue) endTimeValue.textContent = fmt(end);
-    }
+function updateTimeDisplays() {
+    const start = selectedStartTime;
+    const duration = parseInt(targetHours, 10); // 항상 상태 변수에서 직접 값을 읽도록 수정
+    const end = new Date(start.getTime() + duration * 3600000);
+    const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    
+    if (startTimeValue) startTimeValue.textContent = fmt(start);
+    if (endTimeValue) endTimeValue.textContent = fmt(end);
+}
     
     // ========================================
     // ===== 6) 메인 기능 함수
@@ -587,29 +588,45 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('단식을 종료했습니다. 수고하셨습니다!');
     }
 
-    async function applyDurationChange(newHours) {
-        if (!currentUser) {
-            showToast('로그인 정보가 없어 변경사항을 저장할 수 없습니다.');
-            modelSelect.value = targetHours;
-            return;
-        }
-        targetHours = newHours;
-        const startMs = selectedStartTime.getTime();
-        const endMs = startMs + (targetHours * 3600000);
-        window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
-        updateTimeDisplays();
-        updateSelectOptions();
-        if (saltTip) saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-        try {
-            await db.collection('users').doc(currentUser.uid).set({
-                currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
-            }, { merge: true });
-            showToast('단식 목표가 변경되었습니다.');
-        } catch (err) {
-            console.error('Error updating target hours:', err);
-            showToast('목표 변경 저장에 실패했습니다.');
-        }
+   // ===== 6) 메인 기능 함수 ===== 섹션에 있는
+// 기존 applyDurationChange 함수를 아래 코드로 교체하세요.
+
+async function applyDurationChange(newHours) {
+    if (!currentUser) {
+        showToast('로그인 정보가 없어 변경사항을 저장할 수 없습니다.');
+        modelSelect.value = targetHours;
+        return;
     }
+
+    // 1. 새로운 목표 시간을 숫자 형태로 명확히 설정
+    targetHours = parseInt(newHours, 10);
+    
+    // 2. 관련된 모든 UI를 즉시 업데이트
+    updateTimeDisplays();
+    updateSelectOptions();
+    if (saltTip) {
+        saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
+    }
+
+    // 3. 새로운 목표 시간으로 타이머를 재시작
+    const startMs = selectedStartTime.getTime();
+    const endMs = startMs + (targetHours * 3600000);
+    window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+
+    // 4. 변경된 내용을 DB에 저장
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            currentFasting: {
+                startTime: selectedStartTime,
+                targetHours: targetHours
+            }
+        }, { merge: true });
+        showToast('단식 목표가 변경되었습니다.');
+    } catch (err) {
+        console.error('Error updating target hours:', err);
+        showToast('목표 변경 저장에 실패했습니다.');
+    }
+}
     
     function initializeTime() {
         selectedStartTime = new Date();
