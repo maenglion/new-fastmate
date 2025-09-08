@@ -39,16 +39,28 @@ body {
     padding-right: calc(20px + env(safe-area-inset-right));
 }
 
-        .container {
-            width: 100%;
-            max-width: 420px;
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            padding: 40px 25px 25px 25px; 
-            box-sizing: border-box;
-            position: relative;
-                    }
+    .container {
+    padding: 20px;
+    padding-top: calc(30px + env(safe-area-inset-top));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+}
+
+.main-content {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    position: relative;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.side-menu {
+    max-width: 420px;
+    margin: 0 auto;
+}
+
 
         .user-chip {
             position: absolute;
@@ -75,14 +87,6 @@ body {
         .user-chip svg { width: 16px; height: 16px; stroke: var(--text-light); }
 
 
-        .main-title {
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            font-weight: 700;
-            font-size: 1.8rem;
-            margin-top: 15px;
-        }
 
         .ring-wrap {
             position: relative;
@@ -213,13 +217,16 @@ body {
         .stop-btn { background-color: var(--dark-gray-color); color: white; }
         .stop-btn:hover { background-color: var(--dark-gray-hover); }
 
-        .bottom-nav { 
-            border-top: 1px solid var(--border-color); 
-            margin-top: 25px; 
-            padding-top: 15px; 
-            display: flex;
-            justify-content: space-around;
-        }
+       .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid var(--border-color);
+    margin-top: 25px;
+    padding-top: 15px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+}
         .nav-btn { 
             background: none; 
             border: none;
@@ -245,12 +252,12 @@ body {
             stroke: currentColor; 
         }
 
-        .app-footer {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px solid var(--border-color);
-        }
+     .app-footer {
+    text-align: center;
+    padding: 15px 20px;
+    color: var(--text-light);
+}
+
         .app-footer a, .app-footer p {
             font-size: 0.8rem;
             color: var(--text-light);
@@ -799,3 +806,77 @@ body {
             text-decoration: underline;
         }
 
+/* --- 3. Z폴드 등 넓은 화면을 위한 반응형 스타일 --- */
+/* 화면의 가로가 세로의 4/5 (80%) 이상일 때 적용 (정사각형에 가까울 때) */
+@media (min-aspect-ratio: 4/5) {
+    
+    /* body의 여백을 없애 화면에 꽉 채웁니다 */
+    body {
+        padding: 0;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* container를 2열 그리드로 만들고 화면 전체를 차지하게 합니다 */
+    .container {
+        display: grid;
+        grid-template-columns: 1fr 300px; /* 왼쪽은 남는 공간 모두, 오른쪽은 300px 고정 */
+        max-width: none;
+        height: 100%;
+        padding: 0;
+        gap: 0;
+    }
+
+    /* 왼쪽 기둥: 스크롤이 가능하도록 설정 */
+    .main-content {
+        border-radius: 0;
+        box-shadow: none;
+        height: 100%;
+        overflow-y: auto; /* 내용이 길어지면 스크롤 */
+    }
+
+    /* 오른쪽 기둥 (사이드바) */
+    .side-menu {
+        background-color: var(--bg-color);
+        padding: 25px;
+        padding-top: calc(25px + env(safe-area-inset-top));
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        border-left: 1px solid var(--border-color);
+        height: 100%;
+    }
+
+    /* 사이드바의 user-chip 스타일 */
+    .side-menu .user-chip {
+        position: static;
+        order: -1; /* 맨 위로 */
+        margin: 0 0 10px;
+    }
+    
+    /* 사이드바의 버튼 목록 */
+    .side-menu .bottom-nav {
+        flex-direction: column;
+        align-items: stretch;
+        border-top: none;
+        margin-top: 0;
+        padding-top: 0;
+        gap: 10px;
+    }
+
+    /* 사이드바의 각 버튼 */
+    .side-menu .nav-btn {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 12px 15px;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        gap: 12px;
+    }
+
+    /* 푸터는 넓은 화면에서 숨김 (사이드 메뉴가 그 역할을 대신하므로) */
+    .app-footer {
+        display: none;
+    }
+}

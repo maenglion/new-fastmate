@@ -269,42 +269,38 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       });
 
   // ---------- 일반 상태 감지 ----------
+// firebase-init.js 파일
+
+// firebase-init.js 파일의 onAuthStateChanged 함수 전체를 이걸로 교체
+
 auth.onAuthStateChanged(async (user) => {
     const p = path();
     console.log('[auth] state=', !!user, 'path=', p);
 
     if (!user) {
-      // 보호 페이지에서만 로그인으로 강제
       if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
       window.showApp?.();
       return;
     }
-
-    // ▼▼▼ 여기에 추가 ▼▼▼
-    // 로그인 직후, 가장 먼저 처리해야 할 '보류 중인 챌린지 초대'가 있는지 확인합니다.
+    
+    // 초대 처리를 최우선으로 실행
     const pendingChallengeId = sessionStorage.getItem('pendingChallengeId');
     if (pendingChallengeId) {
-        sessionStorage.removeItem('pendingChallengeId'); // 사용 후 즉시 삭제
-        // 다른 페이지로 가기 전에, 초대 처리 페이지로 먼저 보냅니다.
-        location.replace(`${window.location.origin}/challenge-invite.html?id=${pendingChallengeId}`);
-        return; // 여기서 함수 실행을 중단하여 다른 리디렉션을 막습니다.
+        sessionStorage.removeItem('pendingChallengeId');
+        // goOnce를 사용하여 안전하게 이동
+        return goOnce(`${window.location.origin}/challenge-invite.html?id=${pendingChallengeId}`);
     }
-    // ▲▲▲ 여기까지 추가 ▲▲▲
 
-
-    // upsert는 non-blocking
     upsertUserDoc(user).catch(e => console.warn('[upsert]', e));
 
     const prof = await getUserDoc(user.uid);
     const done = isProfileDone(prof);
 
-    // 엔트리(index/login) → 완료: fastmate / 미완료: signup
     if ((isIndex() || isLogin()) && !isSignup()) {
       if (!done) return goOnce(toUrl('signup'));
       return goOnce(toUrl('fastmate'));
     }
 
-    // signup에서 step 파라미터 보정
     if (isSignup()) {
       const url = new URL(location.href);
       url.searchParams.set('step', done ? 'final' : '2');
@@ -313,7 +309,6 @@ auth.onAuthStateChanged(async (user) => {
       return;
     }
 
-    // fastmate 진입 시 UI 하이드레이션
     if (isFastmate()) {
       try {
         const userChip     = document.getElementById('userChip');
@@ -326,27 +321,12 @@ auth.onAuthStateChanged(async (user) => {
         else if (window.initializeTime) window.initializeTime();
 
         window.updateUIState?.();
-
-        // 프로필 미완료 유저에게 팝업(원하면)
         if (!done) openOnboardingModal();
-
         if (!window.__WIRED__) { window.__WIRED__ = true; try { window.wireEventsOnce?.(); } catch {} }
       } catch(e){ console.warn('[fastmate hydrate]', e); }
       window.showApp?.();
     }
 });
-
-  // 1. 실제로 로그아웃을 실행하는 함수를 정의합니다.
-const signOutUser = () => {
-    // firebase.auth().signOut()은 Promise를 반환하므로, 그대로 return합니다.
-    return firebase.auth().signOut();
-};
-
-// 2. 전역 fastmateApp 객체에 이 함수를 등록하여
-//    mypage.html이나 다른 페이지에서도 쓸 수 있도록 합니다.
-if (window.fastmateApp) {
-    window.fastmateApp.signOutUser = signOutUser;
-}
 
   // 간단 온보딩 모달(닉네임/목표 입력)
   function openOnboardingModal(){
