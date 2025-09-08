@@ -908,6 +908,36 @@ picked.setHours(hour, mm, 0, 0);
     });
   }
 
+  // === 챌린지 
+   // --- 챌린지 생성/참여 관련 (나중에 추가) ---
+const challengeBtn = document.getElementById('challengeBtn');
+challengeBtn?.addEventListener('click', () => { window.location.href = 'challenge.html'; });
+
+    // --- 확인 모달 버튼 ---
+    confirmYesBtn?.addEventListener('click', () => {
+        if (pendingTargetHours !== null) {
+            applyDurationChange(pendingTargetHours);
+            pendingTargetHours = null;
+        }
+        if(confirmChangeModal) confirmChangeModal.style.display = 'none';
+    });
+
+    // ▼▼▼ 이전에 생략되었던 기록 모달 관련 코드 ▼▼▼
+
+    // --- 공통 모달 닫기 로직 ---
+    document.addEventListener('click', (e) => {
+        const closeId = e.target?.getAttribute?.('data-close');
+        if (closeId) {
+            const el = document.getElementById(closeId);
+            if (el) el.style.display = 'none';
+        }
+    });
+
+    window.addEventListener('click', (e) => {
+        [bloodSugarModal, ketoneModal, exerciseModal, weightModal]
+            .filter(Boolean)
+            .forEach(m => { if (e.target === m) m.style.display = 'none'; });
+    });
      
   
   // ===== 8) 기타 헬퍼 =====
