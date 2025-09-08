@@ -97,7 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const db = window.fastmateApp.db;
     let currentUser = null;
     let currentUserProfile = null; 
-    let stopListeningToChallenge = null; // 실시간 감지 중단 함수
+    let stopListeningToChallenge = null;
+    // ▼▼▼ 1. 현재 보고 있는 챌린지 ID를 저장할 변수 선언 ▼▼▼
+    let currentChallengeId = null; 
 
     // --- 2. DOM 요소 캐시 ---
     const challengeListDiv = document.getElementById('challengeList');
@@ -119,9 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const challengeDetailedGoal = document.getElementById('challengeDetailedGoal');
 
     // --- 3. 핵심 함수 ---
-
     function showListView() {
         if (stopListeningToChallenge) stopListeningToChallenge();
+        // ▼▼▼ 2. 목록 보기로 돌아갈 때 현재 챌린지 ID 초기화 ▼▼▼
+        currentChallengeId = null; 
+        
         challengeListDiv.style.display = 'block';
         challengeDetailView.style.display = 'none';
         createChallengeBtn.style.display = 'block';
@@ -139,6 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showDetailView(challengeId) {
+        // ▼▼▼ 3. 상세 보기로 전환할 때 현재 챌린지 ID 설정 ▼▼▼
+        currentChallengeId = challengeId; 
+        
         challengeListDiv.style.display = 'none';
         challengeDetailView.style.display = 'block';
         createChallengeBtn.style.display = 'none';
@@ -191,12 +198,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const startTime = challenge.startTime.toDate();
                 detailChallengeStartTime.textContent = `${startTime.getMonth()+1}/${startTime.getDate()} ${startTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
 
-                // 댓글 렌더링
                 renderComments(challengeId);
             } else {
                 showListView();
                 alert("삭제되었거나 존재하지 않는 챌린지입니다.");
             }
+        }, error => { // <-- 에러 콜백 추가
+            console.error("실시간 챌린지 감지 오류:", error);
+            showListView();
+            alert("챌린지 정보를 불러오는 데 실패했습니다. 권한을 확인해주세요.");
         });
     }
 
@@ -223,18 +233,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     repliesContainer.appendChild(createCommentElement(reply, true));
                 }
             });
+        }, error => { // <-- 에러 콜백 추가
+             console.error("실시간 댓글 감지 오류:", error);
+             commentFeed.innerHTML = '<p>댓글을 불러오는 데 실패했습니다. 권한을 확인해주세요.</p>';
         });
     }
-
+    
     function createCommentElement(comment, isReply = false) {
         const div = document.createElement('div');
         div.className = 'comment' + (comment.isAutoComment ? ' is-auto' : '') + (isReply ? ' is-reply' : '');
         div.dataset.commentId = comment.id;
         const date = comment.timestamp?.toDate()?.toLocaleTimeString('ko-KR', { hour:'numeric', minute:'2-digit' }) || '';
+        // [수정] 닉네임이 없을 경우를 대비하여 '알 수 없는 사용자' 표시
+        const nickname = comment.nickname || '알 수 없는 사용자';
         div.innerHTML = `
             <div class="comment-avatar"></div>
             <div class="comment-content">
-                <strong>${comment.nickname}</strong>
+                <strong>${nickname}</strong>
                 <p style="margin: 4px 0;">${comment.text}</p>
                 <div class="comment-footer">
                     <span>${date}</span>
@@ -245,12 +260,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 4. 이벤트 리스너 ---
-    
-       createChallengeBtn?.addEventListener('click', () => {
+    createChallengeBtn?.addEventListener('click', () => {
         if (!currentUser) return alert('챌린지를 만들려면 로그인이 필요합니다.');
         
-        // 날짜와 시간 기본값 설정 (현재 시간 + 1시간)
-        const now = new Date(Date.now() + 3600 * 1000); // 1시간 후로 기본 설정
+        const now = new Date(Date.now() + 3600 * 1000);
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
@@ -262,106 +275,98 @@ document.addEventListener('DOMContentLoaded', () => {
     
     closeCreateChallengeModalBtn?.addEventListener('click', () => { createChallengeModal.style.display = 'none'; });
     saveChallengeBtn?.addEventListener('click', async () => {
-    // [수정] currentUserProfile이 로드되었는지 함께 확인합니다.
-    if (!currentUser || !currentUserProfile) {
-        return alert("사용자 정보가 로딩되지 않았습니다. 잠시 후 다시 시도해주세요.");
-    }
+        if (!currentUser || !currentUserProfile) {
+            return alert("사용자 정보가 로딩되지 않았습니다. 잠시 후 다시 시도해주세요.");
+        }
 
-    const fastingHours = parseInt(challengeModelSelect.value, 10);
-    const dateString = challengeDatePicker.value;
-    const timeString = challengeTimePicker.value;
-    const detailedGoal = challengeDetailedGoal.value.trim();
+        const fastingHours = parseInt(challengeModelSelect.value, 10);
+        const dateString = challengeDatePicker.value;
+        const timeString = challengeTimePicker.value;
+        const detailedGoal = challengeDetailedGoal.value.trim();
 
-    if (!dateString || !timeString) {
-        return alert('시작 날짜와 시간을 모두 선택해주세요.');
-    }
+        if (!dateString || !timeString) { return alert('시작 날짜와 시간을 모두 선택해주세요.'); }
 
-    const startTime = new Date(`${dateString}T${timeString}`);
-    if (startTime < new Date()) {
-        return alert('시작 시간은 현재 시간 이후여야 합니다.');
-    }
+        const startTime = new Date(`${dateString}T${timeString}`);
+        if (startTime < new Date()) { return alert('시작 시간은 현재 시간 이후여야 합니다.'); }
 
-    saveChallengeBtn.disabled = true;
-    saveChallengeBtn.textContent = '저장 중...';
+        saveChallengeBtn.disabled = true;
+        saveChallengeBtn.textContent = '저장 중...';
 
-    // [수정] 실명(displayName) 대신 닉네임(nickname)을 사용합니다.
-    const userNickname = currentUserProfile.nickname || currentUser.displayName || '사용자';
+        const userNickname = currentUserProfile.nickname || currentUser.displayName || '사용자';
 
-    const challengeData = {
-        hostUid: currentUser.uid,
-        hostNickname: userNickname,
-        challengeName: `${userNickname}님의 ${fastingHours}시간 단식`,
-        fastingHours: fastingHours,
-        detailedGoal: detailedGoal,
-        startTime: firebase.firestore.Timestamp.fromDate(startTime),
-        status: "upcoming",
-        participantUids: [currentUser.uid],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+        const challengeData = {
+            hostUid: currentUser.uid, hostNickname: userNickname,
+            challengeName: `${userNickname}님의 ${fastingHours}시간 단식`,
+            fastingHours: fastingHours, detailedGoal: detailedGoal,
+            startTime: firebase.firestore.Timestamp.fromDate(startTime),
+            status: "upcoming", participantUids: [currentUser.uid],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
 
-    try {
-        const docRef = await db.collection('challenges').add(challengeData);
-        const inviteLink = `${window.location.origin}/challenge-invite.html?id=${docRef.id}`;
-        await navigator.clipboard.writeText(inviteLink);
-        createChallengeModal.style.display = 'none';
-        alert('챌린지 생성 완료!\n초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해주세요.');
-        loadAndRenderChallenges();
-    } catch (error) {
-        console.error("챌린지 생성 오류:", error);
-        alert("챌린지 생성에 실패했습니다. 다시 시도해주세요.");
-    } finally {
-        saveChallengeBtn.disabled = false;
-        saveChallengeBtn.textContent = '저장하고 친구 초대하기';
-    }
-});
+        try {
+            const docRef = await db.collection('challenges').add(challengeData);
+            const inviteLink = `${window.location.origin}/challenge-invite.html?id=${docRef.id}`;
+            await navigator.clipboard.writeText(inviteLink);
+            createChallengeModal.style.display = 'none';
+            alert('챌린지 생성 완료!\n초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해주세요.');
+            showListView(); // 상세 보기 대신 목록 보기 함수를 호출
+        } catch (error) {
+            console.error("챌린지 생성 오류:", error);
+            alert("챌린지 생성에 실패했습니다. 다시 시도해주세요.");
+        } finally {
+            saveChallengeBtn.disabled = false;
+            saveChallengeBtn.textContent = '저장하고 친구 초대하기';
+        }
+    });
+
     submitCommentBtn?.addEventListener('click', async () => {
         const text = newCommentText.value.trim();
-        if (!text || !currentUser) return;
-    // [수정] URL에서 challengeId를 가져오는 부분을 삭제하고,
-    // 전역 변수인 currentChallengeId를 직접 사용하도록 변경합니다.
-    if(!currentChallengeId) return; 
+        if (!text || !currentUser || !currentUserProfile) return;
+        if(!currentChallengeId) {
+             console.error("currentChallengeId가 설정되지 않아 댓글을 등록할 수 없습니다.");
+             return;
+        }
 
-    submitCommentBtn.disabled = true;
-    try {
-        await db.collection('challenges').doc(currentChallengeId).collection('comments').add({ // challengeId -> currentChallengeId
-            uid: currentUser.uid, nickname: currentUser.displayName || '사용자',
-            text, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            isAutoComment: false, parentId: null
-        });
-        newCommentText.value = '';
-    } catch (error) { console.error("댓글 등록 오류:", error); alert("댓글 등록에 실패했습니다.");
-    } finally { submitCommentBtn.disabled = false; }
-});
+        submitCommentBtn.disabled = true;
+        try {
+            await db.collection('challenges').doc(currentChallengeId).collection('comments').add({
+                uid: currentUser.uid, 
+                nickname: currentUserProfile.nickname || currentUser.displayName || '사용자',
+                text, 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                isAutoComment: false, 
+                parentId: null
+            });
+            newCommentText.value = '';
+        } catch (error) { 
+            console.error("댓글 등록 오류:", error); 
+            alert("댓글 등록에 실패했습니다.");
+        } finally { 
+            submitCommentBtn.disabled = false; 
+        }
+    });
 
-    // 답글 이벤트 위임
-    commentFeed.addEventListener('click', async (e) => { /* ... 이전 답변의 답글 등록 로직 ... */ });
+    commentFeed.addEventListener('click', async (e) => { /* 이전 답변의 답글 등록 로직 */ });
     
     // --- 5. 앱 초기화 ---
-   // challenge.html 스크립트의 auth.onAuthStateChanged 함수를 교체하세요.
-auth.onAuthStateChanged(async (user) => {
-    const challengeListContainer = document.getElementById('challengeList');
-    const createChallengeFAB = document.getElementById('createChallengeBtn');
-
-    if (user) {
-        currentUser = user;
-        // ▼▼▼ 사용자 프로필 정보를 가져오는 코드 추가 ▼▼▼
-        currentUserProfile = await window.fastmateApp.getUserDoc(user.uid);
-
-        createChallengeFAB.style.display = 'block';
-        loadAndRenderChallenges();
-    } else {
-        currentUser = null;
-        currentUserProfile = null; // 로그아웃 시 프로필도 초기화
-        createChallengeFAB.style.display = 'none';
-        challengeListContainer.innerHTML = `
-            <div class="card" style="text-align: center;">
-                <p>챌린지 기능을 사용하려면 로그인이 필요합니다.</p>
-                <button onclick="window.location.href='login.html'" class="onb-btn onb-primary">로그인 페이지로 이동</button>
-            </div>
-        `;
-    }
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            currentUserProfile = await window.fastmateApp.getUserDoc(user.uid);
+            showListView(); // 로그인 시 목록 보기부터 시작
+        } else {
+            currentUser = null;
+            currentUserProfile = null;
+            createChallengeBtn.style.display = 'none';
+            challengeListDiv.innerHTML = `
+                <div class="card" style="text-align: center;">
+                    <p>챌린지 기능을 사용하려면 로그인이 필요합니다.</p>
+                    <button onclick="window.location.href='login.html'" class="onb-btn onb-primary">로그인 페이지로 이동</button>
+                </div>
+            `;
+        }
+    });
 });
-})
 </script>
 </body>
-</html>
+</html> 
