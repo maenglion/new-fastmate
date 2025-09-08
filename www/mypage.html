@@ -862,7 +862,19 @@ function renderAllCharts() {
             if (eventsWired) return;
             eventsWired = true;
             homeBtn?.addEventListener('click', () => { window.location.href = 'fastmate.html'; });
-            logoutBtn?.addEventListener('click', () => { if (confirm('정말 로그아웃하시겠습니까?')) signOutUser(); });
+            logoutBtn?.addEventListener('click', () => {
+    if (confirm('정말 로그아웃하시겠습니까?')) {
+        signOutUser()
+            .then(() => {
+                alert('로그아웃 되었습니다.');
+                window.location.href = '/login.html'; // 로그인 페이지로 이동
+            })
+            .catch((error) => {
+                console.error("로그아웃 오류:", error);
+                alert("로그아웃 중 문제가 발생했습니다.");
+            });
+    }
+});
             fastingHistoryList.addEventListener('click', (e) => {
                 if (e.target.classList.contains('delete-btn')) {
                     const li = e.target.closest('.history-item');

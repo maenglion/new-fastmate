@@ -302,6 +302,18 @@ window.addEventListener('load', () => { setTimeout(() => window.showApp?.(), 200
     }
   });
 
+  // 1. 실제로 로그아웃을 실행하는 함수를 정의합니다.
+const signOutUser = () => {
+    // firebase.auth().signOut()은 Promise를 반환하므로, 그대로 return합니다.
+    return firebase.auth().signOut();
+};
+
+// 2. 전역 fastmateApp 객체에 이 함수를 등록하여
+//    mypage.html이나 다른 페이지에서도 쓸 수 있도록 합니다.
+if (window.fastmateApp) {
+    window.fastmateApp.signOutUser = signOutUser;
+}
+
   // 간단 온보딩 모달(닉네임/목표 입력)
   function openOnboardingModal(){
     if (document.getElementById('fm-onboard')) return;
