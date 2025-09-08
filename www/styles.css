@@ -17,19 +17,22 @@
         }
 
 body {
-   font-family: 'Noto Sans KR', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-    padding: 0; 
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding-top: calc(30px + env(safe-area-inset-top));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 
    .container {
-  width: 100%;
-    max-width: 420px; 
-    
-    /* [수정] 컨테이너가 스스로 중앙에 오도록 하고, 상하 여백을 줍니다. */
-    margin: 30px auto; /* 위아래 30px, 좌우 자동(중앙 정렬) */
-
+    width: 100%;
+    max-width: 420px;
     background-color: var(--card-bg);
     border-radius: 16px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
@@ -37,6 +40,7 @@ body {
     box-sizing: border-box;
     position: relative;
 }
+
 
 
 
