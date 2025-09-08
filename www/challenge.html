@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = window.fastmateApp.auth;
     const db = window.fastmateApp.db;
     let currentUser = null;
+    let currentUserProfile = null; 
     let stopListeningToChallenge = null; // 실시간 감지 중단 함수
 
     // --- 2. DOM 요소 캐시 ---
@@ -244,46 +245,123 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 4. 이벤트 리스너 ---
-    createChallengeBtn?.addEventListener('click', () => { /* ... 이전과 동일 ... */ });
+    
+       createChallengeBtn?.addEventListener('click', () => {
+        if (!currentUser) return alert('챌린지를 만들려면 로그인이 필요합니다.');
+        
+        // 날짜와 시간 기본값 설정 (현재 시간 + 1시간)
+        const now = new Date(Date.now() + 3600 * 1000); // 1시간 후로 기본 설정
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        challengeDatePicker.value = `${year}-${month}-${day}`;
+        challengeTimePicker.value = now.toTimeString().slice(0, 5);
+
+        createChallengeModal.style.display = 'flex';
+    });
+    
     closeCreateChallengeModalBtn?.addEventListener('click', () => { createChallengeModal.style.display = 'none'; });
-    saveChallengeBtn?.addEventListener('click', async () => { /* ... 이전과 동일 ... */ });
+    saveChallengeBtn?.addEventListener('click', async () => {
+    // [수정] currentUserProfile이 로드되었는지 함께 확인합니다.
+    if (!currentUser || !currentUserProfile) {
+        return alert("사용자 정보가 로딩되지 않았습니다. 잠시 후 다시 시도해주세요.");
+    }
+
+    const fastingHours = parseInt(challengeModelSelect.value, 10);
+    const dateString = challengeDatePicker.value;
+    const timeString = challengeTimePicker.value;
+    const detailedGoal = challengeDetailedGoal.value.trim();
+
+    if (!dateString || !timeString) {
+        return alert('시작 날짜와 시간을 모두 선택해주세요.');
+    }
+
+    const startTime = new Date(`${dateString}T${timeString}`);
+    if (startTime < new Date()) {
+        return alert('시작 시간은 현재 시간 이후여야 합니다.');
+    }
+
+    saveChallengeBtn.disabled = true;
+    saveChallengeBtn.textContent = '저장 중...';
+
+    // [수정] 실명(displayName) 대신 닉네임(nickname)을 사용합니다.
+    const userNickname = currentUserProfile.nickname || currentUser.displayName || '사용자';
+
+    const challengeData = {
+        hostUid: currentUser.uid,
+        hostNickname: userNickname,
+        challengeName: `${userNickname}님의 ${fastingHours}시간 단식`,
+        fastingHours: fastingHours,
+        detailedGoal: detailedGoal,
+        startTime: firebase.firestore.Timestamp.fromDate(startTime),
+        status: "upcoming",
+        participantUids: [currentUser.uid],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        const docRef = await db.collection('challenges').add(challengeData);
+        const inviteLink = `${window.location.origin}/challenge-invite.html?id=${docRef.id}`;
+        await navigator.clipboard.writeText(inviteLink);
+        createChallengeModal.style.display = 'none';
+        alert('챌린지 생성 완료!\n초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해주세요.');
+        loadAndRenderChallenges();
+    } catch (error) {
+        console.error("챌린지 생성 오류:", error);
+        alert("챌린지 생성에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+        saveChallengeBtn.disabled = false;
+        saveChallengeBtn.textContent = '저장하고 친구 초대하기';
+    }
+});
     submitCommentBtn?.addEventListener('click', async () => {
         const text = newCommentText.value.trim();
         if (!text || !currentUser) return;
-        const challengeId = new URLSearchParams(window.location.search).get('id') || currentChallengeId;
-        if(!challengeId) return;
+    // [수정] URL에서 challengeId를 가져오는 부분을 삭제하고,
+    // 전역 변수인 currentChallengeId를 직접 사용하도록 변경합니다.
+    if(!currentChallengeId) return; 
 
-        submitCommentBtn.disabled = true;
-        try {
-            await db.collection('challenges').doc(challengeId).collection('comments').add({
-                uid: currentUser.uid, nickname: currentUser.displayName || '사용자',
-                text, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                isAutoComment: false, parentId: null
-            });
-            newCommentText.value = '';
-        } catch (error) { console.error("댓글 등록 오류:", error); alert("댓글 등록에 실패했습니다.");
-        } finally { submitCommentBtn.disabled = false; }
-    });
+    submitCommentBtn.disabled = true;
+    try {
+        await db.collection('challenges').doc(currentChallengeId).collection('comments').add({ // challengeId -> currentChallengeId
+            uid: currentUser.uid, nickname: currentUser.displayName || '사용자',
+            text, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            isAutoComment: false, parentId: null
+        });
+        newCommentText.value = '';
+    } catch (error) { console.error("댓글 등록 오류:", error); alert("댓글 등록에 실패했습니다.");
+    } finally { submitCommentBtn.disabled = false; }
+});
 
     // 답글 이벤트 위임
     commentFeed.addEventListener('click', async (e) => { /* ... 이전 답변의 답글 등록 로직 ... */ });
     
     // --- 5. 앱 초기화 ---
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUser = user;
-            const urlParams = new URLSearchParams(window.location.search);
-            const challengeIdFromUrl = urlParams.get('id');
-            if (challengeIdFromUrl) {
-                showDetailView(challengeIdFromUrl);
-            } else {
-                showListView();
-            }
-        } else {
-            challengeListDiv.innerHTML = `<div class="card" style="text-align:center;"><p>챌린지 기능을 사용하려면 로그인이 필요합니다.</p><button onclick="window.location.href='login.html'" class="onb-btn onb-primary">로그인</button></div>`;
-        }
-    });
+   // challenge.html 스크립트의 auth.onAuthStateChanged 함수를 교체하세요.
+auth.onAuthStateChanged(async (user) => {
+    const challengeListContainer = document.getElementById('challengeList');
+    const createChallengeFAB = document.getElementById('createChallengeBtn');
+
+    if (user) {
+        currentUser = user;
+        // ▼▼▼ 사용자 프로필 정보를 가져오는 코드 추가 ▼▼▼
+        currentUserProfile = await window.fastmateApp.getUserDoc(user.uid);
+
+        createChallengeFAB.style.display = 'block';
+        loadAndRenderChallenges();
+    } else {
+        currentUser = null;
+        currentUserProfile = null; // 로그아웃 시 프로필도 초기화
+        createChallengeFAB.style.display = 'none';
+        challengeListContainer.innerHTML = `
+            <div class="card" style="text-align: center;">
+                <p>챌린지 기능을 사용하려면 로그인이 필요합니다.</p>
+                <button onclick="window.location.href='login.html'" class="onb-btn onb-primary">로그인 페이지로 이동</button>
+            </div>
+        `;
+    }
 });
+})
 </script>
 </body>
 </html>
