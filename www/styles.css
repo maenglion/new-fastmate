@@ -48,8 +48,7 @@ body {
             padding: 40px 25px 25px 25px; 
             box-sizing: border-box;
             position: relative;
-            flex-grow: 1; 
-        }
+                    }
 
         .user-chip {
             position: absolute;
