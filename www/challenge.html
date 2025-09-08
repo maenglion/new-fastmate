@@ -52,8 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span>⭐ 목표: ${challenge.detailedGoal || '없음'}</span>
                     </div>
                 `;
-                // (나중에 추가) 카드를 누르면 상세 페이지로 이동
-                // card.addEventListener('click', () => { ... });
+                // ▼▼▼ 이 부분을 추가하세요 ▼▼▼
+        // 카드를 클릭하면 상세 페이지로 이동하도록 이벤트 추가
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+            window.location.href = `challenge-detail.html?id=${challenge.id}`;
+        });
                 challengeListDiv.appendChild(card);
             });
 
