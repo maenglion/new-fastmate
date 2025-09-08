@@ -337,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let timePickerUsed = false;
     let eventsWired = false;
     let timePickerWired = false; 
+    let activeChallengeId = null; 
     
     // 새 타이머 시스템 변수
     let __fastTimer = null;
@@ -541,7 +542,8 @@ function updateTimeDisplays() {
             startTime: selectedStartTime,
             endTime: finalEndDate,
             targetHours: parseFloat(targetHours),
-            actualDurationHours: (finalEndDate - selectedStartTime) / 3600000
+            actualDurationHours: (finalEndDate - selectedStartTime) / 3600000,
+            challengeId: activeChallengeId || null // ⭐ challengeId 추가
         };
         if (currentUser) {
             try {
@@ -792,8 +794,10 @@ picked.setHours(hour, mm, 0, 0);
       if (!v || v <= 0) return showToast('올바른 체중을 입력하세요.');
       const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('weight')
-          .collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+       await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
+          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            challengeId: activeChallengeId || null
+           });
       } catch (e) {
         console.error('save weight failed:', e);
         showToast('서버 저장 실패(체중)… 잠시 후 다시 시도해주세요.');
@@ -825,7 +829,9 @@ picked.setHours(hour, mm, 0, 0);
       saveLocalList('bloodSugarData', { date: recordDate.toISOString(), value: v });
       try {
         await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
-          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            challengeId: activeChallengeId || null
+           });
       } catch (e) {
         console.error('save blood sugar failed:', e);
         showToast('서버 저장 실패(혈당)… 잠시 후 다시 시도해주세요.');
@@ -843,8 +849,10 @@ picked.setHours(hour, mm, 0, 0);
       const user = getSignedInUser(); if (!user) return showToast('로그인이 필요합니다.');
       saveLocalList('ketoneData', { date: new Date().toISOString(), value: v });
       try {
-        await db.collection('users').doc(user.uid).collection('measurements').doc('ketone')
-          .collection('items').add({ date: new Date(), value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
+          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            challengeId: activeChallengeId || null
+           });
       } catch (e) {
         console.error('save ketone failed:', e);
         showToast('서버 저장 실패(케톤)… 잠시 후 다시 시도해주세요.');
@@ -874,10 +882,10 @@ picked.setHours(hour, mm, 0, 0);
       saveLocalList('exerciseData', rec);
       try {
         await db.collection('users').doc(user.uid).collection('measurements').doc('exercise')
-          .collection('items').add({
-            date: new Date(), type: rec.type, duration: rec.duration, calories: rec.calories ?? 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+       await db.collection('users').doc(user.uid).collection('measurements').doc('bloodSugar')
+          .collection('items').add({ date: recordDate, value: v, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            challengeId: activeChallengeId || null
+           });
       } catch (e) {
         console.error('save exercise failed:', e);
         showToast('서버 저장 실패(운동)… 잠시 후 다시 시도해주세요.');
@@ -967,6 +975,22 @@ challengeBtn?.addEventListener('click', () => { window.location.href = 'challeng
                     const profile = await getUserDoc(user.uid);
                     const nickname = profile?.nickname || user.displayName || '사용자';
                     setUserChip(nickname);
+
+const challengesRef = db.collection('challenges');
+    const query = challengesRef
+        .where('participantUids', 'array-contains', user.uid)
+        .where('status', '==', 'active');
+    
+    const challengeSnap = await query.get();
+    if (!challengeSnap.empty) {
+        // 진행중인 챌린지가 있다면, 첫 번째 챌린지 ID를 저장합니다.
+        const challengeDoc = challengeSnap.docs[0];
+        activeChallengeId = challengeDoc.id;
+        console.log("Active challenge found:", activeChallengeId);
+    } else {
+        activeChallengeId = null;
+    }
+
 
                     const savedFasting = profile?.currentFasting;
                     if (savedFasting?.startTime && savedFasting.targetHours) {
