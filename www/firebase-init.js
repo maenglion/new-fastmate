@@ -226,25 +226,47 @@ window.addEventListener('load', () => { setTimeout(() => window.showApp?.(), 200
 
   // ---------- OAuth 리디렉션 결과 → 온보딩/메인 분기 ----------
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       .catch(() => auth.setPersistence(firebase.auth.Auth.Persistence.SESSION))
       .then(() => auth.getRedirectResult())
-      .then(async (res) => {
-        if (!res?.user) return;
-        await upsertUserDoc(res.user);
-        const prof = await getUserDoc(res.user.uid);
-        const done = isProfileDone(prof);
-        // signup 화면이면 step 보정만 하고 머무름
-        if (isSignup()) {
-          const url = new URL(location.href);
-          url.searchParams.set('step', res.additionalUserInfo?.isNewUser || !done ? '2' : 'final');
-          history.replaceState(null, '', url.toString());
-          return;
-        }
-        // 그 외: 미완료면 signup, 완료면 fastmate
-        if (!done) return goOnce(toUrl('signup'));
-        return goOnce(toUrl('fastmate'));
+      .then(async (result) => {
+          if (result.user) {
+              // 로그인/회원가입 성공 후 리디렉션된 경우
+              sessionStorage.removeItem('oauthBusy');
+              const user = result.user;
+
+              // [핵심] DB에 사용자 정보가 없으면 생성/업데이트
+              await upsertUserDoc(user); 
+
+              // [핵심] 이 사용자가 온보딩(프로필 작성)을 마쳤는지 확인
+              const profile = await getUserDoc(user.uid);
+              const isReady = isProfileDone(profile);
+
+              if (isReady) {
+                  // 이미 온보딩을 마친 기존 사용자 -> 바로 메인 앱 페이지로 이동
+                  goOnce(toUrl('fastmate'));
+              } else {
+                  // 새로운 사용자 -> 온보딩을 위해 signup.html 페이지로 이동 (또는 머무름)
+                  if (!isSignup()) {
+                      goOnce(toUrl('signup'));
+                  } else {
+                      // 이미 signup 페이지에 있다면 step=2로 상태만 변경
+                      const url = new URL(location.href);
+                      url.searchParams.set('step', '2');
+                      history.replaceState(null, '', url.toString());
+                      window.showApp?.(); // 스플래시 스크린 숨기기
+                  }
+              }
+          }
       })
-      .catch(e => console.warn('[redirectResult]', e?.code, e?.message));
+      .catch((error) => {
+          sessionStorage.removeItem('oauthBusy');
+          console.error('[redirect err]', error);
+          // 사용자가 팝업을 닫는 등 일반적인 오류는 무시
+          if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
+               alert(`로그인 중 오류가 발생했습니다: ${error.message}`);
+          }
+      });
 
   // ---------- 일반 상태 감지 ----------
   auth.onAuthStateChanged(async (user) => {
