@@ -277,53 +277,47 @@ auth.onAuthStateChanged(async (user) => {
     const p = path();
     console.log('[auth] state=', !!user, 'path=', p);
 
-    if (!user) {
-      if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
-      window.showApp?.();
-      return;
-    }
-    
-    // 초대 처리를 최우선으로 실행
+    // [수정] 로그인 후 챌린지 초대 처리 로직
     const pendingChallengeId = sessionStorage.getItem('pendingChallengeId');
-    if (pendingChallengeId) {
+    if (user && pendingChallengeId) {
         sessionStorage.removeItem('pendingChallengeId');
-        // goOnce를 사용하여 안전하게 이동
         return goOnce(`${window.location.origin}/challenge-invite.html?id=${pendingChallengeId}`);
     }
 
+    if (!user) {
+      if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
+      return window.showApp?.();
+    }
+
+    // 사용자 정보가 없으면 생성/업데이트
     upsertUserDoc(user).catch(e => console.warn('[upsert]', e));
 
     const prof = await getUserDoc(user.uid);
     const done = isProfileDone(prof);
 
+    // 로그인/회원가입 페이지에 있을 경우 올바른 페이지로 리디렉션
     if ((isIndex() || isLogin()) && !isSignup()) {
       if (!done) return goOnce(toUrl('signup'));
       return goOnce(toUrl('fastmate'));
     }
-
     if (isSignup()) {
       const url = new URL(location.href);
       url.searchParams.set('step', done ? 'final' : '2');
       history.replaceState(null, '', url.toString());
-      window.showApp?.();
-      return;
+      return window.showApp?.();
     }
 
+    // [핵심 수정] fastmate.html 페이지의 초기화를 여기서 직접 호출
     if (isFastmate()) {
       try {
-        const userChip     = document.getElementById('userChip');
-        const userChipName = document.getElementById('userChipName');
-        const nickname = prof?.nickname || prof?.displayName || user.displayName || '사용자';
-        if (userChip && userChipName) { userChipName.textContent = nickname; userChip.style.display = 'flex'; }
-
-        const saved = prof?.currentFasting;
-        if (saved && window.hydrateFastingTimer) window.hydrateFastingTimer(saved);
-        else if (window.initializeTime) window.initializeTime();
-
-        window.updateUIState?.();
-        if (!done) openOnboardingModal();
-        if (!window.__WIRED__) { window.__WIRED__ = true; try { window.wireEventsOnce?.(); } catch {} }
-      } catch(e){ console.warn('[fastmate hydrate]', e); }
+        // fastmate.html에 정의된 초기화 함수를 호출
+        if (window.initializeFastmateApp) {
+          await window.initializeFastmateApp(user, prof);
+        }
+      } catch(e){ 
+        console.error('fastmate.html 앱 초기화 중 오류:', e);
+        alert('앱 초기화 실패. 새로고침 해주세요.');
+      }
       window.showApp?.();
     }
 });

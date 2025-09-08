@@ -17,36 +17,28 @@
         }
 
 body {
-    font-family: 'Noto Sans KR', sans-serif;
+   font-family: 'Noto Sans KR', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-    
- /* 화면을 항상 중앙에 배치하고, 상단 여백을 안전하게 확보합니다. */
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
-    box-sizing: border-box;
+    padding: 0; 
 }
 
    .container {
-    width: 100%;
-    max-width: 420px; /* 기본(좁은) 화면에서의 최대 너비 */
+  width: 100%;
+    max-width: 420px; 
+    
+    /* [수정] 컨테이너가 스스로 중앙에 오도록 하고, 상하 여백을 줍니다. */
+    margin: 30px auto; /* 위아래 30px, 좌우 자동(중앙 정렬) */
+
     background-color: var(--card-bg);
     border-radius: 16px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
     padding: 25px;
     box-sizing: border-box;
-    position: relative; /* 네임칩 위치의 기준점 */
-    margin: 30px auto; /* 위아래 30px, 좌우 자동(중앙 정렬) */
+    position: relative;
 }
 
-/* ▼▼▼ 이 미디어 쿼리를 .container 바로 아래나 CSS 파일 맨 아래에 추가 ▼▼▼ */
-/* 화면 너비가 600px 이상일 때 (Z폴드를 펼쳤을 때 등) */
-@media (min-width: 600px) {
-    .container {
-        max-width: 500px; /* 카드 최대 너비를 살짝 늘려줍니다. */
-    }
-}
+
 
         .user-chip {
             position: absolute;

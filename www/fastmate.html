@@ -20,20 +20,28 @@
 
 </head>
 <body>
-  <script>
-if (sessionStorage.getItem('oauthBusy') === '1') {
-  document.body.classList.add('oauth-busy');
-}
+네, 알겠습니다. 코드 구조가 약간 꼬여있네요. container와 main-content가 splash-screen 안에 잘못 들어가 있고, 서로 분리되어 있습니다. 제가 올바른 구조로 수정해 드릴게요.
+
+## 해결 방법: fastmate.html의 <body> 내부 전체 교체
+기존 fastmate.html 파일에서 <body> 태그 바로 아래부터 </body> 태그 바로 위까지의 모든 내용을 삭제하시고, 아래의 완성된 코드로 교체해주세요.
+
+이 코드는 스플래시 스크린, 메인 콘텐츠, 사이드 메뉴, 푸터, 모든 모달의 위치를 올바르게 잡은 최종 버전입니다.
+
+HTML
+
+<script>
+    if (sessionStorage.getItem('oauthBusy') === '1') {
+      document.body.classList.add('oauth-busy');
+    }
 </script>
-  <div id="splash-screen">
+
+<div id="splash-screen">
     <div class="splash-content">
-      <h1 class="splash-title">fastmate</h1>
-      <div class="spinner"></div>
+        <h1 class="splash-title">fastmate</h1>
+        <div class="spinner"></div>
     </div>
-  </div>
-  <main class="page-content">
-    </main>
-    <!-- 앱 메인 컨텐츠 -->
+</div>
+
 <div class="container">
 
     <div class="main-content">
@@ -75,14 +83,12 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
             </div>
         </div>
         
-        <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 ... 섭취하는 것이 좋습니다.</div>
-
-<div id="salt-tip" class="salt-tip">
-    <span>💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</span>
-    <label style="display: block; font-size: 0.8rem; margin-top: 8px; cursor: pointer;">
-        <input type="checkbox" id="hideTipCheckbox"> 다시 보지 않기
-    </label>
-</div>
+        <div id="salt-tip" class="salt-tip">
+            <span>💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</span>
+            <label style="display: block; font-size: 0.8rem; margin-top: 8px; cursor: pointer;">
+                <input type="checkbox" id="hideTipCheckbox"> 다시 보지 않기
+            </label>
+        </div>
 
         <div class="controls">
             <select id="fastingModelSelect">
@@ -101,15 +107,16 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
                 <button id="stopBtn" class="stop-btn">단식 종료</button>
             </div>
         </div>
-
+    </div>
 
     <div class="side-menu">
-       
+        <div id="userChip" class="user-chip" style="display:none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="userChipName">-</span>님
+        </div>
         <div class="bottom-nav">
             <button class="nav-btn" id="weightBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3L2 9l10 6 10-6-10-6zM2 15l10 6 10-6"></path><path d="M2 9v6"></path><path d="M22 9v6"></path><path d="M12 21v-6"></path>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 9l10 6 10-6-10-6zM2 15l10 6 10-6"></path><path d="M2 9v6"></path><path d="M22 9v6"></path><path d="M12 21v-6"></path></svg>
                 <span>체중</span>
             </button>
             <button class="nav-btn" id="bloodSugarBtn">
@@ -121,39 +128,27 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
                 <span>케톤</span>
             </button>
             <button class="nav-btn" id="exerciseBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 6v12M18 6v12"/>
-                    <path d="M3 10v4M21 10v4"/>
-                    <path d="M6 12h12"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6v12M18 6v12"/><path d="M3 10v4M21 10v4"/><path d="M6 12h12"/></svg>
                 <span>운동</span>
             </button>
             <button class="nav-btn" id="challengeBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    <path d="m9 12 2 2 4-4"></path>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
                 <span>챌린지</span>
             </button>
-              </div>
-         <div id="userChip" class="user-chip" style="display:none">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span id="userChipName">-</span>님
-            </div>
-  </div>
+        </div>
+    </div>
 
+</div>
 
-  <footer class="app-footer">
-            <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
-            <p>© 2025 2e-studio. All rights reserved.</p>
-            <p class="faq-link">
-              <a href="https://www.notion.so/maenglionworld/FASTMATE-FAQ-256bcdc037cd80de887dfb24a7cae5a1?source=copy_link" target="_blank" rel="noopener noreferrer">
-                이용이 어려우신가요? (FAQ)
-              </a>
-            </p>
-        
-        </footer>
-
+<footer class="app-footer">
+    <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
+    <p>© 2025 2e-studio. All rights reserved.</p>
+    <p class="faq-link">
+      <a href="https://www.notion.so/maenglionworld/FASTMATE-FAQ-256bcdc037cd80de887dfb24a7cae5a1?source=copy_link" target="_blank" rel="noopener noreferrer">
+        이용이 어려우신가요? (FAQ)
+      </a>
+    </p>
+</footer>
 
     <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
         <div class="time-picker-content" style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 16px 60px rgba(0,0,0,.2); text-align: center; width:100%; max-width: 320px;">
