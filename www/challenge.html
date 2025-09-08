@@ -328,7 +328,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         submitCommentBtn.disabled = true;
-        try {
+         try {
+            // ▼▼▼ 닉네임 문제 수정 ▼▼▼
+            // currentUser.displayName 대신 currentUserProfile.nickname을 우선적으로 사용합니다.
             await db.collection('challenges').doc(currentChallengeId).collection('comments').add({
                 uid: currentUser.uid, 
                 nickname: currentUserProfile.nickname || currentUser.displayName || '사용자',

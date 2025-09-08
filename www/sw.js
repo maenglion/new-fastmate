@@ -1,6 +1,6 @@
-const APP_VERSION = '2025.09.09-47'; // 반드시 버전 올리기
+const APP_VERSION = '2025.09.09-48'; 
 self.addEventListener('install', e => {
-  self.skipWaiting(); // 새 SW 즉시 활성화
+  self.skipWaiting(); 
 });
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
