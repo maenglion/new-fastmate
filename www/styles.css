@@ -16,25 +16,24 @@
             --dark-gray-hover: #5a6268;
         }
 
-    body {
+body {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-
-    /* --- 정렬 관련 속성 (한 번만 선언) --- */
+    
+    /* --- 정렬 관련 속성 (이전 그대로 유지) --- */
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: flex-start; /* 이 부분이 문제가 되면 center로 바꿔볼 수도 있습니다. */
+    flex-direction: column; /* 추가: 세로 방향으로 정렬 (컨테이너 위, 푸터 아래) */
 
     /* --- 크기 및 박스 모델 관련 속성 --- */
     min-height: 100dvh;
-    box-sizing: border-box; /* 패딩을 높이에 포함시켜 계산 */
+    box-sizing: border-box; 
 
-    /* --- 여백 관련 속성 --- */
-    /* safe-area를 지원하지 않는 브라우저를 위한 기본값 */
+    /* --- 여백 관련 속성 (이 부분만 수정) --- */
     padding: 20px; 
-    /* safe-area를 지원하는 브라우저에서 덮어쓸 값 */
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-top: calc(20px + env(safe-area-inset-top)); /* 상단 safe-area 고려 */
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     padding-left: calc(20px + env(safe-area-inset-left));
     padding-right: calc(20px + env(safe-area-inset-right));
@@ -49,6 +48,7 @@
             padding: 40px 25px 25px 25px; 
             box-sizing: border-box;
             position: relative;
+            flex-grow: 1; 
         }
 
         .user-chip {
