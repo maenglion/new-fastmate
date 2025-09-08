@@ -1,117 +1,74 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fastmate - 챌린지</title>
-    <link rel="stylesheet" href="./styles.css">
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script defer src="/firebase-init.js?v=2025.09.06-v8"></script>
-
-    <style>
-        /* challenge.html 전용 스타일 */
-        body { background-color: #f0f2f5; font-family: 'Noto Sans KR', sans-serif; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .page-title { font-size: 1.8rem; font-weight: 700; color: #1c8e3e; margin: 0; }
-        .home-btn { background: none; border: none; cursor: pointer; padding: 8px; }
-        .challenge-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .challenge-card h3 { margin: 0 0 10px; font-size: 1.2rem; }
-        .challenge-info { font-size: 0.9rem; color: #777; display: flex; flex-wrap: wrap; gap: 5px 15px; }
-        .create-challenge-fab {
-            position: fixed;
-            right: 25px;
-            bottom: 25px;
-            width: 56px;
-            height: 56px;
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 50%;
-            border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-size: 28px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <header class="page-header">
-            <h1 class="page-title">나의 챌린지</h1>
-            <button class="home-btn" onclick="location.href='fastmate.html'">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">...</svg> </button>
-        </header>
-
-        <div id="challengeList">
-            <div class="challenge-card">
-                <h3>건강한 라이언님의 48시간 단식</h3>
-                <div class="challenge-info">
-                    <span>참여: <b>4</b>명</span>
-                    <span>시작: 9/10 08:00 PM</span>
-                    <span>댓글: <b>12</b>개</span>
-                </div>
-            </div>
-            </div>
-
-        <button id="createChallengeBtn" class="create-challenge-fab">+</button>
-    </div>
-
-    <div id="createChallengeModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-    <div style="background: white; padding: 25px; border-radius: 16px; width: 100%; max-width: 420px;">
-        <h3 style="margin-top:0; color:#1c8e3e;">새로운 챌린지 만들기</h3>
-        
-        <label>단식 계획</label>
-        <select id="challengeModelSelect" class="onb-input" style="margin-top:5px; margin-bottom:15px;">
-            <option value="16">16:8 (16시간 단식,인기)</option>
-            <option value="24">24시간 (1일 단식,고급)</option>
-            <option value="36">36시간(1.5일 단식,고급)</option>
-            <option value="48">48시간 (2일 단식,고급)</option>
-            <option value="72">72시간 (3일 단식,고급)</option>
-        </select>
-
-        <label>시작 날짜</label>
-        <input type="date" id="challengeDatePicker" class="onb-input" style="margin-top:5px; margin-bottom:15px;">
-
-        <label>시작 시간</label>
-        <input type="time" id="challengeTimePicker" class="onb-input" style="margin-top:5px; margin-bottom:15px;">
-
-        <label>세부 목표 (선택)</label>
-        <textarea id="challengeDetailedGoal" class="onb-input" placeholder="예: 매일 30분 운동하기" style="margin-top:5px; min-height: 80px;"></textarea>
-
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button id="closeCreateChallengeModalBtn" class="onb-btn onb-ghost">취소</button>
-            <button id="saveChallengeBtn" class="onb-btn onb-primary">저장하고 친구 초대하기</button>
-        </div>
-    </div>
-</div>
-
-
-   <script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Firebase 및 전역 객체 가져오기
+    // 1. Firebase 및 전역 객체, 변수
     const auth = window.fastmateApp.auth;
     const db = window.fastmateApp.db;
     let currentUser = null;
 
     // 2. DOM 요소 캐시
+    const challengeListDiv = document.getElementById('challengeList');
     const createChallengeBtn = document.getElementById('createChallengeBtn');
     const createChallengeModal = document.getElementById('createChallengeModal');
     const closeCreateChallengeModalBtn = document.getElementById('closeCreateChallengeModalBtn');
     const saveChallengeBtn = document.getElementById('saveChallengeBtn');
+    
+    // 모달 내부 요소
     const challengeModelSelect = document.getElementById('challengeModelSelect');
     const challengeDatePicker = document.getElementById('challengeDatePicker');
     const challengeTimePicker = document.getElementById('challengeTimePicker');
     const challengeDetailedGoal = document.getElementById('challengeDetailedGoal');
 
-    // 3. 모달 열고 닫는 기능
+    // 3. 챌린지 목록 불러오기 및 렌더링
+    async function loadAndRenderChallenges() {
+        if (!currentUser) return;
+        challengeListDiv.innerHTML = "챌린지 목록을 불러오는 중...";
+
+        try {
+            const query = db.collection('challenges')
+                .where('participantUids', 'array-contains', currentUser.uid)
+                .orderBy('startTime', 'desc');
+            
+            const snapshot = await query.get();
+
+            if (snapshot.empty) {
+                challengeListDiv.innerHTML = '<p>아직 참여한 챌린지가 없습니다. 새로운 챌린지를 만들어보세요!</p>';
+                return;
+            }
+
+            challengeListDiv.innerHTML = ''; // 목록 비우기
+            snapshot.forEach(doc => {
+                const challenge = { id: doc.id, ...doc.data() };
+                const card = document.createElement('div');
+                card.className = 'challenge-card';
+                
+                const startTime = challenge.startTime.toDate();
+                const formattedDate = `${startTime.getMonth()+1}/${startTime.getDate()} ${startTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+
+                card.innerHTML = `
+                    <h3>${challenge.challengeName}</h3>
+                    <div class="challenge-info">
+                        <span>👥 참여: <b>${challenge.participantUids.length}</b>명</span>
+                        <span>📅 시작: ${formattedDate}</span>
+                        <span>⭐ 목표: ${challenge.detailedGoal || '없음'}</span>
+                    </div>
+                `;
+                // (나중에 추가) 카드를 누르면 상세 페이지로 이동
+                // card.addEventListener('click', () => { ... });
+                challengeListDiv.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error("챌린지 목록 로딩 실패:", error);
+            challengeListDiv.innerHTML = '<p>챌린지 목록을 불러오는 데 실패했습니다.</p>';
+        }
+    }
+
+    // 4. 챌린지 생성 모달 기능
     createChallengeBtn?.addEventListener('click', () => {
         if (!currentUser) return alert('챌린지를 만들려면 로그인이 필요합니다.');
         
-        // 날짜와 시간 기본값 설정
-        const now = new Date();
+        // 날짜와 시간 기본값 설정 (현재 시간 + 1시간)
+        const now = new Date(Date.now() + 3600 * 1000); // 1시간 후로 기본 설정
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
@@ -125,26 +82,25 @@ document.addEventListener('DOMContentLoaded', () => {
         createChallengeModal.style.display = 'none';
     });
 
-    // 4. ⭐ 챌린지 저장 및 링크 복사 기능 ⭐
+    // 5. ⭐ 챌린지 저장 및 링크 복사 기능 ⭐
     saveChallengeBtn?.addEventListener('click', async () => {
-        // 입력값 가져오기
         const fastingHours = parseInt(challengeModelSelect.value, 10);
         const dateString = challengeDatePicker.value;
         const timeString = challengeTimePicker.value;
         const detailedGoal = challengeDetailedGoal.value.trim();
 
-        // 유효성 검사
         if (!dateString || !timeString) {
             return alert('시작 날짜와 시간을 모두 선택해주세요.');
         }
 
-        // 시작 시간 Date 객체로 변환
         const startTime = new Date(`${dateString}T${timeString}`);
         if (startTime < new Date()) {
             return alert('시작 시간은 현재 시간 이후여야 합니다.');
         }
 
-        // 저장할 데이터 객체 생성
+        saveChallengeBtn.disabled = true;
+        saveChallengeBtn.textContent = '저장 중...';
+
         const challengeData = {
             hostUid: currentUser.uid,
             hostNickname: currentUser.displayName || '사용자',
@@ -158,41 +114,34 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // Firestore 'challenges' 컬렉션에 데이터 추가
             const docRef = await db.collection('challenges').add(challengeData);
-            
-            // 초대 링크 생성
             const inviteLink = `${window.location.origin}/challenge-invite.html?id=${docRef.id}`;
 
-            // 링크 클립보드에 복사
             await navigator.clipboard.writeText(inviteLink);
 
-            // 모달 닫고 사용자에게 알림
             createChallengeModal.style.display = 'none';
-            alert('챌린지가 성공적으로 생성되었습니다!\n초대 링크가 클립보드에 복사되었으니 친구에게 공유해주세요.');
+            alert('챌린지 생성 완료!\n초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해주세요.');
 
-            // (선택사항) 챌린지 목록 새로고침
-            // loadChallenges(); 
+            loadAndRenderChallenges(); // 목록 새로고침
 
         } catch (error) {
             console.error("챌린지 생성 오류:", error);
             alert("챌린지 생성에 실패했습니다. 다시 시도해주세요.");
+        } finally {
+            saveChallengeBtn.disabled = false;
+            saveChallengeBtn.textContent = '저장하고 친구 초대하기';
         }
     });
 
-    // 5. 인증 상태 확인
+    // 6. 앱 초기화
     auth.onAuthStateChanged((user) => {
         if (user) {
             currentUser = user;
-            // (나중에 추가) 로그인 시, 챌린지 목록 불러오는 함수 호출
-            // loadChallenges();
+            loadAndRenderChallenges();
         } else {
-            currentUser = null;
-            // (나중에 추가) 로그아웃 시, 챌린지 목록 비우기
+            // 로그아웃 상태면 로그인 페이지로 보낼 수 있습니다.
+            // window.location.href = 'login.html';
         }
     });
 });
 </script>
-
-</body>
-</html>

@@ -75,7 +75,14 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
             </div>
         </div>
         
-        <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</div>
+        <div id="salt-tip" class="salt-tip">💡 <strong>팁:</strong> 48시간 이상 ... 섭취하는 것이 좋습니다.</div>
+
+<div id="salt-tip" class="salt-tip">
+    <span>💡 <strong>팁:</strong> 48시간 이상 장기 단식 시에는 미네랄 보충을 위해 약간의 소금을 섭취하는 것이 좋습니다.</span>
+    <label style="display: block; font-size: 0.8rem; margin-top: 8px; cursor: pointer;">
+        <input type="checkbox" id="hideTipCheckbox"> 다시 보지 않기
+    </label>
+</div>
 
         <div class="controls">
             <select id="fastingModelSelect">
@@ -144,7 +151,31 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
                 이용이 어려우신가요? (FAQ)
               </a>
             </p>
-        </footer>
+                </footer>
+
+
+    <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+        <div class="time-picker-content" style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 16px 60px rgba(0,0,0,.2); text-align: center; width:100%; max-width: 320px;">
+            <h3 class="onb-title" style="margin-top: 0;">시간 선택</h3>
+            
+            <input type="date" id="datePickerInput" class="onb-input" style="margin-bottom: 20px; text-align: center;">
+
+            <div class="time-selector" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px;">
+                <select id="ampmSelect" class="onb-input" style="width: auto; flex-grow: 1;">
+                    <option>AM</option>
+                    <option>PM</option>
+                </select>
+                <select id="hourSelect" class="onb-input" style="width: auto; flex-grow: 1;"></select>
+                <span>:</span>
+                <select id="minuteSelect" class="onb-input" style="width: auto; flex-grow: 1;"></select>
+            </div>
+            
+            <div class="onb-actions" style="display: flex; gap: 10px; margin-top: 24px;">
+                <button type="button" data-close="timePickerModal" class="onb-btn onb-ghost">취소</button>
+                <button id="saveTimeBtn" type="button" class="onb-btn onb-primary">확인</button>
+            </div>
+        </div>
+    </div>
 
        
         <!-- 체중 기록 모달 -->
@@ -322,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const privacyPolicyLink = document.getElementById('privacyPolicyLink');
     const toast = document.getElementById('toast');
     const datePickerInput = document.getElementById('datePickerInput');
+    const hideTipCheckbox = document.getElementById('hideTipCheckbox');
 
     // ========================================
     // ===== 2) 상태 변수 (State)
@@ -581,8 +613,9 @@ async function applyDurationChange(newHours) {
     updateTimeDisplays();
     updateSelectOptions();
     if (saltTip) {
-        saltTip.style.display = targetHours >= 48 ? 'block' : 'none';
-    }
+    const hideTip = localStorage.getItem('hideSaltTip') === 'true';
+    saltTip.style.display = (targetHours >= 48 && !hideTip) ? 'block' : 'none';
+}
 
     // 3. 새로운 목표 시간으로 타이머를 재시작
     const startMs = selectedStartTime.getTime();
@@ -780,6 +813,19 @@ picked.setHours(hour, mm, 0, 0);
         if (el) el.style.display = 'none';
       }
     });
+
+    hideTipCheckbox?.addEventListener('click', () => {
+    if (hideTipCheckbox.checked) {
+        // 체크박스가 선택되면, 브라우저 저장소에 'true' 값을 저장합니다.
+        localStorage.setItem('hideSaltTip', 'true');
+        // 즉시 팁을 숨깁니다.
+        if (saltTip) saltTip.style.display = 'none';
+    } else {
+        // 체크를 해제하면, 저장된 값을 제거합니다.
+        localStorage.removeItem('hideSaltTip');
+    }
+});
+
 
     window.addEventListener('click', (e) => {
       [bloodSugarModal, ketoneModal, exerciseModal, weightModal]
@@ -1120,7 +1166,10 @@ challengesRef = db.collection('challenges');
                     }
 
                     updateUIState();
-                    if (saltTip) saltTip.style.display = (fastingState === 'running' && targetHours >= 48) ? 'block' : 'none';
+                    if (saltTip) {
+    const hideTip = localStorage.getItem('hideSaltTip') === 'true';
+    saltTip.style.display = (fastingState === 'running' && targetHours >= 48 && !hideTip) ? 'block' : 'none';
+}
 
                     const splashScreen = document.getElementById('splash-screen');
                     if (splashScreen) splashScreen.style.display = 'none';
