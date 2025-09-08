@@ -269,7 +269,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       });
 
   // ---------- 일반 상태 감지 ----------
-  auth.onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged(async (user) => {
     const p = path();
     console.log('[auth] state=', !!user, 'path=', p);
 
@@ -279,6 +279,18 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       window.showApp?.();
       return;
     }
+
+    // ▼▼▼ 여기에 추가 ▼▼▼
+    // 로그인 직후, 가장 먼저 처리해야 할 '보류 중인 챌린지 초대'가 있는지 확인합니다.
+    const pendingChallengeId = sessionStorage.getItem('pendingChallengeId');
+    if (pendingChallengeId) {
+        sessionStorage.removeItem('pendingChallengeId'); // 사용 후 즉시 삭제
+        // 다른 페이지로 가기 전에, 초대 처리 페이지로 먼저 보냅니다.
+        location.replace(`${window.location.origin}/challenge-invite.html?id=${pendingChallengeId}`);
+        return; // 여기서 함수 실행을 중단하여 다른 리디렉션을 막습니다.
+    }
+    // ▲▲▲ 여기까지 추가 ▲▲▲
+
 
     // upsert는 non-blocking
     upsertUserDoc(user).catch(e => console.warn('[upsert]', e));
@@ -322,7 +334,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       } catch(e){ console.warn('[fastmate hydrate]', e); }
       window.showApp?.();
     }
-  });
+});
 
   // 1. 실제로 로그아웃을 실행하는 함수를 정의합니다.
 const signOutUser = () => {

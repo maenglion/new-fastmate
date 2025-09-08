@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Fastmate - 챌린지 초대</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script defer src="/firebase-init.js?v=2025.09.06-v8"></script>
+    <style>
+        /* 초대 페이지 전용 스타일 */
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        #invite-card {
+            text-align: center;
+            padding: 30px;
+            max-width: 420px;
+            width: 100%;
+        }
+        #invite-card h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+        #invite-card .challenge-name {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 10px 0 20px;
+        }
+        #invite-card p {
+            font-size: 1rem;
+            margin-bottom: 25px;
+        }
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--gauge-track-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="invite-card" class="card">
+        <div class="loader"></div>
+        <p>챌린지 정보를 불러오는 중...</p>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Firebase 객체와 DOM 요소 가져오기
+    const auth = window.fastmateApp.auth;
+    const db = window.fastmateApp.db;
+    const inviteCard = document.getElementById('invite-card');
+    
+    // 1. URL에서 챌린지 ID 가져오기
+    const urlParams = new URLSearchParams(window.location.search);
+    const challengeId = urlParams.get('id');
+
+    if (!challengeId) {
+        inviteCard.innerHTML = '<h2>오류</h2><p>잘못된 초대 링크입니다.</p>';
+        return;
+    }
+
+    // 2. 로그인 상태가 확인되면 로직 실행
+    auth.onAuthStateChanged(async (user) => {
+        try {
+            const challengeRef = db.collection('challenges').doc(challengeId);
+            const challengeDoc = await challengeRef.get();
+
+            if (!challengeDoc.exists) {
+                inviteCard.innerHTML = '<h2>오류</h2><p>삭제되었거나 존재하지 않는 챌린지입니다.</p>';
+                return;
+            }
+
+            const challenge = challengeDoc.data();
+            const cardHeader = `<h2>${challenge.hostNickname}님이 초대합니다</h2><p class="challenge-name">${challenge.challengeName}</p>`;
+
+            if (user) {
+                // --- 3A. 로그인 된 경우 ---
+                if (challenge.participantUids.includes(user.uid)) {
+                    // 이미 참여중인 경우
+                    inviteCard.innerHTML = cardHeader + '<p>이미 참여중인 챌린지입니다.</p><button id="goToChallengeBtn" class="onb-btn onb-primary">챌린지 목록 보기</button>';
+                    document.getElementById('goToChallengeBtn').addEventListener('click', () => window.location.href = `challenge.html`);
+                } else {
+                    // 새로 참여하는 경우
+                    inviteCard.innerHTML = cardHeader + '<p>이 챌린지에 참여하시겠습니까?</p><button id="acceptInviteBtn" class="onb-btn onb-primary">참여하기</button>';
+                    document.getElementById('acceptInviteBtn').addEventListener('click', async (e) => {
+                        e.target.disabled = true;
+                        e.target.textContent = '참여하는 중...';
+                        // 'participantUids' 배열에 현재 사용자 ID를 추가
+                        await challengeRef.update({
+                            participantUids: firebase.firestore.FieldValue.arrayUnion(user.uid)
+                        });
+                        alert('챌린지에 참여했습니다!');
+                        window.location.href = 'challenge.html';
+                    });
+                }
+            } else {
+                // --- 3B. 로그아웃 상태인 경우 ---
+                inviteCard.innerHTML = cardHeader + '<p>챌린지에 참여하려면 로그인이 필요합니다.</p><button id="loginToJoinBtn" class="onb-btn onb-primary">로그인하고 참여하기</button>';
+                document.getElementById('loginToJoinBtn').addEventListener('click', () => {
+                    // 로그인 후 돌아올 수 있도록 초대 ID를 임시 저장
+                    sessionStorage.setItem('pendingChallengeId', challengeId);
+                    window.location.href = 'login.html';
+                });
+            }
+        } catch (error) {
+            console.error("초대 처리 중 오류:", error);
+            inviteCard.innerHTML = '<h2>오류</h2><p>챌린지 정보를 불러오는 데 실패했습니다.</p>';
+        }
+    });
+});
+</script>
+</body>
+</html>
