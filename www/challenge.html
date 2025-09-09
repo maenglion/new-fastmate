@@ -36,6 +36,36 @@
     .replies { margin-left: 46px; margin-top: 15px; }
     .reply-form { margin-left: 46px; margin-top: 10px; display: flex; gap: 10px; }
     .comment.is-auto .comment-content { background: #fffbe6; }
+
+    /* --- 댓글 & 답글 스타일 수정 --- */
+
+/* 답글들을 감싸는 전체 컨테이너 */
+.replies {
+  /* 부모 댓글 아바타 너비(36px)와 간격(10px)을 고려한 값 */
+  margin-left: 20px; 
+  /* 부모-자식 관계를 보여주는 세로선을 위한 공간 */
+  padding-left: 26px; 
+  /* 부모-자식 관계를 보여주는 세로선 (매우 효과적!) */
+  border-left: 2px solid #e9ecef; 
+  margin-top: 15px;
+}
+
+/* 개별 답글 스타일 */
+.comment.is-reply {
+  /* 답글 사이의 간격을 살짝 줄여줍니다 */
+  margin-bottom: 12px; 
+}
+
+/* 답글의 아바타는 조금 작게 (선택 사항) */
+.comment.is-reply .comment-avatar {
+  width: 30px;
+  height: 30px;
+}
+
+/* 답글 폼도 동일하게 들여쓰기 */
+.reply-form {
+    margin-left: 46px; /* 기존과 동일 */
+}
   </style>
 </head>
 <body>
