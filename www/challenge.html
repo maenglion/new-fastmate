@@ -18,17 +18,23 @@
 /* ===== 1. 기본 설정 & 색상 변수 ===== */
 /* ======================================== */
 :root {
-    --primary-color: #6D5B97; /* 차분하고 신뢰감 있는 보라색 */
-    --primary-light: #f1eeff; /* 주요 색상의 아주 연한 버전 */
-    --bg-color: #F8F9FA;      /* 부드러운 배경색 */
-    --card-bg: #FFFFFF;       /* 카드 배경은 깨끗한 흰색 */
-    --text-color: #212529;    /* 기본 텍스트 (완전한 검정 X) */
-    --text-light: #6c757d;   /* 보조 텍스트 */
-    --border-color: #e9ecef;  /* 경계선 색상 */
-    --success-color: #28a745; /* 성공, 완료 등 */
-    --auto-comment-bg: #fffbe6; /* 자동 댓글 배경 */
-}
+    /* --- 핵심 아이덴티티 컬러 --- */
+    --primary-color: #1c8e3e;      /* [유지] 신뢰감을 주는 기본 녹색 */
+    --accent-color: #ffd400;       /* [유지] 활기를 주는 포인트 노란색 */
 
+    /* --- 그라데이션 (가장 큰 변화!) --- */
+    /* 녹색 계열로 자연스럽고 깊이감 있는 그라데이션을 만듭니다. */
+    --primary-gradient: linear-gradient(135deg, #2e9653 0%, #1c8e3e 100%);
+
+    /* --- 보조 색상 (전체적인 조화를 위해 수정) --- */
+    --primary-light: #e8f5e9;      /* [변경] 매우 연한 녹색. 버튼 호버, 포커스 등에 사용 */
+    --bg-color: #f8f9fa;           /* [유지] 부드러운 배경색 */
+    --card-bg: #FFFFFF;            /* [유지] 카드 배경은 깨끗한 흰색 */
+    --text-color: #212529;         /* [유지] 기본 텍스트 (완전한 검정 X) */
+    --text-light: #6c757d;        /* [유지] 보조 텍스트 */
+    --border-color: #e9ecef;       /* [유지] 경계선 색상 */
+    --auto-comment-bg: #fffce6;    /* [변경] 자동 댓글 배경 (조금 더 부드럽게) */
+}
 /* ======================================== */
 /* ===== 2. 글로벌 & 레이아웃 ===== */
 /* ======================================== */
@@ -58,8 +64,39 @@ body {
 .page-title {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--text-color);
+    color: var(--primary-color);
     margin: 0;
+}
+
+/* --- 버튼 --- */
+.onb-btn.onb-primary,
+.create-challenge-fab {
+    background: var(--primary-gradient); /* 단색 대신 그라데이션 적용 */
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.onb-btn.onb-primary:hover,
+.create-challenge-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+/* --- 입력창 포커스 --- */
+.comment-form textarea:focus,
+.onb-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light); /* 연한 녹색으로 포커스 효과 */
+}
+
+/* --- 챌린지 카드 호버 --- */
+.challenge-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    border-color: var(--primary-color); /* 호버 시 녹색 테두리 (선택 사항) */
 }
 
 .header-btn {
