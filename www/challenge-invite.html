@@ -66,6 +66,7 @@
         // 초대된 챌린지 문서 로드 (규칙 A안: publicInvite=true면 비로그인도 읽기 허용)
         const challengeRef = db.collection('challenges').doc(challengeId);
         const challengeDoc = await challengeRef.get();
+        publicInvite: true
 
         if (!challengeDoc.exists) {
           inviteCard.innerHTML = '<h2>오류</h2><p>삭제되었거나 존재하지 않는 챌린지입니다.</p>';
