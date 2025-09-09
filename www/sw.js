@@ -1,4 +1,4 @@
-const APP_VERSION = '2025.09.09-57'; 
+const APP_VERSION = '2025.09.09-58'; 
 self.addEventListener('install', e => {
   self.skipWaiting(); 
 });

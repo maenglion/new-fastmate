@@ -190,6 +190,8 @@ function showListView() {
   }
 
   // --- 5. 상세/댓글 실시간 ---
+
+  
 function listenToChallengeDetails(challengeId) {
   if (stopListeningToChallenge) stopListeningToChallenge();
 
@@ -284,6 +286,7 @@ function listenToChallengeDetails(challengeId) {
         commentFeed.innerHTML = '<p>댓글을 불러오는 데 실패했습니다. 권한을 확인해주세요.</p>';
       });
   }
+
 
   // --- 6. 헬퍼 ---
   function generateColorFromUid(uid) {
