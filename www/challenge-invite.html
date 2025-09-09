@@ -89,68 +89,101 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // 2. 로그인 상태가 확인되면 로직 실행
-    auth.onAuthStateChanged(async (user) => {
+// --- URL 파라미터: autojoin 플래그 읽기 ---
+const params = new URLSearchParams(location.search);
+const autojoin = params.get('autojoin') === '1';
+
+// --- 로그인 상태 확인 후 로직 실행 ---
+auth.onAuthStateChanged(async (user) => {
+  try {
+    const challengeRef = db.collection('challenges').doc(challengeId);
+    const challengeDoc = await challengeRef.get();
+
+    if (!challengeDoc.exists) {
+      inviteCard.innerHTML = '<h2>오류</h2><p>삭제되었거나 존재하지 않는 챌린지입니다.</p>';
+      return;
+    }
+
+    const challenge = challengeDoc.data();
+
+    // 헤더(초대자/챌린지명) 우선 표시
+    const cardHeader = `
+      <h2>${challenge.hostNickname}님이 초대합니다</h2>
+      <p class="challenge-name">${challenge.challengeName}</p>
+    `;
+    inviteCard.innerHTML = cardHeader;
+
+    // --- 로그인 상태 분기 ---
+    if (user) {
+      const already =
+        Array.isArray(challenge.participantUids) &&
+        challenge.participantUids.includes(user.uid);
+
+      // 이미 참여 중이면 바로 목록으로
+      if (already) {
+        return location.replace('challenge.html');
+      }
+
+      // autojoin=1 이면 클릭 없이 자동 참여
+      if (autojoin) {
         try {
-            const challengeRef = db.collection('challenges').doc(challengeId);
-            const challengeDoc = await challengeRef.get();
-
-            if (!challengeDoc.exists) {
-                inviteCard.innerHTML = '<h2>오류</h2><p>삭제되었거나 존재하지 않는 챌린지입니다.</p>';
-                return;
-            }
-
-            const challenge = challengeDoc.data();
-            // 챌린지 정보를 먼저 화면에 표시합니다.
-            const cardHeader = `<h2>${challenge.hostNickname}님이 초대합니다</h2><p class="challenge-name">${challenge.challengeName}</p>`;
-            inviteCard.innerHTML = cardHeader; // 기본 헤더를 먼저 설정
-
-            // 3. 로그인 상태에 따라 다른 버튼을 보여줍니다.
-            if (user) {
-                // --- 3A. 로그인 된 경우 ---
-                if (challenge.participantUids.includes(user.uid)) {
-                    // 이미 참여중인 경우
-                    inviteCard.innerHTML += '<p>이미 참여중인 챌린지입니다.</p><button id="goToChallengeBtn" class="onb-btn onb-primary">챌린지 목록 보기</button>';
-                    document.getElementById('goToChallengeBtn').addEventListener('click', () => window.location.href = `challenge.html`);
-                } else {
-                    // 새로 참여하는 경우
-                    inviteCard.innerHTML += '<p>이 챌린지에 참여하시겠습니까?</p><button id="acceptInviteBtn" class="onb-btn onb-primary">참여하기</button>';
-                    
-                    // ▼▼▼ '참여하기' 버튼에 대한 이벤트 리스너는 이 안에서 설정해야 합니다. ▼▼▼
-                    document.getElementById('acceptInviteBtn').addEventListener('click', async (e) => {
-                        e.target.disabled = true;
-                        e.target.textContent = '참여하는 중...';
-                        
-                        const participantRef = challengeRef.collection('participants').doc(user.uid);
-                        const batch = db.batch();
-
-                        // 1. participantUids 배열에 ID 추가 (목록 조회를 위해 필요)
-                        batch.update(challengeRef, {
-                            participantUids: firebase.firestore.FieldValue.arrayUnion(user.uid)
-                        });
-                        // 2. participants 하위 컬렉션에 참여자 문서 추가
-                        batch.set(participantRef, { joinedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                        
-                        await batch.commit(); // 두 작업을 동시에 실행
-
-                        alert('챌린지에 참여했습니다!');
-                        window.location.href = 'challenge.html';
-                    });
-                }
-            } else {
-                // --- 3B. 로그아웃 상태인 경우 ---
-                inviteCard.innerHTML += '<p>챌린지에 참여하려면 로그인이 필요합니다.</p><button id="loginToJoinBtn" class="onb-btn onb-primary">로그인하고 참여하기</button>';
-                document.getElementById('loginToJoinBtn').addEventListener('click', () => {
-                    sessionStorage.setItem('pendingChallengeId', challengeId);
-                    window.location.href = 'login.html';
-                });
-            }
-        } catch (error) {
-            console.error("초대 처리 중 오류:", error);
-            inviteCard.innerHTML = '<h2>오류</h2><p>챌린지 정보를 불러오는 데 실패했습니다.</p>';
+          const participantRef = challengeRef.collection('participants').doc(user.uid);
+          const batch = db.batch();
+          batch.update(challengeRef, {
+            participantUids: firebase.firestore.FieldValue.arrayUnion(user.uid),
+          });
+          batch.set(participantRef, {
+            joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          await batch.commit();
+          return location.replace('challenge.html');
+        } catch (e) {
+          console.error('자동 참여 실패:', e);
+          // 실패 시 버튼 플로우로 폴백 (아래로 진행)
         }
-    });
+      }
+
+      // (자동참여가 아니거나 실패 시) 버튼으로 참여
+      inviteCard.innerHTML += `
+        <p>이 챌린지에 참여하시겠습니까?</p>
+        <button id="acceptInviteBtn" class="onb-btn onb-primary">참여하기</button>
+      `;
+      document.getElementById('acceptInviteBtn').addEventListener('click', async (e) => {
+        e.target.disabled = true;
+        e.target.textContent = '참여하는 중...';
+
+        const participantRef = challengeRef.collection('participants').doc(user.uid);
+        const batch = db.batch();
+        batch.update(challengeRef, {
+          participantUids: firebase.firestore.FieldValue.arrayUnion(user.uid),
+        });
+        batch.set(participantRef, {
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+        alert('챌린지에 참여했습니다!');
+        location.href = 'challenge.html';
+      });
+
+    } else {
+      // --- 로그아웃 상태: 로그인 유도 ---
+      inviteCard.innerHTML += `
+        <p>챌린지에 참여하려면 로그인이 필요합니다.</p>
+        <button id="loginToJoinBtn" class="onb-btn onb-primary">로그인하고 참여하기</button>
+      `;
+      document.getElementById('loginToJoinBtn').addEventListener('click', () => {
+        sessionStorage.setItem('pendingChallengeId', challengeId);
+        location.href = 'login.html';
+      });
+    }
+  } catch (error) {
+    console.error('초대 처리 중 오류:', error);
+    inviteCard.innerHTML = '<h2>오류</h2><p>챌린지 정보를 불러오는 데 실패했습니다.</p>';
+  }
 });
+})
 </script>
+
 </body>
 </html>

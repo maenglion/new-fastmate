@@ -274,19 +274,34 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 1번 & 2번 기능: 아바타 처리
         let avatarHtml = '';
-        if (comment.photoURL) {
-            // photoURL이 있으면 이미지 아바타 표시
-            avatarHtml = `<img src="${comment.photoURL}" alt="${nickname}" class="comment-avatar">`;
-        } else {
-            // 없으면 UID 기반 컬러 아바타와 닉네임 첫 글자 표시
-            const bgColor = generateColorFromUid(comment.uid);
-            const firstLetter = nickname.charAt(0).toUpperCase();
-            avatarHtml = `<div class="comment-avatar" style="background-color: ${bgColor}; display:flex; align-items:center; justify-content:center; color: #fff; font-weight: bold;">${firstLetter}</div>`;
-        }
+       const userCache = (window.fastmateApp && window.fastmateApp.userCache) || {};
+const fallbackPhoto = userCache[comment.uid]?.photoURL || null;
+
+if (comment.photoURL || fallbackPhoto) {
+  const url = comment.photoURL || fallbackPhoto;
+  avatarHtml = `<img src="${url}" alt="${nickname}" class="comment-avatar">`;
+} else {
+  const bgColor = generateColorFromUid(comment.uid);
+  const firstLetter = nickname.charAt(0).toUpperCase();
+  avatarHtml = `<div class="comment-avatar" style="background-color: ${bgColor}; display:flex; align-items:center; justify-content:center; color: #fff; font-weight: bold;">${firstLetter}</div>`;
+}
         
         // 4번 기능: 댓글 내용에 링크 적용
         const linkedText = linkify(comment.text);
 
+       function escapeHTML(s) {
+  return s.replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function linkify(text) {
+  const safe = escapeHTML(String(text || ''));
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return safe.replace(urlRegex, (url) => {
+    // escape 후라 url도 안전. a 태그만 주입
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  });
+}
+       
         div.innerHTML = `
             ${avatarHtml}
             <div class="comment-content">

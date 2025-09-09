@@ -225,7 +225,7 @@ window.addEventListener('load', () => { setTimeout(() => window.showApp?.(), 200
   });
 
   // ---------- OAuth 리디렉션 결과 → 온보딩/메인 분기 ----------
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+ 
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       .catch(() => auth.setPersistence(firebase.auth.Auth.Persistence.SESSION))
       .then(() => auth.getRedirectResult())
@@ -278,11 +278,11 @@ auth.onAuthStateChanged(async (user) => {
     console.log('[auth] state=', !!user, 'path=', p);
 
     // [수정] 로그인 후 챌린지 초대 처리 로직
-    const pendingChallengeId = sessionStorage.getItem('pendingChallengeId');
-    if (user && pendingChallengeId) {
-        sessionStorage.removeItem('pendingChallengeId');
-        return goOnce(`${window.location.origin}/challenge-invite.html?id=${pendingChallengeId}`);
-    }
+   const pendingChallengeId = sessionStorage.getItem('pendingChallengeId');
+if (user && pendingChallengeId) {
+  sessionStorage.removeItem('pendingChallengeId'); // 루프 방지 선제 제거
+  return goOnce(`${location.origin}/challenge-invite.html?id=${pendingChallengeId}&autojoin=1`);
+}
 
     if (!user) {
       if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
