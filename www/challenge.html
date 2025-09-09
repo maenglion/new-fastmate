@@ -345,8 +345,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const docRef = await db.collection('challenges').add(challengeData);
-            const inviteLink = `${window.location.origin}/challenge-invite.html?id=${docRef.id}`;
+             const newChallengeRef = db.collection('challenges').doc(); // 새 챌린지 문서 참조를 미리 만듭니다.
+    const participantRef = newChallengeRef.collection('participants').doc(currentUser.uid); // 참여자 문서 참조
+            
+    
+     // 여러 작업을 한 번에 처리 (batch write)
+    const batch = db.batch();
+    batch.set(newChallengeRef, challengeData); // 1. 챌린지 정보 저장
+    batch.set(participantRef, { joinedAt: firebase.firestore.FieldValue.serverTimestamp() }); // 2. 참여자 정보 저장
+    await batch.commit(); // 두 작업을 동시에 실행
+
+    const inviteLink = `${window.location.origin}/challenge-invite.html?id=${newChallengeRef.id}`; // 수정된 부분
             await navigator.clipboard.writeText(inviteLink);
             createChallengeModal.style.display = 'none';
             alert('챌린지 생성 완료!\n초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해주세요.');
@@ -388,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitCommentBtn.disabled = false;
         }
     });
-    
+
     commentFeed.addEventListener('click', async (e) => { /* 이전 답변의 답글 등록 로직 */ });
     
     // --- 5. 앱 초기화 ---

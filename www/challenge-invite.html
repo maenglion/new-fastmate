@@ -101,33 +101,46 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const challenge = challengeDoc.data();
+            // 챌린지 정보를 먼저 화면에 표시합니다.
             const cardHeader = `<h2>${challenge.hostNickname}님이 초대합니다</h2><p class="challenge-name">${challenge.challengeName}</p>`;
+            inviteCard.innerHTML = cardHeader; // 기본 헤더를 먼저 설정
 
+            // 3. 로그인 상태에 따라 다른 버튼을 보여줍니다.
             if (user) {
                 // --- 3A. 로그인 된 경우 ---
                 if (challenge.participantUids.includes(user.uid)) {
                     // 이미 참여중인 경우
-                    inviteCard.innerHTML = cardHeader + '<p>이미 참여중인 챌린지입니다.</p><button id="goToChallengeBtn" class="onb-btn onb-primary">챌린지 목록 보기</button>';
+                    inviteCard.innerHTML += '<p>이미 참여중인 챌린지입니다.</p><button id="goToChallengeBtn" class="onb-btn onb-primary">챌린지 목록 보기</button>';
                     document.getElementById('goToChallengeBtn').addEventListener('click', () => window.location.href = `challenge.html`);
                 } else {
                     // 새로 참여하는 경우
-                    inviteCard.innerHTML = cardHeader + '<p>이 챌린지에 참여하시겠습니까?</p><button id="acceptInviteBtn" class="onb-btn onb-primary">참여하기</button>';
+                    inviteCard.innerHTML += '<p>이 챌린지에 참여하시겠습니까?</p><button id="acceptInviteBtn" class="onb-btn onb-primary">참여하기</button>';
+                    
+                    // ▼▼▼ '참여하기' 버튼에 대한 이벤트 리스너는 이 안에서 설정해야 합니다. ▼▼▼
                     document.getElementById('acceptInviteBtn').addEventListener('click', async (e) => {
                         e.target.disabled = true;
                         e.target.textContent = '참여하는 중...';
-                        // 'participantUids' 배열에 현재 사용자 ID를 추가
-                        await challengeRef.update({
+                        
+                        const participantRef = challengeRef.collection('participants').doc(user.uid);
+                        const batch = db.batch();
+
+                        // 1. participantUids 배열에 ID 추가 (목록 조회를 위해 필요)
+                        batch.update(challengeRef, {
                             participantUids: firebase.firestore.FieldValue.arrayUnion(user.uid)
                         });
+                        // 2. participants 하위 컬렉션에 참여자 문서 추가
+                        batch.set(participantRef, { joinedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                        
+                        await batch.commit(); // 두 작업을 동시에 실행
+
                         alert('챌린지에 참여했습니다!');
                         window.location.href = 'challenge.html';
                     });
                 }
             } else {
                 // --- 3B. 로그아웃 상태인 경우 ---
-                inviteCard.innerHTML = cardHeader + '<p>챌린지에 참여하려면 로그인이 필요합니다.</p><button id="loginToJoinBtn" class="onb-btn onb-primary">로그인하고 참여하기</button>';
+                inviteCard.innerHTML += '<p>챌린지에 참여하려면 로그인이 필요합니다.</p><button id="loginToJoinBtn" class="onb-btn onb-primary">로그인하고 참여하기</button>';
                 document.getElementById('loginToJoinBtn').addEventListener('click', () => {
-                    // 로그인 후 돌아올 수 있도록 초대 ID를 임시 저장
                     sessionStorage.setItem('pendingChallengeId', challengeId);
                     window.location.href = 'login.html';
                 });
