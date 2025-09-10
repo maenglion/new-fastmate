@@ -274,21 +274,32 @@
       <div id="paginationControls" class="pagination"></div>
     </div>
     
-    <div id="challengeDetailView" style="display: none;">
-      <div id="challengeInfo" class="challenge-info-card">
-        <!-- 챌린지 정보가 여기에 렌더링됩니다. -->
-      </div>
+   <!-- ✅ 단 하나의 상세 뷰만 유지 -->
+<div id="challengeDetailView" style="display:none;">
+  <div id="challengeInfo" class="challenge-info-card"><!-- JS가 채움 --></div>
 
-        <!-- ✅ 댓글 섹션 추가 -->
+  <!-- 댓글 섹션 -->
   <section class="card comment-section">
+    <h4>챌린지 타임라인</h4>
+    <div class="comment-form">
+      <textarea id="newCommentText" placeholder="응원 댓글을 남겨보세요." rows="1"></textarea>
+      <button id="submitCommentBtn" class="onb-btn onb-primary">등록</button>
+    </div>
     <div id="commentFeed"></div>
   </section>
 </div>
 
-   
-  <!-- 생성 모달 -->
-<div id="createChallengeModal" class="modal" style="display:none;">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="cc-title">
+<!-- ✅ 모달: 상세/목록과 형제 위치(오버레이 스타일 포함) -->
+<div id="createChallengeModal"
+     class="modal"
+     style="display:none; position:fixed; inset:0; z-index:9999;
+            background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:20px;">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="cc-title"
+       style="background:var(--card-bg); padding:24px; border-radius:12px; max-width:720px; width:100%;">
+    <!-- (네가 쓰던 모달 내부 그대로) -->
+  </div>
+</div>
+
     
     <!-- 헤더 -->
     <div class="modal-header">
@@ -420,24 +431,138 @@ function showView(viewName, challengeId = null) {
 
 // 모달 핸들러 바인딩
 // 페이지 시작 시 한 번만 등록
-// 페이지 시작 시 한 번만 등록 (모달 열기/닫기 + 폼 제출 + 기존단식 전환)
-// deps: db, firebase, currentUser, currentUserProfile, showView
+// 페이지 시작 시 한 번만 등록 (모달 열기/닫기 + 폼 제출)
 (function bindCreateModalDelegation () {
   if (window.__BIND_CREATE_MODAL__) return;
   window.__BIND_CREATE_MODAL__ = true;
 
-  const modal = document.getElementById('createChallengeModal');
-  const form  = document.getElementById('createChallengeForm');
-
-  // --- 클릭 위임(헤더 재렌더 안전) ---
+  // --- 1) 클릭 위임: 헤더 재렌더/DOM 순서와 무관하게 동작 ---
   document.addEventListener('click', (e) => {
+    const modal = document.getElementById('createChallengeModal'); // 매번 조회
     if (!modal) return;
+
     const openBtn  = e.target.closest('#createChallengeBtnHeader');
     const closeBtn = e.target.closest('#closeCreateChallengeModalBtn, #cc-cancel');
-    if (openBtn) { modal.style.display = 'flex'; return; }
-    if (closeBtn) { modal.style.display = 'none'; return; }
-    if (e.target === modal) modal.style.display = 'none'; // 오버레이 클릭 닫기
+
+    if (openBtn) {
+      modal.style.display = 'flex';
+      // 최근 선택값 복원(없으면 16)
+      const sel = document.getElementById('fastingModelSelect');
+      if (sel) sel.value = localStorage.getItem('fm_model') || '16';
+      return;
+    }
+    if (closeBtn) {
+      modal.style.display = 'none';
+      return;
+    }
+    if (e.target === modal) {
+      modal.style.display = 'none'; // 오버레이 클릭 닫기
+    }
   });
+
+  // --- 2) 제출 위임: #createChallengeForm만 가로채기 ---
+  document.addEventListener('submit', async (e) => {
+    const form = e.target.closest('#createChallengeForm');
+    if (!form) return;               // 다른 폼은 무시
+    e.preventDefault();
+
+    try {
+      if (!currentUser) {
+        alert('로그인이 필요합니다');
+        return;
+      }
+
+      const desc = (document.getElementById('cc-desc').value || '').trim();
+      const startDateVal = document.getElementById('cc-start').value || null;
+      const visibility = (document.querySelector('input[name="visibility"]:checked')?.value) || 'private';
+
+      // 단식 모델
+      const sel = document.getElementById('fastingModelSelect');
+      const modelMinutes = parseInt(sel?.value || '16', 10);
+      let modelLabel = sel?.selectedOptions?.[0]?.textContent || '16:8';
+      modelLabel = modelLabel.split('(')[0].trim();
+      try { localStorage.setItem('fm_model', String(modelMinutes)); } catch {}
+
+      // 호스트 표시용
+      const ownerName     = currentUserProfile?.nickname || currentUser.displayName || '사용자';
+      const ownerPhotoURL = currentUserProfile?.photoURL || currentUser.photoURL || null;
+
+      // 제목 자동 생성: <호스트닉네임 + 단식모델>
+      const finalName = `${ownerName} ${modelLabel}`;
+
+      // 시작시각(Timestamp)
+      const startTs = startDateVal
+        ? firebase.firestore.Timestamp.fromDate(new Date(startDateVal))
+        : firebase.firestore.FieldValue.serverTimestamp();
+
+      // 날짜/시간 캐시
+      const fmtDate = (d) => { try { return d.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' }); } catch { return '-'; } };
+      const fmtTime = (d) => { try { return d.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }); } catch { return '-'; } };
+      let startDateStr = '-', startTimeStr = '-';
+      if (startDateVal) {
+        const d = new Date(startDateVal);
+        startDateStr = fmtDate(d);
+        startTimeStr = fmtTime(d);
+      }
+
+      // Firestore payload
+      const payload = {
+        // 쿼리/권한
+        startTime: startTs,
+        participantUids: [currentUser.uid],
+        hostUid: currentUser.uid,
+
+        // 표시/메타
+        challengeName: finalName,
+        description: desc,
+        hostName: ownerName,
+        ownerName,
+        ownerPhotoURL,
+        visibility,
+        isBeta: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        memberCount: 1,
+
+        // 모델 정보
+        fastingModelMinutes: modelMinutes,
+        fastingModelLabel: modelLabel,
+
+        // 날짜/시간 캐시
+        startDateStr,
+        startClockStr: startTimeStr
+      };
+
+      const docRef = await db.collection('challenges').add(payload);
+
+      // 멤버(호스트) 등록
+      await db.collection('challenges').doc(docRef.id)
+        .collection('members').doc(currentUser.uid)
+        .set({
+          uid: currentUser.uid,
+          nickname: ownerName,
+          photoURL: ownerPhotoURL || null,
+          role: 'owner',
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+      // (선택) 그룹단식 전환 함수가 있다면 호출
+      if (typeof switchToGroupFasting === 'function') {
+        try { await switchToGroupFasting(currentUser.uid, docRef.id, modelMinutes, startTs); } catch {}
+      }
+
+      // 닫기 + 목록 갱신
+      const modal = document.getElementById('createChallengeModal');
+      if (modal) modal.style.display = 'none';
+      showView('list');
+
+    } catch (err) {
+      console.error('챌린지 생성 오류:', err);
+      alert('챌린지 생성 중 오류가 발생했습니다');
+    }
+  });
+})();
+
 
   // --- 기존 단식 → 그룹단식으로 스위치: active → logs 기록 후 새 active 생성 ---
   async function switchToGroupFasting(uid, challengeId, modelMinutes, startTs) {
@@ -682,24 +807,15 @@ pageItems.forEach(ch => {
 
 
   // --- 챌린지 상세 및 댓글 ---
-  function listenToChallengeDetails(challengeId) {
-    const challengeRef = db.collection('challenges').doc(challengeId);
-    stopListeningToChallenge = challengeRef.onSnapshot(doc => {
-      if (!doc.exists) {
-        alert("삭제되었거나 존재하지 않는 챌린지입니다.");
-        return showView('list');
-      }
-      const challenge = { id: doc.id, ...doc.data() };
- 
-            // 상세 정보 카드 렌더링 (시작일/시간 분리 적용)
-            const detailCard = document.querySelector('.challenge-details');
-            const startTime = challenge.startTime.toDate();
-            detailCard.innerHTML = `
-                <p><b>목표:</b> <span>${challenge.detailedGoal || '없음'}</span></p>
-                <p><b>참여자:</b> <span>${challenge.participantUids.length}명</span></p>
-                <p><b>시작일:</b> <span>${startTime.toLocaleDateString('ko-KR')}</span></p>
-                <p><b>시작 시간:</b> <span>${startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute:'2-digit' })}</span></p>
-            `;
+function listenToChallengeDetails(challengeId) {
+  const ref = db.collection('challenges').doc(challengeId);
+  stopListeningToChallenge = ref.onSnapshot(doc => {
+    if (!doc.exists) {
+      alert("삭제되었거나 존재하지 않는 챌린지입니다.");
+      return showView('list');
+    }
+    const ch = { id: doc.id, ...doc.data() };   // ✅ 전개 연산자
+
             
            // ✅ 상단 헤더
     renderDetailHeader(challenge);
