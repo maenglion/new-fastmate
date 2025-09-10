@@ -513,6 +513,7 @@ function renderChallengePage() {
   const peopleIcon = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/people_qhprqx.png";
   const dateIcon   = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/date_dqqkwp.png";
   const timeIcon   = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/time_t4ooih.png";
+  const goalIcon   = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/goal_icon_jlglbt.png"; // 네가 준 링크
 
   pageItems.forEach(ch => {
     const card = document.createElement('div');
@@ -524,14 +525,19 @@ function renderChallengePage() {
     const d = ch.startTime?.toDate?.();
     const dateStr = ch.startDateStr || (d ? d.toLocaleDateString('ko-KR') : '-');
     const timeStr = ch.startClockStr || (d ? d.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : '-');
+    const goalStr = ch.detailedGoal ? escapeHTML(ch.detailedGoal) : '-';
 
     card.innerHTML = `
       <div class="challenge-content">
-        <h3>${escapeHTML(ch.challengeName)}</h3>
+        <h3>${escapeHTML(ch.challengeName || '-')}</h3>
         <div class="challenge-meta">
           <div class="meta-row">
             <img src="${peopleIcon}" alt="참여자" width="32" height="32" />
             <span>${memberCount}명 · 방장: ${escapeHTML(hostName)}</span>
+          </div>
+          <div class="meta-row">
+            <img src="${goalIcon}" alt="목표" width="32" height="32" />
+            <span>${goalStr}</span>
           </div>
           <div class="meta-row">
             <img src="${dateIcon}" alt="날짜" width="32" height="32" />
@@ -551,7 +557,7 @@ function renderChallengePage() {
 
   renderPagination();
 }
-
+  
 
   function renderPagination() {
     const totalPages = Math.ceil(allChallenges.length / ITEMS_PER_PAGE);
