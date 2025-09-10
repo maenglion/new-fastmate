@@ -4,219 +4,284 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fastmate - 챌린지</title>
-  <link rel="stylesheet" href="./styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script defer src="/firebase-init.js?v=2025.09.06-v8"></script>
+  <script src="/firebase-init.js?v=2025.09.06-v8"></script>
   <style>
-/* ======================================== */
-/* ===== 1. 기본 설정 & 색상 변수 ===== */
-/* ======================================== */
-:root {
-    --primary-color: #1c8e3e; 
-    --primary-light: #e8f5e9;
-    --bg-color: #F8F9FA;
-    --card-bg: #FFFFFF;
-    --text-color: #212529;
-    --text-light: #6c757d;
-    --border-color: #e9ecef;
-    --auto-comment-bg: #fffbe6;
-}
-
-/* ======================================== */
-/* ===== 2. 글로벌 & 레이아웃 ===== */
-/* ======================================== */
-body {
-    background-color: var(--bg-color);
-    font-family: 'Noto Sans KR', sans-serif;
-    color: var(--text-color);
-    margin: 0;
-    line-height: 1.6;
-}
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 15px;
-}
-.page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 0 5px 15px 5px;
-    border-bottom: 1px solid var(--border-color);
-}
-.page-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-color);
-    margin: 0;
-    text-align: center;
-    flex-grow: 1;
-}
-.header-btn {
-    background: none; border: none; cursor: pointer; padding: 8px; color: var(--text-light); transition: color 0.2s;
-}
-.header-btn:hover { color: var(--primary-color); }
-.header-btn svg { width: 24px; height: 24px; }
-
-/* ======================================== */
-/* ===== 3. 챌린지 정보 (표 형태) ===== */
-/* ======================================== */
-.challenge-details-grid {
-    display: grid;
-    grid-template-columns: auto 1fr; /* 라벨과 값 2단 구성 */
-    gap: 12px 16px;
-    padding: 24px;
-    font-size: 1rem;
-}
-.detail-label {
-    font-weight: 600;
-    color: var(--text-light);
-    text-align: right;
-}
-.detail-value {
-    font-weight: 500;
-    color: var(--text-color);
-}
-
-/* ======================================== */
-/* ===== 4. 댓글 시스템 (UI 개선) ===== */
-/* ======================================== */
-.comment-section h4 {
-    margin-top: 0;
-    padding: 0 24px;
-    font-size: 1.3rem;
-}
-.comment-form { margin: 20px 24px; }
-#commentFeed { padding: 0 24px; }
-
-.comment-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-.comment-header strong {
-    font-weight: 700;
-    color: var(--primary-color); /* 닉네임 색상 변경 */
-}
-.comment-separator {
-    color: var(--border-color);
-}
-.comment-timestamp {
-    font-size: 0.8rem;
-    color: var(--text-light); /* 타임스탬프 흐리게 */
-}
-.reply-btn {
-    background: none; border: none;
-    color: #888; /* 답글 버튼 색상 변경 */
-    font-weight: 600;
-    cursor: pointer; padding: 0;
-    font-size: 0.8rem;
-}
-.reply-btn:hover {
-    text-decoration: underline;
-}
-
-/* (이전 답변의 .comment, .replies 등 다른 스타일들은 그대로 유지) */
-
-/* ======================================== */
-/* ===== 5. 반응형 디자인 (Media Queries)===== */
-/* ======================================== */
-/* "두 개의 버전을 만든다"는 것은 CSS 미디어 쿼리로 구현하는 것이 표준적인 방법입니다.
-   하나의 파일이 화면 크기에 맞춰 스스로 디자인을 바꿉니다. */
-
-/* 중간 화면 크기 (예: 태블릿) */
-@media (max-width: 640px) {
-    .container {
-        padding: 10px;
+    /* --- 기본 & 다크모드 색상 변수 --- */
+    :root {
+      --primary-color: #1c8e3e; /* 초록색 */
+      --primary-light: #e8f5e9;
+      --bg-color: #f8f9fa;
+      --card-bg: #FFFFFF;
+      --text-color: #212529;
+      --text-light: #6c757d;
+      --border-color: #e9ecef;
+      --yellow-color: #ffc107;
+      --yellow-bg-color: #fff3cd;
     }
-    .page-title {
-        font-size: 1.3rem;
-    }
-    .challenge-details-grid {
-        padding: 16px;
-        font-size: 0.95rem;
-    }
-    .comment-section h4 {
-        padding: 0 16px;
-    }
-    .comment-form { margin: 20px 16px; }
-    #commentFeed { padding: 0 16px; }
-}
 
-/* 작은 화면 크기 (예: 모바일) */
-@media (max-width: 460px) {
-    .page-title {
-        font-size: 1.2rem;
+    /* 다크모드 스타일 (필요시 body에 'dark-mode' 클래스 추가) */
+    body.dark-mode {
+      --primary-color: #4caf50;
+      --primary-light: #2c3e50;
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --text-light: #9e9e9e;
+      --border-color: #333333;
     }
-    .challenge-details-grid {
-        grid-template-columns: 1fr; /* 1단으로 변경 */
-        gap: 4px 0;
+
+    /* --- 기본 레이아웃 --- */
+    body { 
+      background-color: var(--bg-color); 
+      font-family: 'Noto Sans KR', sans-serif; 
+      margin: 0; 
+      color: var(--text-color);
     }
-    .detail-label {
-        text-align: left;
-        font-size: 0.8rem;
-        margin-bottom: -2px;
+    .container { 
+      max-width: 800px; /* fastmate.html과 동일한 폭 */
+      margin: 0 auto; 
+      padding: 20px; 
     }
-}
+
+    /* --- 헤더 --- */
+    .page-header { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      margin-bottom: 25px; 
+    }
+    .page-title-group { 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .page-title { 
+      font-size: 1.5rem; 
+      font-weight: 700; 
+      color: var(--primary-color); 
+      margin: 0; 
+    }
+    .beta-tag { 
+      background-color: var(--yellow-bg-color); 
+      color: #664d03;
+      font-size: 0.75rem; 
+      font-weight: bold; 
+      padding: 4px 8px; 
+      border-radius: 8px; 
+      border: 1px solid var(--yellow-color);
+    }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .header-btn { 
+      background: none; 
+      border: none; 
+      cursor: pointer; 
+      padding: 0; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      width: 40px; 
+      height: 40px; 
+      color: var(--text-light); 
+      transition: color 0.2s; 
+    }
+    .header-btn:hover { color: var(--primary-color); }
+    .create-challenge-btn {
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      padding: 0 16px;
+      height: 40px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* --- 필터 --- */
+    .filter-bar { margin-bottom: 20px; display: flex; gap: 10px; }
+    .filter-btn { 
+      background: var(--card-bg); 
+      border: 1px solid var(--border-color); 
+      color: var(--text-light); 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      cursor: pointer; 
+      font-weight: 500; 
+    }
+    .filter-btn.active { 
+      background-color: var(--primary-light); 
+      color: var(--primary-color); 
+      border-color: var(--primary-color); 
+      font-weight: bold; 
+    }
+        
+    /* --- 챌린지 리스트 카드 --- */
+    .challenge-card {
+      background: var(--card-bg); 
+      border-radius: 12px; 
+      padding: 20px; 
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* 음영 효과 */
+      cursor: pointer; 
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex; 
+      align-items: center; 
+      gap: 16px;
+    }
+    .challenge-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+    .challenge-icon { width: 32px; height: 32px; flex-shrink: 0; } /* 아이콘 크기 32x32 */
+    .challenge-content h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .challenge-meta { font-size: 0.85rem; color: var(--text-light); }
+    
+    /* --- 페이징 --- */
+    .pagination { text-align: center; margin-top: 30px; display: flex; gap: 8px; justify-content: center; align-items: center;}
+    .pagination button { 
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color); 
+      color: var(--text-color);
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight:500;
+    }
+    .pagination button:disabled { cursor: not-allowed; opacity: 0.5; background: var(--bg-color); }
+    .pagination .page-number { font-weight: bold; padding: 0 10px; }
+
+    /* --- 챌린지 상세 정보 --- */
+    .challenge-info-card {
+      background: var(--card-bg); 
+      border-radius: 12px; 
+      padding: 20px;
+      margin-bottom: 30px; 
+      border: 1px solid var(--border-color); 
+      position: relative;
+    }
+    .challenge-info-card p { display: flex; align-items: center; } /* 아이콘과 텍스트 정렬 */
+    .delete-challenge-btn {
+      position: absolute; top: 15px; right: 15px; background: var(--border-color); color: var(--text-light);
+      border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 20px;
+      line-height: 28px; text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .delete-challenge-btn:hover { background-color: #ced4da; color: var(--text-color); }
+    body.dark-mode .delete-challenge-btn { background-color: #333; }
+    body.dark-mode .delete-challenge-btn:hover { background-color: #555; }
+    
+    /* --- 댓글 (Threads UI) --- */
+    .comment-section { padding-top: 20px; }
+    .comment { display: flex; gap: 12px; margin-bottom: 20px; position: relative; }
+    .comment-avatar-column { display: flex; flex-direction: column; align-items: center; }
+    .comment-avatar {
+      width: 32px; height: 32px; border-radius: 50%; /* 작고 동그란 프로필 */
+      background-color: var(--primary-light); color: var(--primary-color);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; flex-shrink: 0; object-fit: cover;
+    }
+    .thread-line { /* 답글 연결선 */
+      width: 2px; 
+      background-color: var(--border-color); 
+      flex-grow: 1; 
+      margin-top: 8px; 
+    }
+    .comment-main { flex-grow: 1; }
+    .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .comment-author-info { display: flex; align-items: center; gap: 8px; }
+    .comment-author { font-weight: bold; font-size: 0.95rem; color: var(--text-color);}
+    .comment-timestamp { font-size: 0.85rem; color: var(--text-light); }
+    .comment-options-btn { background: none; border:none; cursor: pointer; padding: 5px; color: var(--text-light); }
+    
+    .comment-text { margin: 0 0 8px; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+    .comment-actions { display: flex; align-items: center; justify-content: space-between; }
+    .reply-info { display: flex; align-items: center; gap: 8px; color: var(--text-light); font-size: 0.85rem; }
+    .reply-info-item { display: flex; align-items: center; gap: 4px; }
+    .reply-info-item svg { width: 16px; height: 16px; }
+    .reply-btn { background: none; border: none; color: var(--text-light); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 4px; }
+    
+    /* 내 댓글 옵션(...) 메뉴 */
+    .comment-options { position: relative; }
+    .options-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 24px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 10;
+      width: 100px;
+      overflow: hidden;
+    }
+    .options-menu button {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      background: none;
+      border: none;
+      color: var(--text-color);
+      text-align: left;
+      cursor: pointer;
+    }
+    .options-menu button:hover { background-color: var(--bg-color); }
+    /* 모달 스타일 */
+    .onb-input, .onb-btn { /* 간단한 스타일, 필요시 fastmate.css 참조 */
+        width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border-color);
+    }
+    .onb-btn.onb-primary { background-color: var(--primary-color); color: white; border: none; }
   </style>
 </head>
 <body>
 
   <div class="container">
     <header id="pageHeader" class="page-header"></header>
-
-    <div id="challengeList"></div>
+    
+    <div id="challengeListView" style="display: none;">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="public">공개</button>
+        <button class="filter-btn" data-filter="private">비공개</button>
+      </div>
+      <div id="challengeList"></div>
+      <div id="paginationControls" class="pagination"></div>
+    </div>
     
     <div id="challengeDetailView" style="display: none;">
-      <div class="card challenge-details">
-        <p>🎯 <b>목표:</b> <span id="detailChallengeGoal">-</span></p>
-        <p>👥 <b>참여자:</b> <span id="detailChallengeParticipants">-</span></p>
-        <p>📅 <b>시작일:</b> <span id="detailChallengeStartTime">-</span></p>
+      <div id="challengeInfo" class="challenge-info-card">
+        <!-- 챌린지 정보가 여기에 렌더링됩니다. -->
       </div>
 
-      <div class="card comment-section">
-        <h4>챌린지 타임라인</h4>
-        <div class="comment-form">
-          <textarea id="newCommentText" placeholder="응원 댓글을 남겨보세요..." rows="1"></textarea>
-          <button id="submitCommentBtn" class="onb-btn onb-primary">등록</button>
-        </div>
+      <div class="comment-section">
         <div id="commentFeed"></div>
       </div>
     </div>
-
-    <button id="createChallengeBtn" class="create-challenge-fab">+</button>
   </div>
 
-  <div id="createChallengeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px;">
-    <div style="background: var(--card-bg); padding:25px; border-radius:16px; width:100%; max-width:420px;">
-      <h3 class="onb-title" style="margin-top:0;">새로운 챌린지 만들기</h3>
-      <label class="onb-label">단식 계획</label>
-      <select id="challengeModelSelect" class="onb-input" style="margin-top:5px; margin-bottom:15px;">
-                <option value="8">8:16 (8시간 단식,야식끊기)</option>  
-                <option value="12">12:12 (12시간 단식,초보)</option>  
-                <option value="16">16:8 (16시간 단식,인기)</option>
-                <option value="18">18:6 (18시간 단식,인기)</option>
-                <option value="20">20:4 (20시간 단식,고급)</option>
-                <option value="24">24시간 (1일 단식,고급)</option>
-                <option value="36">36시간(1.5일 단식,고급)</option>
-                <option value="48">48시간 (2일 단식,고급)</option>
-                <option value="72">72시간 (3일 단식,고급)</option>
+  <!-- 챌린지 생성 모달 -->
+  <div id="createChallengeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px; display: none;">
+    <div style="background: var(--card-bg); padding:25px; border-radius:16px; width:100%; max-width:420px; box-sizing: border-box;">
+      <h3 style="margin-top:0;">새로운 챌린지 만들기</h3>
+      <label>단식 계획</label>
+      <select id="challengeModelSelect" class="onb-input">
+        <option value="16">16:8 (16시간 단식,인기)</option>
+        <option value="18">18:6 (18시간 단식,인기)</option>
+        <option value="20">20:4 (20시간 단식,고급)</option>
+        <option value="12">12:12 (12시간 단식,초보)</option>
       </select>
-      <label class="onb-label">시작 날짜</label>
-      <input type="date" id="challengeDatePicker" class="onb-input" style="margin-top:5px; margin-bottom:15px;">
-      <label class="onb-label">시작 시간</label>
-      <input type="time" id="challengeTimePicker" class="onb-input" style="margin-top:5px; margin-bottom:15px;">
-      <label class="onb-label">세부 목표 (선택)</label>
-      <textarea id="challengeDetailedGoal" class="onb-input" placeholder="예: 매일 30분 운동하기" style="margin-top:5px; min-height:80px;"></textarea>
-      <div class="onb-actions">
-        <button type="button" id="closeCreateChallengeModalBtn" class="onb-btn onb-ghost">취소</button>
+      <label>시작 날짜</label>
+      <input type="date" id="challengeDatePicker" class="onb-input">
+      <label>시작 시간</label>
+      <input type="time" id="challengeTimePicker" class="onb-input">
+      <label>세부 목표 (선택)</label>
+      <textarea id="challengeDetailedGoal" class="onb-input" placeholder="예: 매일 30분 운동하기"></textarea>
+      <div>
+        <button type="button" id="closeCreateChallengeModalBtn" class="onb-btn">취소</button>
         <button type="button" id="saveChallengeBtn" class="onb-btn onb-primary">저장하고 친구 초대하기</button>
       </div>
     </div>
@@ -224,25 +289,24 @@ body {
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // --- 1. 전역 ---
+  // --- 전역 변수 ---
   const auth = window.fastmateApp.auth;
   const db   = window.fastmateApp.db;
   let currentUser = null;
-  let currentUserProfile = null; 
   let stopListeningToChallenge = null;
-  let currentChallengeId = null; 
+  let allChallenges = []; // 전체 챌린지 데이터 캐시
+  let currentPage = 1;
+  const ITEMS_PER_PAGE = 20; // 페이지 당 20개씩
 
-  // --- 2. DOM ---
-  const challengeListDiv = document.getElementById('challengeList');
-  const challengeDetailView = document.getElementById('challengeDetailView');
-  const createChallengeBtn = document.getElementById('createChallengeBtn');
+  // --- DOM 요소 ---
   const pageHeader = document.getElementById('pageHeader');
-  const detailChallengeGoal = document.getElementById('detailChallengeGoal');
-  const detailChallengeParticipants = document.getElementById('detailChallengeParticipants');
-  const detailChallengeStartTime = document.getElementById('detailChallengeStartTime');
+  const challengeListView = document.getElementById('challengeListView');
+  const challengeListDiv = document.getElementById('challengeList');
+  const paginationControls = document.getElementById('paginationControls');
+  const challengeDetailView = document.getElementById('challengeDetailView');
+  const challengeInfoDiv = document.getElementById('challengeInfo');
   const commentFeed = document.getElementById('commentFeed');
-  const newCommentText = document.getElementById('newCommentText');
-  const submitCommentBtn = document.getElementById('submitCommentBtn');
+  // 모달 DOM 요소 추가
   const createChallengeModal = document.getElementById('createChallengeModal');
   const closeCreateChallengeModalBtn = document.getElementById('closeCreateChallengeModalBtn');
   const saveChallengeBtn = document.getElementById('saveChallengeBtn');
@@ -251,419 +315,360 @@ document.addEventListener('DOMContentLoaded', () => {
   const challengeTimePicker = document.getElementById('challengeTimePicker');
   const challengeDetailedGoal = document.getElementById('challengeDetailedGoal');
 
-  // --- 3. 뷰 전환 ---
-function showListView() {
-  if (stopListeningToChallenge) stopListeningToChallenge();
-  currentChallengeId = null;
 
-  challengeListDiv.style.display = 'block';
-  challengeDetailView.style.display = 'none';
-  createChallengeBtn.style.display = 'block';
+  // --- 뷰 관리 ---
+  function showView(viewName, challengeId = null) {
+    challengeListView.style.display = 'none';
+    challengeDetailView.style.display = 'none';
+    if (stopListeningToChallenge) stopListeningToChallenge();
 
- pageHeader.innerHTML = `
-  <div style="width:36px;"></div>
-  <h1 class="page-title" style="margin:0 auto; text-align:center;">챌린지 BETA</h1>
-  <button class="header-btn" title="메인으로" onclick="location.href='fastmate.html'">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a 2 2 0 0 1-2-2z"></path>
-      <polyline points="9 22 9 12 15 12 15 22"></polyline>
-    </svg>
-  </button>
-`;
-
-  loadAndRenderChallenges();
-}
-
-  function showDetailView(challengeId) {
-    currentChallengeId = challengeId; 
-    challengeListDiv.style.display = 'none';
-    challengeDetailView.style.display = 'block';
-    createChallengeBtn.style.display = 'none';
-    listenToChallengeDetails(challengeId);
+    if (viewName === 'list') {
+      challengeListView.style.display = 'block';
+      renderListHeader();
+      loadAndRenderChallenges();
+    } else if (viewName === 'detail' && challengeId) {
+      challengeDetailView.style.display = 'block';
+      listenToChallengeDetails(challengeId);
+    }
   }
 
-  // --- 4. 목록 로딩 ---
+  // --- 헤더 렌더링 ---
+  function renderListHeader() {
+    pageHeader.innerHTML = `
+      <button class="header-btn" title="메인으로" onclick="location.href='fastmate.html'">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      </button>
+      <div class="page-title-group">
+        <h1 class="page-title">챌린지</h1>
+        <span class="beta-tag">BETA</span>
+      </div>
+      <button class="create-challenge-btn" id="createChallengeBtnHeader">챌린지 만들기</button>
+    `;
+    // 생성 버튼에 모달 여는 이벤트 리스너 추가
+    document.getElementById('createChallengeBtnHeader').addEventListener('click', () => {
+        createChallengeModal.style.display = 'flex';
+    });
+  }
+
+  function renderDetailHeader(challenge) {
+    const canShare = new Date() < challenge.startTime.toDate();
+    const inviteUrl = `${location.origin}/challenge-invite.html?id=${challenge.id}&autojoin=1`;
+
+     pageHeader.innerHTML = `
+      <button class="header-btn" id="backToListBtn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <div class="page-title-group">
+        <h1 class="page-title" style="font-size: 1.2rem;">${escapeHTML(challenge.challengeName)}</h1>
+      </div>
+      ${canShare ? `
+        <button id="shareBtn" class="header-btn" title="초대 링크 복사">
+            <img src="https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/date_dqqkwp.png" style="width:24px; height:24px;" alt="Share">
+        </button>` : `<div style="width: 40px;"></div>`}
+    `;
+    document.getElementById('backToListBtn').addEventListener('click', () => showView('list'));
+
+    if (canShare) {
+        document.getElementById('shareBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(inviteUrl);
+                alert('초대 링크를 복사했어요!');
+            } catch (err) {
+                console.error('클립보드 복사 실패:', err);
+            }
+        });
+    }
+  }
+
+  // --- 챌린지 목록 (페이징 적용) ---
   async function loadAndRenderChallenges() {
     if (!currentUser) return;
     challengeListDiv.innerHTML = "<p>챌린지 목록을 불러오는 중...</p>";
+    
     try {
       const query = db.collection('challenges')
         .where('participantUids', 'array-contains', currentUser.uid)
         .orderBy('startTime', 'desc');
       const snapshot = await query.get();
-      if (snapshot.empty) {
-        challengeListDiv.innerHTML = '<div class="card" style="text-align:center;"><p>아직 참여한 챌린지가 없습니다.</p></div>';
-        return;
-      }
-      challengeListDiv.innerHTML = '';
-      snapshot.forEach(doc => {
-        const challenge = { id: doc.id, ...doc.data() };
-        const card = document.createElement('div');
-        card.className = 'challenge-card';
-        const startTime = challenge.startTime.toDate();
-        const formattedDate = `${startTime.getMonth()+1}/${startTime.getDate()} ${startTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
-        card.innerHTML = `
-          <h3>${challenge.challengeName}</h3>
-          <div class="challenge-info">
-            <span>👥 참여: <b>${challenge.participantUids.length}</b>명</span>
-            <span>📅 시작: ${formattedDate}</span>
-            <span>⭐ 목표: ${challenge.detailedGoal || '없음'}</span>
-          </div>`;
-        card.addEventListener('click', () => showDetailView(challenge.id));
-        challengeListDiv.appendChild(card);
-      });
+      
+      allChallenges = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      currentPage = 1;
+      renderChallengePage();
+
     } catch (error) {
       console.error("챌린지 목록 로딩 실패:", error);
-      challengeListDiv.innerHTML = '<p>챌린지 목록을 불러오는 데 실패했습니다.</p>';
+      challengeListDiv.innerHTML = '<p>목록을 불러오는 데 실패했습니다.</p>';
     }
   }
 
-  // --- 5. 상세/댓글 실시간 ---
-
-  
-function listenToChallengeDetails(challengeId) {
-  if (stopListeningToChallenge) stopListeningToChallenge();
-
-  const challengeRef = db.collection('challenges').doc(challengeId);
-
-  stopListeningToChallenge = challengeRef.onSnapshot(async (doc) => {
-   if (currentUser) {
-  const myPartRef = db.collection('challenges').doc(challengeId)
-    .collection('participants').doc(currentUser.uid);
-  myPartRef.get().then(s => {
-    if (!s.exists) {
-      myPartRef.set({ joinedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  function renderChallengePage() {
+    if (allChallenges.length === 0) {
+      challengeListDiv.innerHTML = '<div class="challenge-card" style="text-align:center;"><p>아직 참여한 챌린지가 없습니다.</p></div>';
+      paginationControls.innerHTML = '';
+      return;
     }
-  }).catch(console.warn);
-}
-    if (!doc.exists) {
-      showListView();
-      alert("삭제되었거나 존재하지 않는 챌린지입니다.");
+    
+    challengeListDiv.innerHTML = '';
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const pageItems = allChallenges.slice(startIndex, endIndex);
+
+    pageItems.forEach(challenge => {
+        const card = document.createElement('div');
+        card.className = 'challenge-card';
+        card.innerHTML = `
+            <img src="https://placehold.co/32x32/e8f5e9/1c8e3e?text=🏆" class="challenge-icon" alt="챌린지 아이콘">
+            <div class="challenge-content">
+              <h3>${escapeHTML(challenge.challengeName)}</h3>
+              <div class="challenge-meta">
+                <span>참여 ${challenge.participantUids.length}명</span> | 
+                <span>시작 ${challenge.startTime.toDate().toLocaleDateString()}</span>
+              </div>
+            </div>
+        `;
+        card.addEventListener('click', () => showView('detail', challenge.id));
+        challengeListDiv.appendChild(card);
+    });
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const totalPages = Math.ceil(allChallenges.length / ITEMS_PER_PAGE);
+    if (totalPages <= 1) {
+      paginationControls.innerHTML = '';
       return;
     }
 
-    const challenge = doc.data();
-
-    // (선택) 시작 전에는 공유 버튼 보이기
-    const now = new Date();
-    const st  = challenge.startTime.toDate();
-    const canShare = now < st;
-    const inviteUrl = `${location.origin}/challenge-invite.html?id=${challengeId}&autojoin=1`;
-
-   // ▼▼▼ 공유 아이콘을 세련된 SVG로 변경 ▼▼▼
-    pageHeader.innerHTML = `
-      <button class="header-btn back-btn">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-      </button>
-      <h1 class="page-title" style="margin:0 auto; text-align:center; flex:1;">${challenge.challengeName}</h1>
-      ${canShare ? `
-      <button id="shareBtn" class="header-btn" title="초대 링크 복사">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18" cy="5" r="3"></circle>
-          <circle cx="6" cy="12" r="3"></circle>
-          <circle cx="18" cy="19" r="3"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-      </button>` : `<div style="width:36px;"></div>`}
+    paginationControls.innerHTML = `
+      <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>이전</button>
+      <span class="page-number">${currentPage} / ${totalPages}</span>
+      <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>다음</button>
     `;
-     
-    pageHeader.querySelector('.back-btn').addEventListener('click', showListView);
-    if (canShare) {
-      document.getElementById('shareBtn').addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(inviteUrl);
-          alert('초대 링크를 복사했어요. 친구에게 공유해보세요!');
-        } catch {
-          prompt('복사에 실패했어요. 아래 링크를 직접 복사하세요.', inviteUrl);
-        }
+
+    document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderChallengePage();
+      }
+    });
+    document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderChallengePage();
+      }
+    });
+  }
+
+
+  // --- 챌린지 상세 및 댓글 ---
+  function listenToChallengeDetails(challengeId) {
+    const challengeRef = db.collection('challenges').doc(challengeId);
+    stopListeningToChallenge = challengeRef.onSnapshot(doc => {
+      if (!doc.exists) {
+        alert("삭제되었거나 존재하지 않는 챌린지입니다.");
+        return showView('list');
+      }
+      const challenge = { id: doc.id, ...doc.data() };
+      renderDetailHeader(challenge);
+      renderChallengeInfo(challenge);
+      renderComments(challengeId);
+    }, (error) => {
+      console.error("실시간 챌린지 감지 오류:", error);
+      showView('list');
+    });
+  }
+  
+  function renderChallengeInfo(challenge) {
+    const isHost = currentUser && currentUser.uid === challenge.hostUid;
+    const iconStyle = "width:20px; height:20px; vertical-align:middle; margin-right:8px;";
+    challengeInfoDiv.innerHTML = `
+      ${isHost ? '<button class="delete-challenge-btn" title="챌린지 삭제">&times;</button>' : ''}
+      <p><img src="https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/date_dqqkwp.png" style="${iconStyle}" alt="목표 아이콘"><b>목표:</b> ${escapeHTML(challenge.detailedGoal || '없음')}</p>
+      <p><img src="https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/people_qhprqx.png" style="${iconStyle}" alt="참여자 아이콘"><b>참여자:</b> ${challenge.participantUids.length}명</p>
+      <p><img src="https://res.cloudinary.com/dnswboo5z/image/upload/v1757491598/date_dqqkwp.png" style="${iconStyle}" alt="시작일 아이콘"><b>시작일:</b> ${challenge.startTime.toDate().toLocaleString()}</p>
+    `;
+
+    if (isHost) {
+      challengeInfoDiv.querySelector('.delete-challenge-btn').addEventListener('click', async () => {
+        // Firebase 규칙상 confirm 사용 불가. 실제 앱에서는 모달 UI로 대체해야 합니다.
+        console.log("Delete button clicked. Confirmation needed.");
+        // await db.collection('challenges').doc(challenge.id).delete();
       });
     }
+  }
 
-    detailChallengeGoal.textContent = challenge.detailedGoal || '없음';
-    detailChallengeParticipants.textContent = `${challenge.participantUids.length}명 참여중`;
-    const startTime = challenge.startTime.toDate();
-    detailChallengeStartTime.textContent = `${startTime.getMonth()+1}/${startTime.getDate()} ${startTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`;
+  async function renderComments(challengeId) {
+    const snapshot = await db.collection('challenges').doc(challengeId)
+      .collection('comments').orderBy('timestamp', 'asc').get();
 
-    renderComments(challengeId);
-  }, (error) => {
-    console.error("실시간 챌린지 감지 오류:", error);
-    showListView();
-    alert("챌린지 정보를 불러오는 데 실패했습니다. 권한을 확인해주세요.");
-  });
-}
+    commentFeed.innerHTML = ''; // 댓글 피드 초기화
+    
+    const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const commentTree = {}; // { parentId: [child, child] }
+    const commentMap = {}; // { commentId: commentData }
 
+    comments.forEach(c => {
+        commentMap[c.id] = c;
+        if (c.parentId) {
+            if (!commentTree[c.parentId]) commentTree[c.parentId] = [];
+            commentTree[c.parentId].push(c);
+        }
+    });
 
-  function renderComments(challengeId) {
-    db.collection('challenges').doc(challengeId)
-      .collection('comments').orderBy('timestamp', 'asc')
-      .onSnapshot(snapshot => {
-        commentFeed.innerHTML = '';
-        const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const commentElements = {};
+    comments.filter(c => !c.parentId).forEach(comment => {
+        const replies = commentTree[comment.id] || [];
+        const commentDiv = createCommentElement(comment, replies);
+        commentFeed.appendChild(commentDiv);
 
-        comments.filter(c => !c.parentId).forEach(comment => {
-          const commentDiv = createCommentElement(comment);
-          commentFeed.appendChild(commentDiv);
-          commentElements[comment.id] = commentDiv;
-        });
-        comments.filter(c => c.parentId).forEach(reply => {
-          const parentDiv = commentElements[reply.parentId];
-          if (parentDiv) {
-            let repliesContainer = parentDiv.querySelector('.replies');
-            if (!repliesContainer) {
-              repliesContainer = document.createElement('div');
-              repliesContainer.className = 'replies';
-              parentDiv.appendChild(repliesContainer);
-            }
-            repliesContainer.appendChild(createCommentElement(reply, true));
-          }
-        });
-      }, error => {
-        console.error("실시간 댓글 감지 오류:", error);
-        commentFeed.innerHTML = '<p>댓글을 불러오는 데 실패했습니다. 권한을 확인해주세요.</p>';
+        // 자식 댓글 렌더링
+        const repliesContainer = commentDiv.querySelector('.replies-container');
+        if (repliesContainer) {
+            replies.forEach(reply => {
+                repliesContainer.appendChild(createCommentElement(reply, [], true));
+            });
+        }
+    });
+  }
+
+  function createCommentElement(comment, replies = [], isReply = false) {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    const isMyComment = currentUser && currentUser.uid === comment.uid;
+
+    let avatarHtml;
+    if (comment.photoURL) {
+      avatarHtml = `<img src="${comment.photoURL}" alt="${escapeHTML(comment.nickname)}" class="comment-avatar">`;
+    } else {
+      avatarHtml = `<div class="comment-avatar" style="background-color: var(--primary-light);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </div>`;
+    }
+    
+    const timestamp = comment.timestamp?.toDate()?.toLocaleString('ko-KR', { hour: '2-digit', minute: '2-digit' }) || '';
+
+    div.innerHTML = `
+      <div class="comment-avatar-column">
+        ${avatarHtml}
+        ${replies.length > 0 ? '<div class="thread-line"></div>' : ''}
+      </div>
+      <div class="comment-main">
+        <div class="comment-header">
+          <div class="comment-author-info">
+            <span class="comment-author">${escapeHTML(comment.nickname)}</span>
+            <span class="comment-timestamp">${timestamp}</span>
+          </div>
+          ${isMyComment ? `
+          <div class="comment-options">
+            <button class="comment-options-btn">•••</button>
+            <div class="options-menu">
+              <button class="edit-comment-btn">수정</button>
+              <button class="delete-comment-btn">삭제</button>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        <div class="comment-text">${linkify(comment.text)}</div>
+        <div class="comment-actions">
+          <div class="reply-info">
+            ${!isReply ? `
+            <div class="reply-info-item">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"></path></svg>
+              <span>${replies.length}</span>
+            </div>` : ''}
+          </div>
+          ${!isReply ? `<button class="reply-btn">Reply</button>` : ''}
+        </div>
+        ${!isReply && replies.length > 0 ? '<div class="replies-container"></div>' : ''}
+      </div>
+    `;
+
+    const optionsBtn = div.querySelector('.comment-options-btn');
+    if (optionsBtn) {
+      optionsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = optionsBtn.nextElementSibling;
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
       });
+    }
+    return div;
   }
-
-
-  // --- 6. 헬퍼 ---
-  function generateColorFromUid(uid) {
-    if (!uid) return '#cccccc';
-    const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
-    let hash = 0;
-    for (let i = 0; i < uid.length; i++) hash = uid.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
-  }
-
-  // HTML escape + 링크화 (XSS-safe)
-  function escapeHTML(s) {
-    return String(s || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  }
+  
+  // --- 헬퍼 함수 ---
+  function escapeHTML(s) { return String(s || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
   function linkify(text) {
     const safe = escapeHTML(text);
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return safe.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
   }
 
-  function createCommentElement(comment, isReply = false) {
-  const div = document.createElement('div');
-  div.className = 'comment' + (comment.isAutoComment ? ' is-auto' : '') + (isReply ? ' is-reply' : '');
-  div.dataset.commentId = comment.id;
-
-  const date = comment.timestamp?.toDate()?.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }) || '';
-  const nickname = comment.nickname || '알 수 없는 사용자';
-
-  // 아바타 처리
-  let avatarHtml = '';
-  const userCache = (window.fastmateApp && window.fastmateApp.userCache) || {};
-  const fallbackPhoto = userCache[comment.uid]?.photoURL || null;
-
-  if (comment.photoURL || fallbackPhoto) {
-    const url = comment.photoURL || fallbackPhoto;
-    avatarHtml = `<img src="${url}" alt="${nickname}" class="comment-avatar">`;
-  } else {
-    const bgColor = generateColorFromUid(comment.uid);
-    const firstLetter = nickname.charAt(0).toUpperCase();
-    avatarHtml = `<div class="comment-avatar" style="background-color:${bgColor};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">${firstLetter}</div>`;
-  }
-
-  // 내용 링크 처리
-  const linkedText = linkify(comment.text);
-
-    // ▼▼▼ 닉네임, 구분선, 타임스탬프 구조로 변경 ▼▼▼
-    div.innerHTML = `
-      ${avatarHtml}
-      <div class="comment-content">
-        <div class="comment-header">
-          <strong>${nickname}</strong>
-          <span class="comment-separator">|</span>
-          <span class="comment-timestamp">${date}</span>
-        </div>
-        <p style="margin:4px 0;">${linkedText}</p>
-        <div class="comment-footer">
-          ${!isReply ? `<button class="reply-btn" data-target="${comment.id}">답글 달기</button>` : ''}
-        </div>
-        ${!isReply ? `
-        <div class="reply-form" id="rf-${comment.id}" style="display:none; gap:10px; margin-top:8px;">
-          <textarea class="reply-text" rows="1" placeholder="답글을 입력하세요..."></textarea>
-          <button class="onb-btn onb-primary reply-submit" data-target="${comment.id}">등록</button>
-        </div>` : ''}
-      </div>`;
-    return div;
-}
-
-  // --- 7. 이벤트 ---
-  createChallengeBtn?.addEventListener('click', () => {
-    if (!currentUser) return alert('챌린지를 만들려면 로그인이 필요합니다.');
-    const now = new Date(Date.now() + 3600 * 1000);
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    challengeDatePicker.value = `${year}-${month}-${day}`;
-    challengeTimePicker.value = now.toTimeString().slice(0, 5);
-    createChallengeModal.style.display = 'flex';
-  });
-  closeCreateChallengeModalBtn?.addEventListener('click', () => { createChallengeModal.style.display = 'none'; });
-
-saveChallengeBtn?.addEventListener('click', async () => {
-  if (!currentUser || !currentUserProfile) {
-    return alert("사용자 정보가 로딩되지 않았습니다. 잠시 후 다시 시도해주세요.");
-  }
-
-  const fastingHours = parseInt(challengeModelSelect.value, 10);
-  const dateString = challengeDatePicker.value;
-  const timeString = challengeTimePicker.value;
-  const detailedGoal = challengeDetailedGoal.value.trim();
-
-  if (!dateString || !timeString) return alert('시작 날짜와 시간을 모두 선택해주세요.');
-
-  const startTimeDate = new Date(`${dateString}T${timeString}`);
-  if (startTimeDate < new Date()) return alert('시작 시간은 현재 시간 이후여야 합니다.');
-
-  saveChallengeBtn.disabled = true;
-  saveChallengeBtn.textContent = '저장 중...';
-
-  async function createChallenge({ fastingHours, detailedGoal, startTimeDate }) {
-    const user = auth.currentUser;
-    if (!user) throw new Error('로그인이 필요합니다.');
-
-    const profSnap = await db.collection('users').doc(user.uid).get();
-    const nickname = profSnap.exists
-      ? (profSnap.data().nickname || user.displayName || '사용자')
-      : (user.displayName || '사용자');
-
-    const challengeData = {
-      hostUid: user.uid,
-      hostNickname: nickname,
-      challengeName: `${nickname}님의 ${fastingHours}시간 단식`,
-      fastingHours,
-      detailedGoal: detailedGoal || '',
-      startTime: firebase.firestore.Timestamp.fromDate(startTimeDate),
-      status: 'upcoming',
-      participantUids: [user.uid],
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      publicInvite: true
-    };
-
-    const challengeRef = db.collection('challenges').doc();
-    const myParticipantRef = challengeRef.collection('participants').doc(user.uid);
-
-    const batch = db.batch();
-    batch.set(challengeRef, challengeData);
-    batch.set(myParticipantRef, { joinedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    await batch.commit();
-
-    return challengeRef.id;
-  }
-
-  try {
-    const id = await createChallenge({ fastingHours, detailedGoal, startTimeDate });
-    const inviteLink = `${window.location.origin}/challenge-invite.html?id=${id}&autojoin=1`;
-    await navigator.clipboard.writeText(inviteLink);
+  // --- 이벤트 리스너 (모달) ---
+  closeCreateChallengeModalBtn.addEventListener('click', () => {
     createChallengeModal.style.display = 'none';
-    alert('챌린지 생성 완료!\n초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해주세요.');
-    showListView();
-  } catch (error) {
-    console.error("챌린지 생성 오류:", error);
-    alert("챌린지 생성에 실패했습니다. 다시 시도해주세요.");
-  } finally {
-    saveChallengeBtn.disabled = false;
-    saveChallengeBtn.textContent = '저장하고 친구 초대하기';
-  }
-});
+  });
 
+  saveChallengeBtn.addEventListener('click', async () => {
+    const fastingHours = parseInt(challengeModelSelect.value, 10);
+    const dateString = challengeDatePicker.value;
+    const timeString = challengeTimePicker.value;
+    const detailedGoal = challengeDetailedGoal.value.trim();
 
-  submitCommentBtn?.addEventListener('click', async () => {
-    const text = newCommentText.value.trim();
-    if (!text || !currentUser || !currentUserProfile) return;
-    if (!currentChallengeId) {
-      console.error("currentChallengeId가 설정되지 않아 댓글을 등록할 수 없습니다.");
-      return;
-    }
-    submitCommentBtn.disabled = true;
+    if (!dateString || !timeString) return alert('시작 날짜와 시간을 모두 선택해주세요.');
+    const startTimeDate = new Date(`${dateString}T${timeString}`);
+    if (startTimeDate < new Date()) return alert('시작 시간은 현재 시간 이후여야 합니다.');
+
+    saveChallengeBtn.disabled = true;
+    saveChallengeBtn.textContent = '저장 중...';
+
     try {
-      await db.collection('challenges').doc(currentChallengeId).collection('comments').add({
-        uid: currentUser.uid,
-        nickname: currentUserProfile.nickname || currentUser.displayName || '사용자',
-        photoURL: currentUser.photoURL || null,
-        text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        isAutoComment: false,
-        parentId: null
-      });
-      newCommentText.value = '';
-    } catch (error) {
-      console.error("댓글 등록 오류:", error);
-      alert("댓글 등록에 실패했습니다.");
+        const user = auth.currentUser;
+        if (!user) throw new Error('로그인이 필요합니다.');
+
+        const challengeData = {
+          hostUid: user.uid,
+          hostNickname: user.displayName || '사용자',
+          challengeName: `${user.displayName || '사용자'}님의 ${fastingHours}시간 단식`,
+          fastingHours,
+          detailedGoal: detailedGoal || '',
+          startTime: firebase.firestore.Timestamp.fromDate(startTimeDate),
+          status: 'upcoming',
+          participantUids: [user.uid],
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          publicInvite: true
+        };
+        const docRef = await db.collection('challenges').add(challengeData);
+        alert('챌린지 생성 완료!');
+        createChallengeModal.style.display = 'none';
+        showView('list');
+    } catch(error) {
+        console.error("챌린지 생성 오류:", error);
+        alert("챌린지 생성에 실패했습니다.");
     } finally {
-      submitCommentBtn.disabled = false;
+        saveChallengeBtn.disabled = false;
+        saveChallengeBtn.textContent = '저장하고 친구 초대하기';
     }
   });
 
-  commentFeed.addEventListener('click', async (e) => {
-  const btn = e.target.closest('.reply-btn');
-  const submit = e.target.closest('.reply-submit');
-  if (!currentUser || !currentUserProfile || !currentChallengeId) return;
 
-  // 폼 열기/닫기
-  if (btn) {
-    const id = btn.dataset.target;
-    const form = document.getElementById(`rf-${id}`);
-    if (form) form.style.display = form.style.display === 'none' ? 'flex' : 'none';
-    return;
-  }
-
-  // 답글 등록
-  if (submit) {
-    const parentId = submit.dataset.target;
-    const form = document.getElementById(`rf-${parentId}`);
-    if (!form) return;
-    const textarea = form.querySelector('.reply-text');
-    const text = (textarea?.value || '').trim();
-    if (!text) return;
-
-    submit.disabled = true;
-    try {
-      await db.collection('challenges').doc(currentChallengeId).collection('comments').add({
-        uid: currentUser.uid,
-        nickname: currentUserProfile.nickname || currentUser.displayName || '사용자',
-        photoURL: currentUser.photoURL || null,
-        text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        isAutoComment: false,
-        parentId
-      });
-      textarea.value = '';
-      form.style.display = 'none';
-    } catch (err) {
-      console.error('답글 등록 오류:', err);
-      alert('답글 등록에 실패했습니다.');
-    } finally {
-      submit.disabled = false;
-    }
-  }
-});
-
-
-  // --- 8. 앱 초기화 ---
-  auth.onAuthStateChanged(async (user) => {
+  // --- 초기화 ---
+  auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
-      currentUserProfile = await window.fastmateApp.getUserDoc(user.uid);
-      showListView();
+      showView('list');
     } else {
       currentUser = null;
-      currentUserProfile = null;
-      createChallengeBtn.style.display = 'none';
-      challengeListDiv.innerHTML = `
-        <div class="card" style="text-align: center;">
-          <p>챌린지 기능을 사용하려면 로그인이 필요합니다.</p>
-          <button onclick="window.location.href='login.html'" class="onb-btn onb-primary">로그인 페이지로 이동</button>
-        </div>
-      `;
+      document.body.innerHTML = `<div class="container" style="text-align:center; padding-top: 50px;">챌린지 기능을 사용하려면 로그인이 필요합니다.</div>`;
     }
   });
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.options-menu').forEach(menu => menu.style.display = 'none');
+  });
+
 });
 </script>
+
 </body>
 </html>
+
