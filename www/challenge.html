@@ -426,15 +426,14 @@ function showView(viewName, challengeId = null) {
 }
 
 // 모달 핸들러 바인딩
-// 페이지 시작 시 한 번만 등록
-// 페이지 시작 시 한 번만 등록 (모달 열기/닫기 + 폼 제출)
-(function bindCreateModalDelegation () {
+// ===== 모달(열기/닫기) + 폼 제출: 단일 위임 버전 =====
+(function bindCreateModalOnce () {
   if (window.__BIND_CREATE_MODAL__) return;
   window.__BIND_CREATE_MODAL__ = true;
 
-  // --- 1) 클릭 위임: 헤더 재렌더/DOM 순서와 무관하게 동작 ---
+  // 클릭 위임: 어디서든 동작
   document.addEventListener('click', (e) => {
-    const modal = document.getElementById('createChallengeModal'); // 매번 조회
+    const modal = document.getElementById('createChallengeModal');
     if (!modal) return;
 
     const openBtn  = e.target.closest('#createChallengeBtnHeader');
@@ -442,65 +441,56 @@ function showView(viewName, challengeId = null) {
 
     if (openBtn) {
       modal.style.display = 'flex';
-      // 최근 선택값 복원(없으면 16)
       const sel = document.getElementById('fastingModelSelect');
       if (sel) sel.value = localStorage.getItem('fm_model') || '16';
       return;
     }
-    if (closeBtn) {
-      modal.style.display = 'none';
-      return;
-    }
-    if (e.target === modal) {
-      modal.style.display = 'none'; // 오버레이 클릭 닫기
-    }
+    if (closeBtn) { modal.style.display = 'none'; return; }
+    if (e.target === modal) modal.style.display = 'none'; // 오버레이 클릭 닫기
   });
 
-  // --- 2) 제출 위임: #createChallengeForm만 가로채기 ---
+  // 제출 위임: 생성 폼만 가로챔
   document.addEventListener('submit', async (e) => {
     const form = e.target.closest('#createChallengeForm');
-    if (!form) return;               // 다른 폼은 무시
+    if (!form) return;
     e.preventDefault();
 
+    if (!currentUser) { alert('로그인이 필요합니다'); return; }
+
+    const desc         = (document.getElementById('cc-desc').value || '').trim();
+    const startDateVal = document.getElementById('cc-start').value || null;
+    const visibility   = (document.querySelector('input[name="visibility"]:checked')?.value) || 'private';
+
+    // 단식 모델
+    const sel          = document.getElementById('fastingModelSelect');
+    const modelMinutes = parseInt(sel?.value || '16', 10);
+    let modelLabel     = sel?.selectedOptions?.[0]?.textContent || '16:8';
+    modelLabel         = modelLabel.split('(')[0].trim();
+    try { localStorage.setItem('fm_model', String(modelMinutes)); } catch {}
+
+    // 호스트 닉네임/프로필
+    const ownerName     = currentUserProfile?.nickname || currentUser.displayName || '사용자';
+    const ownerPhotoURL = currentUserProfile?.photoURL || currentUser.photoURL || null;
+
+    // 제목: <호스트닉네임 + 단식모델>
+    const finalName = `${ownerName} ${modelLabel}`;
+
+    // Timestamp
+    const startTs = startDateVal
+      ? firebase.firestore.Timestamp.fromDate(new Date(startDateVal))
+      : firebase.firestore.FieldValue.serverTimestamp();
+
+    // 날짜/시간 캐시
+    const fmtDate = (d) => { try { return d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'});} catch { return '-'; } };
+    const fmtTime = (d) => { try { return d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'});} catch { return '-'; } };
+    let startDateStr = '-', startTimeStr = '-';
+    if (startDateVal) {
+      const d = new Date(startDateVal);
+      startDateStr = fmtDate(d);
+      startTimeStr = fmtTime(d);
+    }
+
     try {
-      if (!currentUser) {
-        alert('로그인이 필요합니다');
-        return;
-      }
-
-      const desc = (document.getElementById('cc-desc').value || '').trim();
-      const startDateVal = document.getElementById('cc-start').value || null;
-      const visibility = (document.querySelector('input[name="visibility"]:checked')?.value) || 'private';
-
-      // 단식 모델
-      const sel = document.getElementById('fastingModelSelect');
-      const modelMinutes = parseInt(sel?.value || '16', 10);
-      let modelLabel = sel?.selectedOptions?.[0]?.textContent || '16:8';
-      modelLabel = modelLabel.split('(')[0].trim();
-      try { localStorage.setItem('fm_model', String(modelMinutes)); } catch {}
-
-      // 호스트 표시용
-      const ownerName     = currentUserProfile?.nickname || currentUser.displayName || '사용자';
-      const ownerPhotoURL = currentUserProfile?.photoURL || currentUser.photoURL || null;
-
-      // 제목 자동 생성: <호스트닉네임 + 단식모델>
-      const finalName = `${ownerName} ${modelLabel}`;
-
-      // 시작시각(Timestamp)
-      const startTs = startDateVal
-        ? firebase.firestore.Timestamp.fromDate(new Date(startDateVal))
-        : firebase.firestore.FieldValue.serverTimestamp();
-
-      // 날짜/시간 캐시
-      const fmtDate = (d) => { try { return d.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' }); } catch { return '-'; } };
-      const fmtTime = (d) => { try { return d.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }); } catch { return '-'; } };
-      let startDateStr = '-', startTimeStr = '-';
-      if (startDateVal) {
-        const d = new Date(startDateVal);
-        startDateStr = fmtDate(d);
-        startTimeStr = fmtTime(d);
-      }
-
       // Firestore payload
       const payload = {
         // 쿼리/권한
@@ -520,7 +510,7 @@ function showView(viewName, challengeId = null) {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         memberCount: 1,
 
-        // 모델 정보
+        // 모델
         fastingModelMinutes: modelMinutes,
         fastingModelLabel: modelLabel,
 
@@ -542,7 +532,7 @@ function showView(viewName, challengeId = null) {
           joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
 
-      // (선택) 그룹단식 전환 함수가 있다면 호출
+      // (선택) 개인 단식 → 그룹단식 전환
       if (typeof switchToGroupFasting === 'function') {
         try { await switchToGroupFasting(currentUser.uid, docRef.id, modelMinutes, startTs); } catch {}
       }
@@ -551,146 +541,12 @@ function showView(viewName, challengeId = null) {
       const modal = document.getElementById('createChallengeModal');
       if (modal) modal.style.display = 'none';
       showView('list');
-
     } catch (err) {
       console.error('챌린지 생성 오류:', err);
       alert('챌린지 생성 중 오류가 발생했습니다');
     }
   });
 })();
-
-
-  // --- 기존 단식 → 그룹단식으로 스위치: active → logs 기록 후 새 active 생성 ---
-  async function switchToGroupFasting(uid, challengeId, modelMinutes, startTs) {
-    try {
-      const userRef = db.collection('users').doc(uid);
-      const activeRef = userRef.collection('activeFasting').doc('current');
-      const logCol = userRef.collection('fastingLogs');
-
-      const activeSnap = await activeRef.get();
-      if (activeSnap.exists) {
-        const data = activeSnap.data() || {};
-        await logCol.add({
-        ...data,
-        endedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        endReason: 'switched_to_group',
-        toChallengeId: challengeId,
-      });
-        await activeRef.delete();
-      }
-
-      await activeRef.set({
-        startedAt: startTs,                    // Firestore Timestamp
-        modelMinutes,
-        challengeId,
-        source: 'group',
-        status: 'active',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-    } catch (err) {
-      console.error('그룹 단식 전환 오류:', err);
-      // 전환 실패해도 챌린지 생성 자체는 계속됨
-    }
-  }
-
-  // --- 폼 제출 ---
-  if (form && !window.__BIND_CREATE_FORM__) {
-    window.__BIND_CREATE_FORM__ = true;
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!currentUser) { alert('로그인이 필요합니다'); return; }
-
-      // 입력값
-      const desc = (document.getElementById('cc-desc').value || '').trim();
-      const startDateVal = document.getElementById('cc-start').value || null;
-      const visibility = (document.querySelector('input[name="visibility"]:checked')?.value) || 'private';
-
-      // 단식모델
-      const sel = document.getElementById('fastingModelSelect');
-      const modelMinutes = parseInt(sel?.value || '16', 10); // 기본 16:8
-      let modelLabel = sel?.selectedOptions?.[0]?.textContent || '16:8';
-      // 괄호 앞까지만(예: "18:6 (인기)") → "18:6"
-      modelLabel = modelLabel.split('(')[0].trim();
-
-      // 호스트 표시용
-      const ownerName = currentUserProfile?.nickname || currentUser.displayName || '사용자';
-      const ownerPhotoURL = currentUserProfile?.photoURL || currentUser.photoURL || null;
-
-      // 제목 자동 생성: <호스트아이디 + 단식모델>
-      const finalName = `${ownerName} ${modelLabel}`;
-
-      // 시작시각
-      const startTs = startDateVal
-        ? firebase.firestore.Timestamp.fromDate(new Date(startDateVal))
-        : firebase.firestore.FieldValue.serverTimestamp();
-
-      // 날짜/시간 분리 문자열(캐시)
-      const fmtDate = (d) => { try { return d.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' }); } catch { return '-'; } };
-      const fmtTime = (d) => { try { return d.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }); } catch { return '-'; } };
-      let startDateStr = '-', startTimeStr = '-';
-      if (startDateVal) {
-        const d = new Date(startDateVal);
-        startDateStr = fmtDate(d);
-        startTimeStr = fmtTime(d);
-      }
-
-      try {
-        // 챌린지 문서
-        const payload = {
-          // 쿼리/권한
-          startTime: startTs,
-          participantUids: [currentUser.uid],
-          hostUid: currentUser.uid,
-
-          // 표시/메타
-          challengeName: finalName,
-          description: desc,
-          hostName: ownerName,
-          ownerName,
-          ownerPhotoURL,
-          visibility,
-          isBeta: true,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          memberCount: 1,
-
-          // 모델 정보
-          fastingModelMinutes: modelMinutes,   // 예: 16, 18, 24...
-          fastingModelLabel: modelLabel,       // 예: "16:8", "24시간" 등
-
-          // 날짜/시간 캐시
-          startDateStr,
-          startClockStr: startTimeStr
-        };
-
-        const docRef = await db.collection('challenges').add(payload);
-
-        // 멤버(호스트) 등록
-        await db.collection('challenges').doc(docRef.id)
-          .collection('members').doc(currentUser.uid)
-          .set({
-            uid: currentUser.uid,
-            nickname: ownerName,
-            photoURL: ownerPhotoURL || null,
-            role: 'owner',
-            joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          });
-
-        // ✅ 그룹단식으로 전환(호스트 본인)
-        await switchToGroupFasting(currentUser.uid, docRef.id, modelMinutes, startTs);
-
-        // 닫기 + 목록 갱신
-        modal.style.display = 'none';
-        showView('list');
-      } catch (err) {
-        console.error('챌린지 생성 오류:', err);
-        alert('챌린지 생성 중 오류가 발생했습니다');
-      }
-    });
-  }
-})();
-
 
   // --- 챌린지 목록 (페이징 적용) ---
   async function loadAndRenderChallenges() {
@@ -914,10 +770,7 @@ function renderChallengeInfo(ch) {
   `;
 
 
-  allChallenges = snapshot.docs.map(doc => ({
-  id: doc.id,
-  ...doc.data()
-})); 
+ allChallenges = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
   // 링크 복사(상세 URL)
   document.getElementById('shareLinkBtn')?.addEventListener('click', async () => {
@@ -1075,6 +928,7 @@ function renderChallengeInfo(ch) {
             }
         }
     });
+  
 
   // --- 헬퍼 함수 ---
   function escapeHTML(s) { return String(s || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
@@ -1104,7 +958,7 @@ function renderChallengeInfo(ch) {
   document.addEventListener('click', () => {
     document.querySelectorAll('.options-menu').forEach(menu => menu.style.display = 'none');
   });
-
+})
 </script>
 
 </body>
