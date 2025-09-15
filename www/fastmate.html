@@ -407,12 +407,17 @@ document.addEventListener('DOMContentLoaded', () => {
         __fastTimer = setInterval(tickOnce, 1000);
     };
 
-    function tickOnce() {
+function tickOnce() {
         const now = Date.now();
-        const remain = Math.max(0, __fastEndMs - now);
-        renderRemain(remain);
+        const diffMs = __fastEndMs - now; // 남은 시간 (음수일 수 있음)
+        const remainForProgress = Math.max(0, diffMs); // 진행률 계산용 (0 이하로 안내려감)
+        const displayMs = Math.abs(diffMs); // 화면 표시용 (항상 양수)
+
+        renderRemain(displayMs); // 화면에는 절대값으로 변환된 시간을 표시
+
         if (__fastTotalMs > 0) {
-            const ratio = 1 - (remain / __fastTotalMs);
+            // 진행률은 기존 로직대로 100%를 넘지 않도록 계산
+            const ratio = 1 - (remainForProgress / __fastTotalMs);
             const progressPercent = ratio * 100;
             renderProgress(ratio);
             checkMilestones(progressPercent);
