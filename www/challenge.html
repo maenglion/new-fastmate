@@ -36,6 +36,26 @@
       --border-color: #333333;
     }
 
+     /* 다크/라이트 아이콘 (fastmate 기본 다크모드와 함께 동작) */
+  :root{
+    --icon-people: url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595393/people_fh71ri.png");
+    --icon-date:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/date_w4uttj.png");
+    --icon-time:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/time-dark_auvyve.png");
+    --icon-goal:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595329/goal_icon_ldahyt.png");
+    --icon-link:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/link2_r0oqsl.png");
+    --icon-public:  url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757647503/unlock_gvi917.png");
+    --icon-private: url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757647503/lock_j6pf7l.png");
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --icon-people: url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595393/people-dark_onohwu.png");
+      --icon-date:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/date-dark_ntcjc4.png");
+      --icon-time:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/time-dark_auvyve.png");
+      --icon-goal:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/goal_icon-dark_c8xyn6.png");
+      --icon-link:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/link2-dark_rwt5ya.png");
+    }
+  }
+
     /* --- 기본 레이아웃 --- */
     body {
       background-color: var(--bg-color);
@@ -199,84 +219,55 @@
     body.dark-mode .delete-challenge-btn { background-color: #333; }
     body.dark-mode .delete-challenge-btn:hover { background-color: #555; }
 
-    /* --- 댓글 (Threads UI) --- */
-    .comment-section { padding-top: 20px; }
-    .comment { display: flex; gap: 12px; margin-bottom: 20px; position: relative; }
-    .comment-avatar-column { display: flex; flex-direction: column; align-items: center; }
-    .comment-avatar {
-      width: 32px; height: 32px; border-radius: 50%; /* 작고 동그란 프로필 */
-      background-color: var(--primary-light); color: var(--primary-color);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; flex-shrink: 0; object-fit: cover;
-    }
-    .thread-line { /* 답글 연결선 */
-      width: 2px;
-      background-color: var(--border-color);
-      flex-grow: 1;
-      margin-top: 8px;
-    }
-    .comment-main { flex-grow: 1; }
-    .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .comment-author-info { display: flex; align-items: center; gap: 8px; }
-    .comment-author { font-weight: bold; font-size: 0.95rem; color: var(--text-color);}
-    .comment-timestamp { font-size: 0.85rem; color: var(--text-light); }
-    .comment-options-btn { background: none; border:none; cursor: pointer; padding: 5px; color: var(--text-light); }
+     /* 타임라인(페이스북풍) */
+  .comment-section { margin-top: 20px; }
+  .comment-section h4 { margin: 0 0 12px; font-weight: 700; }
+  #commentFeed { position: relative; }
+  .comment { display:flex; gap:10px; margin: 10px 0; }
+  .comment.reply { margin-left: 44px; } /* 대댓글 들여쓰기 */
+  .comment-avatar-column { position: relative; width: 34px; display:flex; justify-content:center; }
+  .comment-avatar {
+    width: 32px; height: 32px; border-radius: 999px; background:#ddd; object-fit:cover;
+  }
+  .comment.reply .comment-avatar { width: 19px; height: 19px; } /* 대댓글 60% */
+  .thread-line{ position:absolute; top:32px; bottom:-8px; left:50%; width:2px; background: var(--border-color); transform:translateX(-50%); }
+  .comment-main { flex:1; }
+  .comment-bubble{
+    background: var(--bg-color);
+    border:1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .comment-header{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .comment-author{ font-weight: 700; }
+  .comment-timestamp{ color: var(--text-light); font-size: .85rem; }
+  .comment-text{ white-space: pre-wrap; word-break: break-word; }
+  .comment-actions{ display:flex; justify-content:flex-end; margin-top:6px; }
+  .comment-actions .reply-btn{ background: none; border: none; color: var(--text-light); cursor:pointer; }
+  .replies-container{ margin-top:6px; }
+  .auto-log{ color: var(--primary-color); font-weight:700; }  /* 자동 수집(케톤/체중/혈당/운동) */
+  .mention{ color: var(--primary-color); font-weight:700; }   /* @아이디 표시 */
 
-    .comment-text { margin: 0 0 8px; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
-    .comment-actions { display: flex; align-items: center; justify-content: space-between; }
-    .reply-info { display: flex; align-items: center; gap: 8px; color: var(--text-light); font-size: 0.85rem; }
-    .reply-info-item { display: flex; align-items: center; gap: 4px; }
-    .reply-info-item svg { width: 16px; height: 16px; }
-    .reply-btn { background: none; border: none; color: var(--text-light); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 4px; }
+  /* 입력창(페북처럼 placeholder 클릭 → 모달) */
+  .add-comment-bar{
+    display:flex; align-items:center; gap:10px; margin-top: 12px;
+    border:1px solid var(--border-color); border-radius: 999px; padding:10px 14px; background: var(--card-bg);
+  }
+  .add-comment-bar input{
+    flex:1; border:none; outline:none; background:transparent; color:var(--text-light);
+  }
 
-    /* 내 댓글 옵션(...) 메뉴 */
-    .comment-options { position: relative; }
-    .options-menu {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: 24px;
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 10;
-      width: 100px;
-      overflow: hidden;
-    }
-    .options-menu button {
-      display: block;
-      width: 100%;
-      padding: 10px 12px;
-      background: none;
-      border: none;
-      color: var(--text-color);
-      text-align: left;
-      cursor: pointer;
-    }
-    .options-menu button:hover { background-color: var(--bg-color); }
+  /* 상세 카드 우측 아이콘 버튼 */
+  .detail-actions { position:absolute; top:12px; right:12px; display:flex; gap:8px; }
+  .icon-ghost-btn {
+    width:36px; height:36px; border-radius:8px; border:1px solid var(--border-color);
+    background:var(--card-bg); display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .icon-ghost-btn .icon { width:20px; height:20px; display:block; background-size:contain; background-repeat:no-repeat; }
 
-    /* === 아이콘 URL (라이트/다크) === */
-:root {
-  --icon-people: url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595393/people_fh71ri.png");
-  --icon-date:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/date_w4uttj.png");
-  --icon-time:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/time-dark_auvyve.png");
-  --icon-goal:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595329/goal_icon_ldahyt.png");
-  --icon-link:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/link2_r0oqsl.png");
+  .card-visibility .lock{ width:18px; height:18px; display:inline-block; background-size:contain; background-repeat:no-repeat; }
 
-  /* 공개/비공개 공통 아이콘 */
-  --icon-public:  url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757647503/unlock_gvi917.png");
-  --icon-private: url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757647503/lock_j6pf7l.png");
-}
-
-/* 다크 모드용 아이콘 스왑 */
-body.dark-mode {
-  --icon-people: url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595393/people-dark_onohwu.png");
-  --icon-date:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/date-dark_ntcjc4.png");
-  --icon-time:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/time-dark_auvyve.png");
-  --icon-goal:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/goal_icon-dark_c8xyn6.png");
-  --icon-link:   url("https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/link2-dark_rwt5ya.png");
-}
 
 /* 메타 아이콘 공통 규격 */
 .meta-item .icon, .challenge-meta .meta-row .icon {
@@ -329,7 +320,12 @@ body.dark-mode {
         <button id="submitCommentBtn" class="onb-btn onb-primary">등록</button>
       </div>
       <div id="commentFeed"></div>
-    </section>
+      <!-- 입력창 placeholder (클릭하면 모달 오픈) -->
+  <div class="add-comment-bar">
+    <img id="myAvatar" class="comment-avatar" alt="me">
+    <input id="openCommentModal" type="text" placeholder="댓글을 남겨보세요" readonly>
+  </div>
+</section>
   </div><!-- /#challengeDetailView -->
 
   <!-- 생성 모달(목록/상세와 '형제' 위치) -->
@@ -465,6 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUserProfile = null;    // ✅ 추가
 let currentChallengeId = null;    // ✅ 추가
 let replyingParentId = null;  // ✅ 추가
+let modalMode = 'comment';   // 'comment' | 'reply'
+
   const ITEMS_PER_PAGE = 20; // 페이지 당 20개씩
 
   // --- DOM 요소 ---
@@ -784,259 +782,260 @@ function renderDetailHeader(challenge) {
     </button>
     <div class="page-title-group">
       <h1 class="page-title" style="font-size: 1.2rem;">${escapeHTML(challenge.challengeName)}</h1>
-      <span class="beta-tag">BETA</span>
-    </div>
+     </div>
     <div style="width: 40px;"></div>
   `;
   document.getElementById('backToListBtn')?.addEventListener('click', () => showView('list'));
 }  
 
 
-function renderChallengeInfo(ch) {
-  const $info = document.getElementById('challengeInfo');
-  if (!$info) return;
-
-  // 백업 포맷
+function renderChallengeInfo(ch){
+  const $info = document.getElementById('challengeInfo'); if(!$info) return;
+  const isPrivate = (ch.visibility||'private')==='private';
   const d = ch.startTime?.toDate?.();
-  const dateStr = ch.startDateStr || (d ? d.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' }) : '-');
-  const timeStr = ch.startClockStr || (d ? d.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }) : '-');
-  const memberCount = Array.isArray(ch.participantUids) ? ch.participantUids.length : (ch.memberCount || 1);
-  const desc = (ch.description || '').trim();
-  const goal = (ch.detailedGoal || '').trim();
-  const isPrivate = (ch.visibility || 'private') === 'private';
+  const dateStr = d ? d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}) : '-';
+  const timeStr = d ? d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) : '-';
+  const memberCount = Array.isArray(ch.participantUids)? ch.participantUids.length : (ch.memberCount||1);
+  const desc = (ch.description||'').trim();
+  const goal = (ch.detailedGoal||'').trim();
 
   $info.innerHTML = `
     <div class="card challenge-details" style="position:relative;">
-      <!-- 상단 액션 (링크, 수정, 삭제) -->
       <div class="detail-actions">
         <button id="shareLinkBtn" class="icon-ghost-btn" title="링크 공유">
-          <span class="icon" style="background-image: var(--icon-link);"></span>
+          <span class="icon" style="background-image:var(--icon-link)"></span>
         </button>
         <button id="editChallengeBtn" class="icon-ghost-btn" title="수정">🖊️</button>
         <button id="deleteChallengeBtn" class="icon-ghost-btn" title="삭제">🗑️</button>
       </div>
 
-      <div class="challenge-title-row">
-        <h2 class="challenge-title" style="margin-right:8px;">${escapeHTML(ch.challengeName || '-')}</h2>
-        <!-- BETA 뱃지 제거 -->
-        <div class="card-visibility" title="${isPrivate ? '비공개' : '공개'}">
-          <span class="lock" style="background-image: var(${isPrivate ? '--icon-private' : '--icon-public'});"></span>
+      <div class="challenge-title-row" style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
+        <h2 class="challenge-title" style="margin:0;">${escapeHTML(ch.challengeName||'-')}</h2>
+        <div class="card-visibility" title="${isPrivate?'비공개':'공개'}">
+          <span class="lock" style="background-image:var(${isPrivate?'--icon-private':'--icon-public'})"></span>
         </div>
       </div>
 
       ${desc ? `<p class="challenge-desc">${escapeHTML(desc)}</p>` : ``}
 
       <ul class="challenge-meta-list">
-        <li class="meta-item">
-          <span class="icon" style="background-image: var(--icon-people);"></span>
-          <div class="meta-text">
-            <div class="meta-label">참여자</div>
-            <div class="meta-value">${memberCount}명</div>
-          </div>
-        </li>
-
-        <li class="meta-item">
-          <span class="icon" style="background-image: var(--icon-date);"></span>
-          <div class="meta-text">
-            <div class="meta-label">날짜</div>
-            <div class="meta-value">${dateStr}</div>
-          </div>
-        </li>
-
-        <li class="meta-item">
-          <span class="icon" style="background-image: var(--icon-time);"></span>
-          <div class="meta-text">
-            <div class="meta-label">시작시간</div>
-            <div class="meta-value">${timeStr}</div>
-          </div>
-        </li>
-
-        ${goal ? `
-        <li class="meta-item">
-          <span class="icon" style="background-image: var(--icon-goal);"></span>
-          <div class="meta-text">
-            <div class="meta-label">목표</div>
-            <div class="meta-value">${escapeHTML(goal)}</div>
-          </div>
-        </li>` : ``}
+        <li class="meta-item"><span class="icon" style="background-image:var(--icon-people)"></span><div class="meta-text"><div class="meta-label">참여자</div><div class="meta-value">${memberCount}명</div></div></li>
+        <li class="meta-item"><span class="icon" style="background-image:var(--icon-date)"></span><div class="meta-text"><div class="meta-label">날짜</div><div class="meta-value">${dateStr}</div></div></li>
+        <li class="meta-item"><span class="icon" style="background-image:var(--icon-time)"></span><div class="meta-text"><div class="meta-label">시작시간</div><div class="meta-value">${timeStr}</div></div></li>
+        ${goal ? `<li class="meta-item"><span class="icon" style="background-image:var(--icon-goal)"></span><div class="meta-text"><div class="meta-label">목표</div><div class="meta-value">${escapeHTML(goal)}</div></div></li>` : ``}
       </ul>
     </div>
   `;
 
- allChallenges = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
- // 링크 공유: 아이콘 버튼만 (복사 텍스트 버튼 제거)
-  document.getElementById('shareLinkBtn')?.addEventListener('click', async () => {
+  // 링크 공유
+  document.getElementById('shareLinkBtn')?.addEventListener('click', async ()=>{
     const url = `${location.origin}/challenge-invite.html?id=${encodeURIComponent(ch.id)}`;
-    try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요'); }
-    catch { prompt('아래 링크를 복사하세요', url); }
+    try{ await navigator.clipboard.writeText(url); toast('링크를 복사했어요'); }
+    catch{ prompt('아래 링크를 복사하세요', url); }
   });
 
-  // 수정: 시작 30분 전까지 가능
-  document.getElementById('editChallengeBtn')?.addEventListener('click', () => {
-    const now = Date.now();
-    const startMs = ch.startTime?.toDate?.()?.getTime?.() || now;
-    if (startMs - now < 30*60*1000) {
-      return toast('챌린지는 시작 30분전까지 수정 가능합니다.');
-    }
-    openEditChallengeModal(ch); // 아래에 모달 함수 추가
+  // 수정: 시작 30분 전까지만
+  document.getElementById('editChallengeBtn')?.addEventListener('click', ()=>{
+    const startMs = ch.startTime?.toDate?.()?.getTime?.() || 0;
+    if (startMs - Date.now() < 30*60*1000) return toast('챌린지는 시작 30분전까지 수정 가능합니다.');
+    openEditChallengeModal(ch);
   });
-
 
   // 삭제
-  document.getElementById('deleteChallengeBtn')?.addEventListener('click', async () => {
-    if (!confirm('정말 삭제할까요?')) return;
-    try {
-      await db.collection('challenges').doc(ch.id).delete();
-      toast('삭제되었습니다.');
-      showView('list');
-    } catch (e) {
-      console.error(e);
-      toast('삭제 중 오류가 발생했습니다.');
-    }
+  document.getElementById('deleteChallengeBtn')?.addEventListener('click', async ()=>{
+    if(!confirm('정말 삭제할까요?')) return;
+    await db.collection('challenges').doc(ch.id).delete();
+    toast('삭제되었습니다.'); showView('list');
   });
 }
 
-async function renderComments(challengeId) {
-  const snapshot = await db.collection('challenges').doc(challengeId)
-    .collection('comments').orderBy('timestamp', 'asc').get();
 
-  commentFeed.innerHTML = '';
-  const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  // 트리 구성
-  const commentTree = {};
-  comments.forEach(c => {
-    if (c.parentId) {
-      (commentTree[c.parentId] ||= []).push(c);
+/* ===== 유틸 ===== */
+const $ = s => document.querySelector(s);
+function toast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:#000a;color:#fff;padding:10px 14px;border-radius:8px;z-index:99999';
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 1600);
+}
+function initials2(name='사용자'){ const s=String(name).trim().replace(/\s+/g,''); return s.slice(0,2)||'유저'; }
+function ymdhm(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function relativeOrDate(ts){
+  const d = ts?.toDate?.(); if(!d) return '';
+  const diffH = (Date.now()-d.getTime())/36e5;
+  if (diffH < 1) { const m=Math.max(1, Math.floor(diffH*60)); return `${m}분 전`; }
+  if (diffH < 24) { const h=Math.max(1, Math.floor(diffH)); return `${h}시간 전`; }
+  return ymdhm(d);
+}
+function linkify(s=''){ return String(s).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>'); }
+
+/* 자동 수집 로그 → 초록 굵게 */
+function renderCommentText(text='', isAuto){
+  const safe = text.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const html = linkify(safe);
+  return isAuto ? `<span class="auto-log">${html}</span>` : html;
+}
+
+
+/* 내 아바타 기본 세팅 (구글 이미지) */
+auth.onAuthStateChanged(u=>{
+  currentUser=u||null;
+  const avatar = $('#myAvatar');
+  if (avatar) {
+    if (u?.photoURL) avatar.src = u.photoURL;
+    else {
+      avatar.removeAttribute('src');
+      avatar.style.background='#ddd';
     }
-  });
+  }
+});
 
-  // 총합: 댓글 + 대댓글
-  const totalCount = comments.length;
-  // 섹션 타이틀 갱신
-  const section = document.querySelector('.comment-section > h4');
-  if (section) section.textContent = `챌린지 타임라인 (${totalCount})`;
+/* ===== 타임라인 렌더 ===== */
+async function renderComments(chId){
+  currentChallengeId = chId;
+  const snap = await db.collection('challenges').doc(chId)
+    .collection('comments').orderBy('timestamp','asc').get();
 
-  // 최상위 댓글 렌더
-  comments.filter(c => !c.parentId).forEach(comment => {
-    const replies = commentTree[comment.id] || [];
-    const commentDiv = createCommentElement(comment, replies);
-    commentFeed.appendChild(commentDiv);
+  const docs = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  const feed = $('#commentFeed'); feed.innerHTML='';
+
+  // 트리 구성 + 총합(댓글+대댓글)
+  const childrenMap = {};
+  docs.forEach(c=>{ if(c.parentId){ (childrenMap[c.parentId] ||= []).push(c); } });
+  const total = docs.length;
+  $('#commentTitle').textContent = `챌린지 타임라인 (${total})`;
+
+  // 최상위 댓글부터 렌더
+  docs.filter(c=>!c.parentId).forEach(c=>{
+    const replies = childrenMap[c.id] || [];
+    feed.appendChild(createCommentEl(c, replies, false));
   });
 }
 
-function createCommentElement(comment, replies = [], isReply = false) {
-  const div = document.createElement('div');
-  div.className = 'comment' + (isReply ? ' reply' : '');
+/* 코멘트 엘리먼트 (페이스북풍) */
+function createCommentEl(c, replies=[], isReply=false){
+  const wrap = document.createElement('div');
+  wrap.className = 'comment' + (isReply?' reply':'');
 
-  const isMyComment = currentUser && currentUser.uid === comment.uid;
-  const nick = comment.nickname || '사용자';
-  const tsText = formatRelativeOrDate(comment.timestamp);
+  const nick = c.nickname || '사용자';
+  const ts = relativeOrDate(c.timestamp);
 
-  // 아바타: 사진 or 2글자 이니셜
-  const avatarHtml = comment.photoURL
-    ? `<img src="${comment.photoURL}" alt="${escapeHTML(nick)}" class="comment-avatar">`
-    : `<div class="comment-avatar" style="background-color: var(--primary-light); color: var(--primary-color); font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center;">${escapeHTML(initials2(nick))}</div>`;
+  // 아바타(구글 이미지, 없으면 이니셜 2글자)
+  let avatarHtml = '';
+  if (c.photoURL) avatarHtml = `<img src="${c.photoURL}" alt="${nick}" class="comment-avatar">`;
+  else avatarHtml = `<div class="comment-avatar" style="background:#e5e5e5;display:flex;align-items:center;justify-content:center;color:#555;font-weight:700;">${initials2(nick)}</div>`;
 
-  div.innerHTML = `
+  // 본문 (자동 로그는 초록 굵게)
+  let textHtml = renderCommentText(c.text||'', !!c.isAutoComment);
+
+  // 대댓글이면 @부모 닉네임이 없을 때 자동 프리픽스
+  if (isReply && !/^@\S+/.test(c.text||'')) {
+    textHtml = `<span class="mention">@${c.parentNickname || c.parentId || ''}</span> ` + textHtml;
+  }
+
+  wrap.innerHTML = `
     <div class="comment-avatar-column">
       ${avatarHtml}
-      ${!isReply && replies.length > 0 ? '<div class="thread-line"></div>' : ''}
+      ${!isReply && replies.length>0 ? '<div class="thread-line"></div>': ''}
     </div>
     <div class="comment-main">
-      <div class="comment-header">
-        <div class="comment-author-info">
-          <span class="comment-author" style="font-weight:700;">${escapeHTML(nick)}</span>
-          <span class="comment-timestamp">${tsText}</span>
+      <div class="comment-bubble">
+        <div class="comment-header">
+          <span class="comment-author">${nick}</span>
+          <span class="comment-timestamp">${ts}</span>
         </div>
-        ${isMyComment ? `
-        <div class="comment-options">
-          <button class="comment-options-btn">•••</button>
-          <div class="options-menu">
-            <button class="edit-comment-btn" data-id="${comment.id}">수정</button>
-            <button class="delete-comment-btn" data-id="${comment.id}">삭제</button>
-          </div>
-        </div>` : ``}
+        <div class="comment-text">${textHtml}</div>
+        <div class="comment-actions">
+          ${!isReply ? `<button class="reply-btn" data-target="${c.id}" data-nick="${nick}">답글달기</button>` : ''}
+        </div>
+
+        ${!isReply && replies.length>0 ? `
+          <button class="onb-btn" data-toggle="${c.id}" style="margin-top:6px;">▽ 답글 ${replies.length}개 보기</button>
+          <div class="replies-container" id="rc-${c.id}" style="display:none;"></div>
+        `: (!isReply ? `<div class="replies-container" id="rc-${c.id}" style="display:none;"></div>` : ``)}
       </div>
-
-      <div class="comment-text">${linkify(comment.text || '')}</div>
-
-      <div class="comment-actions">
-        <div class="reply-info" style="visibility:hidden;"></div>
-        ${!isReply ? `<button class="reply-btn" data-target="${comment.id}">답글달기</button>` : ``}
-      </div>
-
-      ${!isReply && replies.length > 0 ? `
-        <button class="onb-btn" data-toggle-replies="${comment.id}" style="margin-top:6px;">▽ 답글 ${replies.length}개 보기</button>
-        <div class="replies-container" id="rc-${comment.id}" style="display:none; margin-left:12px; margin-top:10px;"></div>
-      ` : (!isReply ? `<div class="replies-container" id="rc-${comment.id}" style="display:none; margin-left:12px; margin-top:10px;"></div>` : ``)}
     </div>
   `;
 
-  // ... 토글
-  div.querySelector(`[data-toggle-replies="${comment.id}"]`)?.addEventListener('click', (e) => {
-    const box = div.querySelector(`#rc-${comment.id}`);
-    if (!box) return;
-    if (box.childElementCount === 0) {
-      replies.forEach(r => box.appendChild(createCommentElement(r, [], true)));
+  // 답글 토글
+  wrap.querySelector(`[data-toggle="${c.id}"]`)?.addEventListener('click', (e)=>{
+    const box = wrap.querySelector(`#rc-${c.id}`);
+    if (box && box.childElementCount===0){
+      replies.forEach(r=>{
+        // 부모 닉네임 전달(대댓글 @표시용)
+        r.parentNickname = nick;
+        box.appendChild(createCommentEl(r, [], true));
+      });
     }
-    const opened = box.style.display !== 'none';
-    box.style.display = opened ? 'none' : 'block';
-    e.target.textContent = opened ? `▽ 답글 ${replies.length}개 보기` : `▲ 답글 접기`;
+    const opened = box.style.display!=='none';
+    box.style.display = opened ? 'none':'block';
+    e.target.textContent = opened ? `▽ 답글 ${replies.length}개 보기` : '▲ 답글 접기';
   });
 
-  // 내 댓글 옵션 토글
-  const optionsBtn = div.querySelector('.comment-options-btn');
-  if (optionsBtn) {
-    optionsBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const menu = optionsBtn.nextElementSibling;
-      menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
-    });
-  }
-  return div;
+  return wrap;
 }
 
+/* ===== 모달: 댓글/답글 공용 ===== */
 
-  
-commentFeed.addEventListener('click', (e) => {
-  const replyBtn = e.target.closest('.reply-btn');
-  if (replyBtn) {
-    replyingParentId = replyBtn.dataset.target;
-    // 모달 표시 + 대상 아이디 표기
-    document.getElementById('replyTargetInfo').textContent = `대상 댓글 ID: ${replyingParentId}`;
-    document.getElementById('replyText').value = '';
-    document.getElementById('replyModal').style.display = 'flex';
+function openCmtModal(mode='comment', targetId=null, targetNick=''){
+  modalMode = mode; replyingParentId = targetId;
+  $('#cmtModalTitle').textContent = mode==='reply' ? '답글 달기' : '댓글 달기';
+  if (mode==='reply'){
+    $('#cmtTargetInfo').style.display='block';
+    $('#cmtTargetInfo').textContent = `대상: @${targetNick} (${targetId})`;
+  } else {
+    $('#cmtTargetInfo').style.display='none';
+    $('#cmtTargetInfo').textContent='';
   }
+  $('#cmtText').value='';
+  $('#cmtModal').style.display='flex';
+}
+function closeCmtModal(){ $('#cmtModal').style.display='none'; }
+
+$('#openCommentModal').addEventListener('click', ()=> openCmtModal('comment'));
+$('#cmtCancel').addEventListener('click', closeCmtModal);
+
+// 답글 버튼(이벤트 위임)
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.reply-btn');
+  if (!btn) return;
+  openCmtModal('reply', btn.dataset.target, btn.dataset.nick);
 });
 
-// 모달 버튼
-document.getElementById('replyCancel').addEventListener('click', () => {
-  document.getElementById('replyModal').style.display = 'none';
-});
+// 등록
+$('#cmtSubmit').addEventListener('click', async ()=>{
+  const text = ($('#cmtText').value || '').trim();
+  if (!text || !currentUser || !currentChallengeId) return;
 
-document.getElementById('replySubmit').addEventListener('click', async () => {
-  const text = (document.getElementById('replyText').value || '').trim();
-  if (!text || !currentUser || !currentChallengeId || !replyingParentId) return;
-  try {
-    await db.collection('challenges').doc(currentChallengeId).collection('comments').add({
-      uid: currentUser.uid,
-      nickname: currentUserProfile?.nickname || currentUser.displayName || '사용자',
-      photoURL: currentUser.photoURL || null,
-      text,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      isAutoComment: false,
-      parentId: replyingParentId
-    });
-    document.getElementById('replyModal').style.display = 'none';
-    toast('등록되었습니다.');
+  const base = {
+    uid: currentUser.uid,
+    nickname: currentUser.displayName || (currentUserProfile?.nickname) || '사용자',
+    photoURL: currentUser.photoURL || null,
+    text,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    isAutoComment: false
+  };
+
+  // reply는 @멘션 자동 프리픽스
+  if (modalMode==='reply' && replyingParentId){
+    // UI에는 @표시되지만, 저장 데이터에도 남기려면 다음 줄 유지
+    base.text = /^@\S+/.test(text) ? text : `@${$('#cmtTargetInfo').textContent.replace(/^대상:\s*@/,'').split(' ')[0]} ${text}`;
+    base.parentId = replyingParentId;
+  }
+
+  try{
+    await db.collection('challenges').doc(currentChallengeId).collection('comments').add(base);
+    closeCmtModal(); toast('등록되었습니다.');
     renderComments(currentChallengeId);
-  } catch (err) {
-    console.error(err);
-    toast('등록에 실패했습니다.');
-  }
+  }catch(e){ console.error(e); toast('등록 실패'); }
 });
+
+/* ===== 상세 진입 시 호출 예시 =====
+   showView('detail', id) 같은 곳에서 renderComments(id) 호출만 보장해줘.
+   또한 빠른 체험을 위해 아래처럼 currentChallengeId 세팅 위치만 확인하면 됨.
+*/
+
 
   // --- 헬퍼 함수 ---
   function escapeHTML(s) { return String(s || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
@@ -1161,6 +1160,19 @@ function initials2(name='사용자') {
   });
 })
 </script>
+<!-- 댓글/답글 공용 모달 -->
+<div id="cmtModal"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--card-bg); padding:20px; border-radius:12px; width:100%; max-width:520px;">
+    <h3 id="cmtModalTitle" style="margin:0 0 8px 0;">댓글 달기</h3>
+    <div id="cmtTargetInfo" style="font-size:.9rem; color:var(--text-light); margin-bottom:8px; display:none;"></div>
+    <textarea id="cmtText" rows="4" class="onb-input" placeholder="내용을 입력하세요"></textarea>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+      <button id="cmtCancel" class="onb-btn">취소</button>
+      <button id="cmtSubmit" class="onb-btn onb-primary">등록</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
