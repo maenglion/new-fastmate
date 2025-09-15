@@ -475,84 +475,45 @@ function renderChallengePage() {
   const endIndex   = startIndex + ITEMS_PER_PAGE;
   const pageItems  = allChallenges.slice(startIndex, endIndex);
 
-pageItems.forEach(challenge => {
-  const card = document.createElement('div');
-  card.className = 'challenge-card';
+ pageItems.forEach(challenge => {
+            const card = document.createElement('div');
+            card.className = 'challenge-card';
+            const memberCount = challenge.participantUids?.length || 1;
+            const d = challenge.startTime?.toDate?.();
+            const dateStr = d ? d.toLocaleDateString('ko-KR') : '-';
+            const timeStr = d ? d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-';
+            const descStr = escapeHTML(challenge.description || '');
 
-  const memberCount = Array.isArray(challenge.participantUids)
-    ? challenge.participantUids.length
-    : (challenge.memberCount || 1);
-
-  const d = challenge.startTime?.toDate?.();
-  const dateStr = challenge.startDateStr || (d ? d.toLocaleDateString('ko-KR') : '-');
-  const timeStr = challenge.startClockStr || (d ? d.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) : '-');
-  const goalStr = challenge.detailedGoal ? escapeHTML(challenge.detailedGoal) : '-';
-  const isPrivate = (challenge.visibility || 'private') === 'private';
-
-  card.innerHTML = `
-    <div class="challenge-content">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <h3>${escapeHTML(challenge.challengeName || '-')}</h3>
-        <div class="card-visibility" title="${isPrivate ? '비공개' : '공개'}">
-          <span class="lock" style="background-image: var(${isPrivate ? '--icon-private' : '--icon-public'});"></span>
-        </div>
-      </div>
-
-      <div class="challenge-meta">
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-date);"></span>
-          <span>${dateStr}</span>
-        </div>
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-time);"></span>
-          <span>${timeStr}</span>
-        </div>
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-people);"></span>
-          <span>${memberCount}명</span>
-        </div>
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-goal);"></span>
-          <span>${goalStr}</span>
-        </div>
-      </div>
-    </div>
-  `;
-  card.addEventListener('click', () => showView('detail', challenge.id));
-  challengeListDiv.appendChild(card);
-});
-
-
-  renderPagination();
-}
-
-  function renderPagination() {
-    const totalPages = Math.ceil(allChallenges.length / ITEMS_PER_PAGE);
-    if (totalPages <= 1) {
-      paginationControls.innerHTML = '';
-      return;
+            card.innerHTML = `
+                <div class="challenge-content">
+                    <h3>${escapeHTML(challenge.challengeName || '-')}</h3>
+                    <div class="challenge-meta">
+                        <div class="meta-row">
+                            <img src="${getIcon('date')}" class="icon" alt="날짜">
+                            <span>${dateStr}</span>
+                        </div>
+                        <div class="meta-row">
+                            <img src="${getIcon('time')}" class="icon" alt="시간">
+                            <span>${timeStr}</span>
+                        </div>
+                        <div class="meta-row">
+                            <img src="${getIcon('people')}" class="icon" alt="참여자">
+                            <span>${memberCount}명</span>
+                        </div>
+                        ${descStr ? `<div class="meta-row">
+                            <img src="${getIcon('goal')}" class="icon" alt="목표">
+                            <span>${descStr}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+                <img src="${challenge.visibility === 'public' ? getIcon('unlock') : getIcon('lock')}" class="icon" style="width:16px; height:16px; opacity:0.7;" alt="${challenge.visibility}">
+            `;
+            card.addEventListener('click', () => showView('detail', challenge.id));
+            challengeListDiv.appendChild(card);
+        });
+        renderPagination();
     }
-
-    paginationControls.innerHTML = `
-      <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>이전</button>
-      <span class="page-number">${currentPage} / ${totalPages}</span>
-      <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>다음</button>
-    `;
-
-    document.getElementById('prevPageBtn')?.addEventListener('click', () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderChallengePage();
-      }
-    });
-    document.getElementById('nextPageBtn')?.addEventListener('click', () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderChallengePage();
-      }
-    });
-  }
-
+    
 
   // --- 챌린지 상세 및 댓글 ---
 function listenToChallengeDetails(challengeId) {
