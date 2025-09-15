@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script src="/firebase-init.js?v=2025.09.06-v8"></script>
- <style>
+<style>
     /* --- 기본 & 다크모드 색상 변수 --- */
     :root {
       --primary-color: #1c8e3e; --primary-light: #e8f5e9; --bg-color: #f8f9fa;
@@ -41,12 +41,20 @@
     /* --- 카드 공통 --- */
     .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
 
-    /* --- 챌린지 리스트 카드 --- */
-    .challenge-card { margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; display: flex; align-items: flex-start; gap: 16px; }
-    .challenge-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    /* --- 챌린지 리스트 카드 (수정됨) --- */
+    .challenge-card {
+        margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s; display: flex; align-items: flex-start; gap: 16px;
+        background-color: var(--card-bg); /* 라이트 모드 흰색 배경 명시 */
+    }
+    .challenge-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
     .challenge-content { flex-grow: 1; }
-    .challenge-content h3 { margin: 0 0 10px; font-size: 1.1rem; }
-    .challenge-meta { font-size: 0.85rem; color: var(--text-light); display: flex; flex-direction: column; gap: 8px; }
+    .challenge-content h3 { margin: 0 0 12px; font-size: 1.1rem; } /* 제목 아래 마진 증가 */
+    .challenge-meta {
+        font-size: 0.9rem; /* 가독성을 위해 폰트 크기 약간 키움 */
+        color: var(--text-light); display: flex; flex-direction: column;
+        gap: 12px; /* 각 정보 행 사이의 간격 증가 */
+    }
     .challenge-meta .meta-row { display: flex; align-items: center; gap: 8px; }
 
     /* --- 페이징 --- */
@@ -87,19 +95,24 @@
     .comment-form textarea:focus { border-color: var(--primary-color); outline: none; background: var(--card-bg); }
     .comment-form button { flex-shrink: 0; }
 
-    /* --- 모달 공통 스타일 --- */
+    /* --- 모달 공통 스타일 (수정됨) --- */
     .modal { display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:20px; }
     .modal-content { background:var(--card-bg); padding:24px; border-radius:12px; max-width:520px; width:100%; border: 1px solid var(--border-color); box-shadow: 0 8px 30px rgba(0,0,0,.2); }
-    .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px; }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 24px; } /* 마진 증가 */
     .modal-header h3 { margin:0; font-size: 1.3rem; }
-    .form-row { margin-bottom: 16px; }
+    .form-row { margin-bottom: 20px; } /* 간격 증가 */
     .form-row label { display: block; font-weight: 500; margin-bottom: 8px; font-size: .9rem; }
     .form-row input[type="text"], .form-row input[type="date"], .form-row input[type="datetime-local"], .form-row textarea, .form-row select {
-        width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);
+        width: 100%; box-sizing: border-box; /* 너비 계산 기준 변경 */
+        padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);
         background-color: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 1rem;
     }
     .form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--primary-color); outline:none; background-color: var(--card-bg); }
     .modal-footer { margin-top:24px; display:flex; justify-content:flex-end; gap:8px; }
+    fieldset.form-row { border: none; padding: 0; }
+    fieldset.form-row legend { font-weight: 500; font-size: .9rem; margin-bottom: 10px; }
+    fieldset.form-row label { display: inline-flex; align-items: center; margin-right: 16px; font-weight: normal; }
+
 
     /* --- 버튼 공통 (onboarding) --- */
     .onb-btn { border-radius: 8px; font-weight: bold; font-size: 0.9rem; padding: 10px 16px; border: none; cursor: pointer; }
