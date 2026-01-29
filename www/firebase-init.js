@@ -47,7 +47,7 @@
   }
 
   // ---------- Firebase 초기화(v8) ----------
-  const cfg = {
+  const firebaseConfig = {
     apiKey: "AIzaSyCpLWcArbLdVDG6Qd6QoCgMefrXNa2pUs8",
     authDomain: "auth.fastmate.kr",
     projectId: "fasting-b4ccb",
@@ -56,304 +56,167 @@
     appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
     measurementId: "G-EX5HR2CB35"
   };
-  if (!firebase.apps.length) firebase.initializeApp(cfg);
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
-
-  // Firestore settings — 한 번만
-  if (!db.__SETTINGS_APPLIED__) {
-    try { db.settings({ experimentalForceLongPolling: true }); }
-    catch(_) {}
-    db.__SETTINGS_APPLIED__ = true;
+ if (!firebase?.apps?.length) {
+    firebase.initializeApp(firebaseConfig);
   }
 
-  // 디바이스 언어
-  try { auth.useDeviceLanguage && auth.useDeviceLanguage(); } catch {}
+  // 3) 전역 참조 (window에 1회만 바인딩)
+  if (!window.auth) window.auth = firebase.auth();
+  if (!window.db) window.db = firebase.firestore();
 
-  // 전역 유틸(기존 코드 호환용 이름까지 모두 export)
-  async function getUserDoc(uid) {
-    const id = uid || auth.currentUser?.uid;
-    if (!id) return null;
+  // 4) 로그인 상태 유지 (로컬)
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
+
+  // =========================================================
+  // 5) 헬퍼: 구글 로그인 (팝업 우선, 실패 시 리다이렉트 폴백)
+  // =========================================================
+  window.__authPopupInFlight = null; // 전역 가드
+
+  window.signInWithGoogle = async () => {
+    // 이미 로그인 상태면 바로 리턴
+    if (auth.currentUser) return auth.currentUser;
+
+    // 리다이렉트 복귀 결과 1회 회수
     try {
-      const s = await db.collection('users').doc(id).get();
-      return s.exists ? { id: s.id, ...s.data() } : null;
-    } catch (e) { console.error('[getUserDoc]', e); return null; }
-  }
-  async function upsertUserDoc(user) {
-    const ref = db.collection('users').doc(user.uid);
-    await ref.set({
-      uid: user.uid,
-      email: user.email ?? '',
-      displayName: user.displayName ?? '',
-      photoURL: user.photoURL ?? '',
-      provider: user.providerData?.[0]?.providerId ?? 'unknown',
-      lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdAt  : firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-  }
-  async function ensureUserProfile(data){
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error('not-authenticated');
-    await db.collection('users').doc(uid).set(data, { merge:true });
-  }
-  function hasValue(x){ return Array.isArray(x) ? x.length>0 : (x!=null && String(x).trim()!==''); }
-  function isProfileDone(u){
-    const nick = u?.nickname;
-    const goals = u?.goals ?? u?.purpose ?? u?.joinPurpose ?? u?.onboarding?.reasons;
-    const completed = u?.onboarding?.completed === true;
-    return hasValue(nick) && (hasValue(goals) || completed);
-  }
+      const redirectRes = await auth.getRedirectResult();
+      if (redirectRes && redirectRes.user) return redirectRes.user;
+    } catch (e) {
+      console.warn('[getRedirectResult]', e?.code || e?.message || e);
+    }
 
-  // 전역 export (예전 코드에서 전역 함수로 직접 호출하므로 그대로 노출)
-  window.fastmateApp = { auth, db, getUserDoc, ensureUserProfile, upsertUserDoc };
-  window.getUserDoc = getUserDoc;
-  window.ensureUserProfile = ensureUserProfile;
-  window.upsertUserDoc = upsertUserDoc;
-  // ✅ 원래 쓰던 onAuthStateChanged 로직 유지 (리다이렉트/하이드레이션/마지막에 window.showApp())
-
-// ⛑ 세이프가드: DOM 붙자마자/로드 직후 한 번씩 showApp 시도(중복 호출 안전)
-document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.showApp?.(), 0); });
-window.addEventListener('load', () => { setTimeout(() => window.showApp?.(), 200); });
-
-
-  // ---------- 라우팅 헬퍼 ----------
-  const ROUTES = {
-    index:   '/index.html',
-    login:   '/login.html',
-    signup:  '/signup.html',
-    fastmate:'/fastmate.html'
-  };
-  const path = () => (location.pathname || '/').toLowerCase();
-  const isIndex    = () => path() === '/' || /\/index\.html$/.test(path());
-  const isLogin    = () => /\/login(\.html)?$/.test(path());
-  const isSignup   = () => /\/signup(\.html)?$/.test(path());
-  const isFastmate = () => /\/fastmate(\.html)?$/.test(path());
-  const isProtected= () => isFastmate(); // 보호 페이지 지정
-  const useHtmlStyle = () => /\.html$/i.test(location.pathname);
-  const toUrl = (key) => {
-    const base = ROUTES[key] || '/';
-    const final = useHtmlStyle() ? base : base.replace(/\/index\.html$/i, '/');
-    const u = new URL(final, location.origin);
-    u.searchParams.set('authcb', Date.now().toString()); // SW 캐시 회피
-    return u.toString();
-  };
-  const goOnce = (to) => { if (!window.__AUTH_NAV__) { window.__AUTH_NAV__ = true; location.replace(to); } };
-
-  // 인앱/웹뷰 감지 + 예쁜 경고
-  function isInApp(){
-    const ua = navigator.userAgent || '';
-    return /; wv\)/i.test(ua) || /FBAN|FBAV|FB_IAB|Instagram|KAKAOTALK|NAVER|DaumApps/i.test(ua);
-  }
-  function showInAppWarning(){
-    if (document.getElementById('inapp-overlay')) return;
-    const el = document.createElement('div');
-    el.id = 'inapp-overlay';
-    el.style.cssText = `
-      position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,'Noto Sans KR',sans-serif;
-    `;
-    el.innerHTML = `
-      <div style="background:#fff;border-radius:16px;max-width:440px;width:88%;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.2)">
-        <div style="font-size:18px;font-weight:700;margin-bottom:10px">인앱 브라우저에서는 로그인할 수 없어요</div>
-        <div style="font-size:14px;line-height:1.5;color:#444">
-          우상단 메뉴에서 <b>“기본 브라우저로 열기(Chrome/Safari)”</b>를 선택해 로그인해주세요.
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
-          <button id="inapp-ok" style="padding:10px 14px;border-radius:10px;border:0;background:#111;color:#fff;cursor:pointer">확인</button>
-        </div>
-      </div>`;
-    document.body.appendChild(el);
-    el.querySelector('#inapp-ok')?.addEventListener('click', () => el.remove());
-  }
-
-  // ---------- 로그인 시작(버튼에서 호출) ----------
-  window.signInWithGoogle = function () {
-    if (isInApp()) { showInAppWarning(); return; }
+    // 이미 진행 중인 팝업 요청이 있으면 그걸 그대로 기다림(중복 방지)
+    if (window.__authPopupInFlight) return window.__authPopupInFlight;
 
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    // iOS/Safari/웹뷰는 redirect가 안전
-    const ua = navigator.userAgent || '';
-    const isIOS = /iPad|iPhone|iPod/.test(ua);
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-    const preferRedirect = (isIOS && !standalone) || isSafari;
+    // 하나의 팝업 요청만 떠 있도록 가드 설정
+    window.__authPopupInFlight = (async () => {
+      try {
+        const cred = await auth.signInWithPopup(provider);
+        return cred.user;
+      } catch (e) {
+        // 사용자가 팝업을 닫았거나 충돌 난 경우는 조용히 종료
+        if (e?.code === 'auth/popup-closed-by-user' ||
+            e?.code === 'auth/cancelled-popup-request') {
+          return null;
+        }
 
-    sessionStorage.setItem('oauthBusy', '1');
-    document.body.classList.add('oauth-busy');
+        // 쿠키/팝업 정책 등으로 막힌 경우 → 리다이렉트 폴백
+        const fallbackCodes = [
+          'auth/popup-blocked',
+          'auth/cookie-policy-restricted',
+          'auth/internal-error'
+        ];
+        if (fallbackCodes.includes(e?.code)) {
+          // 가드 해제 후 리다이렉트로 넘김
+          window.__authPopupInFlight = null;
+          await auth.signInWithRedirect(provider);
+          return null; // 여기서 페이지 떠남
+        }
 
-    const done = () => { sessionStorage.removeItem('oauthBusy'); document.body.classList.remove('oauth-busy'); };
+        console.error(e);
+        throw e; // 호출자에서 처리하도록
+      } finally {
+        // 팝업 플로우가 끝났으면 가드 해제
+        window.__authPopupInFlight = null;
+      }
+    })();
 
-    if (preferRedirect) {
-      auth.signInWithRedirect(provider).catch(err => { console.error(err); done(); alert('로그인 시작 오류'); });
-    } else {
-      auth.signInWithPopup(provider)
-        .then(async r => { if (r?.user) await upsertUserDoc(r.user); })
-        .catch(async (err) => {
-          console.warn('[popup err]', err?.code, err?.message);
-          if (String(err?.code||'').includes('popup')) return auth.signInWithRedirect(provider);
-          alert('로그인 실패');
-        })
-        .finally(done);
+    return window.__authPopupInFlight;
+  };
+
+  // =========================================================
+  // 6) 헬퍼: 로그아웃
+  // =========================================================
+  window.appSignOut = async () => {
+    try {
+      // 세션 스토리지 정리
+      sessionStorage.removeItem('onboardingLock');
+      sessionStorage.removeItem('postAuth');
+      
+      await auth.signOut();
+      // 로그아웃 후 로그인 페이지로 이동
+      window.location.href = './login.html';
+    } catch (e) {
+      console.error(e);
+      alert(e.message);
     }
   };
 
-  // 비밀번호 재설정(있을 때만)
-  document.addEventListener('DOMContentLoaded', () => {
-    const btns = [
-      document.getElementById('google-login-btn'),
-      document.getElementById('googleSignupBtn'),
-      document.querySelector('[data-role="google-login"]')
-    ].filter(Boolean);
-    btns.forEach(btn => {
-      if (!btn.__BOUND__) {
-        btn.__BOUND__ = true;
-        btn.addEventListener('click', e => { e.preventDefault(); window.signInWithGoogle(); });
+  // =========================================================
+  // 7) 헬퍼: 인증 가드 (미로그인 시 리다이렉트)
+  //    - 페이지 진입 시 호출: requireAuth('./login.html')
+  // =========================================================
+  window.requireAuth = (redirectTo = './login.html') => {
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.replace(redirectTo);
       }
     });
+  };
 
-    const resetBtn = document.getElementById('send-reset-email-btn');
-    if (resetBtn && !resetBtn.__BOUND__) {
-      resetBtn.__BOUND__ = true;
-      resetBtn.addEventListener('click', async () => {
-        const email = document.getElementById('reset-email')?.value?.trim();
-        if (!email) return alert('비밀번호를 찾을 이메일을 입력해주세요.');
-        try { await auth.sendPasswordResetEmail(email); alert(`'${email}'로 재설정 메일을 보냈습니다.`); }
-        catch(e){ alert(`오류: ${e.code}`); }
-      });
-    }
-  });
-
-  // ---------- OAuth 리디렉션 결과 → 온보딩/메인 분기 ----------
- 
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .catch(() => auth.setPersistence(firebase.auth.Auth.Persistence.SESSION))
-      .then(() => auth.getRedirectResult())
-      .then(async (result) => {
-          if (result.user) {
-              // 로그인/회원가입 성공 후 리디렉션된 경우
-              sessionStorage.removeItem('oauthBusy');
-              const user = result.user;
-
-              // [핵심] DB에 사용자 정보가 없으면 생성/업데이트
-              await upsertUserDoc(user); 
-
-              // [핵심] 이 사용자가 온보딩(프로필 작성)을 마쳤는지 확인
-              const profile = await getUserDoc(user.uid);
-              const isReady = isProfileDone(profile);
-
-              if (isReady) {
-                  // 이미 온보딩을 마친 기존 사용자 -> 바로 메인 앱 페이지로 이동
-                  goOnce(toUrl('fastmate'));
-              } else {
-                  // 새로운 사용자 -> 온보딩을 위해 signup.html 페이지로 이동 (또는 머무름)
-                  if (!isSignup()) {
-                      goOnce(toUrl('signup'));
-                  } else {
-                      // 이미 signup 페이지에 있다면 step=2로 상태만 변경
-                      const url = new URL(location.href);
-                      url.searchParams.set('step', '2');
-                      history.replaceState(null, '', url.toString());
-                      window.showApp?.(); // 스플래시 스크린 숨기기
-                  }
-              }
-          }
-      })
-      .catch((error) => {
-          sessionStorage.removeItem('oauthBusy');
-          console.error('[redirect err]', error);
-          // 사용자가 팝업을 닫는 등 일반적인 오류는 무시
-          if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
-               alert(`로그인 중 오류가 발생했습니다: ${error.message}`);
-          }
-      });
-
-  // ---------- 일반 상태 감지 ----------
-// firebase-init.js 파일
-
-// firebase-init.js 파일의 onAuthStateChanged 함수 전체를 이걸로 교체
-
-auth.onAuthStateChanged(async (user) => {
-    const p = path();
-    console.log('[auth] state=', !!user, 'path=', p);
-
-    // [수정] 로그인 후 챌린지 초대 처리 로직
-   const pendingChallengeId = sessionStorage.getItem('pendingChallengeId');
-if (user && pendingChallengeId) {
-  sessionStorage.removeItem('pendingChallengeId'); // 루프 방지 선제 제거
-  return goOnce(`${location.origin}/challenge-invite.html?id=${pendingChallengeId}&autojoin=1`);
-}
-
-    if (!user) {
-      if (isProtected() && !isLogin()) return goOnce(toUrl('login'));
-      return window.showApp?.();
-    }
-
-    // 사용자 정보가 없으면 생성/업데이트
-    upsertUserDoc(user).catch(e => console.warn('[upsert]', e));
-
-    const prof = await getUserDoc(user.uid);
-    const done = isProfileDone(prof);
-
-    // 로그인/회원가입 페이지에 있을 경우 올바른 페이지로 리디렉션
-    if ((isIndex() || isLogin()) && !isSignup()) {
-      if (!done) return goOnce(toUrl('signup'));
-      return goOnce(toUrl('fastmate'));
-    }
-    if (isSignup()) {
-      const url = new URL(location.href);
-      url.searchParams.set('step', done ? 'final' : '2');
-      history.replaceState(null, '', url.toString());
-      return window.showApp?.();
-    }
-
-    // [핵심 수정] fastmate.html 페이지의 초기화를 여기서 직접 호출
-    if (isFastmate()) {
-      try {
-        // fastmate.html에 정의된 초기화 함수를 호출
-        if (window.initializeFastmateApp) {
-          await window.initializeFastmateApp(user, prof);
-        }
-      } catch(e){ 
-        console.error('fastmate.html 앱 초기화 중 오류:', e);
-        alert('앱 초기화 실패. 새로고침 해주세요.');
-      }
-      window.showApp?.();
-    }
-});
-
-  // 간단 온보딩 모달(닉네임/목표 입력)
-  function openOnboardingModal(){
-    if (document.getElementById('fm-onboard')) return;
-    const wrap = document.createElement('div');
-    wrap.id = 'fm-onboard';
-    wrap.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:99999';
-    wrap.innerHTML = `
-      <div style="background:#fff;border-radius:16px;max-width:520px;width:92%;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2);font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif">
-        <div style="font-size:18px;font-weight:700;margin-bottom:8px">프로필을 마치면 더 정확해져요</div>
-        <label style="display:block;font-size:13px;color:#444;margin-top:12px">닉네임</label>
-        <input id="fm-nick" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ddd;outline:none">
-        <label style="display:block;font-size:13px;color:#444;margin-top:12px">목표(한 줄)</label>
-        <input id="fm-goal" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ddd;outline:none" placeholder="예: 16:8 간헐적 단식 꾸준히">
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
-          <button id="fm-skip" style="padding:10px 14px;border-radius:10px;border:0;background:#eee;cursor:pointer">나중에</button>
-          <button id="fm-save" style="padding:10px 14px;border-radius:10px;border:0;background:#111;color:#fff;cursor:pointer">저장</button>
-        </div>
-      </div>`;
-    document.body.appendChild(wrap);
-    wrap.querySelector('#fm-skip')?.addEventListener('click', () => wrap.remove());
-    wrap.querySelector('#fm-save')?.addEventListener('click', async () => {
-      const nickname = document.getElementById('fm-nick').value.trim();
-      const goals    = document.getElementById('fm-goal').value.trim();
-      try {
-        await ensureUserProfile({ nickname, goals, onboarding: { completed: true }});
-        // 칩 갱신
-        const chipName = document.getElementById('userChipName');
-        if (chipName && nickname) chipName.textContent = nickname;
-        wrap.remove();
-      } catch(e){ alert('저장 오류'); }
+  // =========================================================
+  // 8) 헬퍼: 로그인 상태에서만 실행
+  //    - 예: runWithUser(async (user)=> { ... })
+  // =========================================================
+  window.runWithUser = (fn) => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      if (user) fn(user);
+      unsub();
     });
-  }
-  })();
+  };
 
-  
+  // =========================================================
+  // 9) 유틸: 현재 사용자 문서 참조/가져오기
+  // =========================================================
+  window.userDocRef = () => {
+    const u = auth.currentUser;
+    if (!u) return null;
+    return db.collection('users').doc(u.uid);
+  };
+
+  window.getUserDoc = async () => {
+    const ref = userDocRef();
+    if (!ref) return null;
+    const snap = await ref.get();
+    return snap.exists ? snap.data() : null;
+  };
+
+  // =========================================================
+  // 10) 최초 가입 시 기본 프로필 생성(옵션)
+  //     - 회원가입 직후 호출 가능
+  // =========================================================
+  window.ensureUserProfile = async (extra = {}) => {
+    const ref = userDocRef();
+    if (!ref) return;
+    await ref.set(
+      {
+        email: auth.currentUser?.email || null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        ...extra, // onboarding 등 추가 필드
+      },
+      { merge: true }
+    );
+  };
+
+  // =========================================================
+  // 11) [추가] 온보딩 완료 여부 확인 헬퍼
+  // =========================================================
+  window.checkOnboardingComplete = async () => {
+    try {
+      const prof = await getUserDoc();
+      if (!prof) return false;
+      
+      const completed = !!prof?.onboarding?.completed;
+      const hasNickname = !!prof?.nickname;
+      const hasGoals = Array.isArray(prof?.onboarding?.reasons) && prof.onboarding.reasons.length > 0;
+      
+      return completed && hasNickname && hasGoals;
+    } catch (e) {
+      console.error('[checkOnboardingComplete]', e);
+      return false;
+    }
+  };
+
+  console.log('[firebase-init] ready');
+})();

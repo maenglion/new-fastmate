@@ -123,36 +123,138 @@
         .google-login-btn svg { width: 20px; height: 20px; }
     </style>
 </head>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Firebase SDK (compat 버전) -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+    <script src="./firebase-init.js"></script>
+
+    <title>로그인 - fastmate</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
 <body>
-    <main class="login-container">
-        <h1 class="login-title">Fastmate</h1>
-        <p class="login-subtitle">관리하는 단식의 시작</p>
 
+    <div class="login-container">
+        <h2>로그인</h2>
         <div class="input-group">
-            <label for="email">이메일</label>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" placeholder="이메일 주소">
         </div>
         <div class="input-group">
-            <label for="password">비밀번호</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" placeholder="비밀번호">
         </div>
-        
-        <button class="login-btn" type="button">로그인</button>
-        
-        <a href="/forgot-password.html" class="forgot-password">비밀번호를 잊으셨나요?</a>
-
-        <div class="divider">OR</div>
-
-        <button id="google-login-btn" class="google-login-btn" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 533.5 544.3" width="20" height="20">
-                <path fill="#4285F4" d="M533.5 278.4c0-17.4-1.6-34-4.7-50.1H272v95h147.5c-6.3 34-25 62.8-53.6 82.1v68h86.7c50.7-46.7 80.9-115.5 80.9-195z"/>
-                <path fill="#34A853" d="M272 544.3c72.6 0 133.7-24 178.3-65.3l-86.7-68c-24 16-54.6 25.5-91.6 25.5-70.5 0-130.2-47.6-151.6-111.4H32.9v69.8C77.7 482.5 168.2 544.3 272 544.3z"/>
-                <path fill="#FBBC05" d="M120.4 325.1c-4.9-16-7.7-32.9-7.7-50.1s2.8-34.1 7.7-50.1V155H32.9C11.7 196.7 0 244.3 0 294.9s11.7 98.2 32.9 139.9l87.5-69.7z"/>
-                <path fill="#EA4335" d="M272 108.6c39.5 0 75.1 13.6 103.1 40.3l77.4-77.4C405.7 24.2 344.6 0 272 0 168.2 0 77.7 61.8 32.9 155l87.5 69.9c21.4-63.8 81.1-111.3 151.6-111.3z"/>
-            </svg>
-            <span>Google로 로그인</span>
+        <button id="emailLoginBtn" class="main-button">로그인</button>
+        <p class="divider">또는</p>
+        <button id="googleLoginBtn" class="social-button google">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png" alt="Google">
+            Google로 로그인
         </button>
-        </main>
+        <button id="kakaoLoginBtn" class="social-button kakao">
+            <!-- 카카오 이미지 URL 수정 -->
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e3/KakaoTalk_logo.svg" alt="Kakao">
+            카카오로 로그인
+        </button>
+        <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
+    </div>
+        
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const emailLoginBtn = document.getElementById('emailLoginBtn');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const kakaoLoginBtn = document.getElementById('kakaoLoginBtn');
+
+    // ========================================
+    // [수정 1] 이미 로그인 상태면 fastmate로 이동 (한 곳에서만 처리)
+    // ========================================
+    let redirected = false;
+    auth.onAuthStateChanged((user) => {
+        if (user && !redirected) {
+            redirected = true;
+            window.location.href = './fastmate.html';
+        }
+    });
+
+    // ========================================
+    // 이메일/비밀번호 로그인
+    // ========================================
+    emailLoginBtn?.addEventListener('click', async () => {
+        const email = (emailInput?.value || '').trim();
+        const password = passwordInput?.value || '';
+
+        if (!email || !password) {
+            alert('이메일과 비밀번호를 입력해주세요.');
+            return;
+        }
+
+        emailLoginBtn.disabled = true;
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+            // onAuthStateChanged에서 리디렉션 처리됨
+        } catch (e) {
+            console.error(e);
+            let msg = '로그인에 실패했습니다.';
+            if (e.code === 'auth/user-not-found') {
+                msg = '등록되지 않은 이메일입니다.';
+            } else if (e.code === 'auth/wrong-password') {
+                msg = '비밀번호가 올바르지 않습니다.';
+            } else if (e.code === 'auth/invalid-email') {
+                msg = '이메일 형식이 올바르지 않습니다.';
+            } else if (e.code === 'auth/too-many-requests') {
+                msg = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.';
+            }
+            alert(msg);
+        } finally {
+            emailLoginBtn.disabled = false;
+        }
+    });
+
+    // Enter 키로 로그인
+    passwordInput?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            emailLoginBtn?.click();
+        }
+    });
+
+    // ========================================
+    // [수정 2] 구글 로그인 - firebase-init.js의 헬퍼 사용
+    // ========================================
+    googleLoginBtn?.addEventListener('click', async () => {
+        if (googleLoginBtn.disabled) return;
+        googleLoginBtn.disabled = true;
+
+        try {
+            const user = await signInWithGoogle(); // firebase-init.js 헬퍼
+            // 성공 시 onAuthStateChanged에서 fastmate.html로 이동
+            if (!user) {
+                // 팝업 닫힘 또는 리다이렉트 폴백 진행 중
+                console.log('Google 로그인: 팝업 닫힘 또는 리다이렉트 진행 중');
+            }
+        } catch (e) {
+            console.error(e);
+            alert(e.message || 'Google 로그인에 실패했습니다.');
+        } finally {
+            googleLoginBtn.disabled = false;
+        }
+    });
+
+    // ========================================
+    // 카카오 로그인 (준비중)
+    // ========================================
+    kakaoLoginBtn?.addEventListener('click', () => {
+        alert('카카오 로그인은 준비중입니다.');
+    });
+});
+</script>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>

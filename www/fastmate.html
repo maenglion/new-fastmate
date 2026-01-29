@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script defer src="/firebase-init.js?v=2025.09.06-v8"></script>
+<script src="/firebase-init.js?v=2026.01.29-v9"></script>
 
 <link rel="stylesheet" href="./styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1129,11 +1129,31 @@ async function postAutoComment(type, data) {
                 }
 
                 currentUser = user;
+try {
+    const profile = await getUserDoc(user.uid);
+    
+    // ========================================
+    // [추가] 온보딩 미완료 시 signup으로 리디렉션
+    // ========================================
+    const completed = !!profile?.onboarding?.completed;
+    const hasNickname = !!profile?.nickname;
+    const hasGoals = Array.isArray(profile?.onboarding?.reasons) && profile.onboarding.reasons.length > 0;
 
-                try {
-                    const profile = await getUserDoc(user.uid);
-                    const nickname = profile?.nickname || user.displayName || '사용자';
-                    setUserChip(nickname);
+    if (!completed || !hasNickname || !hasGoals) {
+        // 무한 루프 방지용 락
+        if (sessionStorage.getItem('onboardingLock') !== '1') {
+            sessionStorage.setItem('onboardingLock', '1');
+            window.location.href = './signup.html?step=2&from=fastmate';
+            return;
+        }
+    } else {
+        // 온보딩 완료됨 → 락 해제
+        sessionStorage.removeItem('onboardingLock');
+    }
+    // ========================================
+
+    const nickname = profile?.nickname || user.displayName || '사용자';
+    setUserChip(nickname);
 
 /* 
 challengesRef = db.collection('challenges');
