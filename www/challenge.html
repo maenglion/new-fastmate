@@ -1008,128 +1008,73 @@ async function renderComments(chId){
 }
 
 /* 코멘트 엘리먼트 (페이스북풍) */
-function createCommentEl(c, replies=[], isReply=false){
-  const wrap = document.createElement('div');
-  wrap.className = 'comment' + (isReply?' reply':'');
 
-  const nick = c.nickname || '사용자';
-  const ts = relativeOrDate(c.timestamp);
 
-  // 아바타(구글 이미지, 없으면 이니셜 2글자)
-  let avatarHtml = '';
-  if (c.photoURL) avatarHtml = `<img src="${c.photoURL}" alt="${nick}" class="comment-avatar">`;
-  else avatarHtml = `<div class="comment-avatar" style="background:#e5e5e5;display:flex;align-items:center;justify-content:center;color:#555;font-weight:700;">${initials2(nick)}</div>`;
+function createCommentEl(c, replies = [], isReply = false) {
+    const wrap = document.createElement('div');
+    wrap.className = 'comment' + (isReply ? ' reply' : '');
+    const nick = c.nickname || '사용자';
+    const ts = relativeOrDate(c.timestamp);
 
-  // 본문 (자동 로그는 초록 굵게)
-  let textHtml = renderCommentText(c.text||'', !!c.isAutoComment);
-
-  // 대댓글이면 @부모 닉네임이 없을 때 자동 프리픽스
-  if (isReply && !/^@\S+/.test(c.text||'')) {
-    textHtml = `<span class="mention">@${c.parentNickname || c.parentId || ''}</span> ` + textHtml;
-  }
-
-  wrap.innerHTML = `
-    <div class="comment-avatar-column">
-      ${avatarHtml}
-      ${!isReply && replies.length>0 ? '<div class="thread-line"></div>': ''}
-    </div>
-    <div class="comment-main">
-      <div class="comment-bubble">
-        <div class="comment-header">
-          <span class="comment-author">${nick}</span>
-          <span class="comment-timestamp">${ts}</span>
-        </div>
-        <div class="comment-text">${textHtml}</div>
-        <div class="comment-actions">
-          ${!isReply ? `<button class="reply-btn" data-target="${c.id}" data-nick="${nick}">답글달기</button>` : ''}
-        </div>
-
-        ${!isReply && replies.length>0 ? `
-          <button class="onb-btn" data-toggle="${c.id}" style="margin-top:6px;">▽ 답글 ${replies.length}개 보기</button>
-          <div class="replies-container" id="rc-${c.id}" style="display:none;"></div>
-        `: (!isReply ? `<div class="replies-container" id="rc-${c.id}" style="display:none;"></div>` : ``)}
-      </div>
-    </div>
-  `;
-
-  // 답글 토글
-  wrap.querySelector(`[data-toggle="${c.id}"]`)?.addEventListener('click', (e)=>{
-    const box = wrap.querySelector(`#rc-${c.id}`);
-    if (box && box.childElementCount===0){
-      replies.forEach(r=>{
-        // 부모 닉네임 전달(대댓글 @표시용)
-        r.parentNickname = nick;
-        box.appendChild(createCommentEl(r, [], true));
-      });
+    // 아바타 및 본문 렌더링 (기존 로직 유지)
+    let avatarHtml = c.photoURL 
+        ? `<img src="${c.photoURL}" alt="${nick}" class="comment-avatar">`
+        : `<div class="comment-avatar" style="background:#e5e5e5;display:flex;align-items:center;justify-content:center;color:#555;font-weight:700;">${initials2(nick)}</div>`;
+    
+    let textHtml = renderCommentText(c.text || '', !!c.isAutoComment);
+    if (isReply && !/^@\S+/.test(c.text || '')) {
+        textHtml = `<span class="mention">@${c.parentNickname || ''}</span> ` + textHtml;
     }
-    const opened = box.style.display!=='none';
-    box.style.display = opened ? 'none':'block';
-    e.target.textContent = opened ? `▽ 답글 ${replies.length}개 보기` : '▲ 답글 접기';
-  });
 
-  return wrap;
+    wrap.innerHTML = `
+        <div class="comment-avatar-column">
+            ${avatarHtml}
+            ${!isReply && replies.length > 0 ? '<div class="thread-line"></div>' : ''}
+        </div>
+        <div class="comment-main">
+            <div class="comment-bubble">
+                <div class="comment-header">
+                    <span class="comment-author">${nick}</span>
+                    <span class="comment-timestamp">${ts}</span>
+                </div>
+                <div class="comment-text">${textHtml}</div>
+                <div class="comment-actions">
+                    ${!isReply ? `<button class="reply-btn" data-target="${c.id}" data-nick="${nick}" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:0.85rem;">답글달기</button>` : ''}
+                </div>
+                ${!isReply && replies.length > 0 ? `
+                    <button class="onb-btn toggle-replies" data-toggle="${c.id}" style="margin-top:6px; font-size:0.8rem; background:none; color:var(--primary-color);">▽ 답글 ${replies.length}개 보기</button>
+                    <div class="replies-container" id="rc-${c.id}" style="display:none;"></div>
+                ` : `<div class="replies-container" id="rc-${c.id}" style="display:none;"></div>`}
+            </div>
+        </div>`;
+
+    // [중요] 답글 버튼 클릭 시 하단 입력창으로 연결
+    wrap.querySelector('.reply-btn')?.addEventListener('click', (e) => {
+        const targetId = e.target.dataset.target;
+        const targetNick = e.target.dataset.nick;
+        const input = document.getElementById('directCommentInput');
+        
+        replyingParentId = targetId; // 전역 변수에 부모 ID 저장
+        input.value = `@${targetNick} `; // 입력창에 멘션 추가
+        input.focus(); // 입력창으로 자동 포커스
+    });
+
+    // 답글 토글 로직 (기존 유지)
+    wrap.querySelector('.toggle-replies')?.addEventListener('click', (e) => {
+        const box = wrap.querySelector(`#rc-${c.id}`);
+        if (box && box.childElementCount === 0) {
+            replies.forEach(r => {
+                r.parentNickname = nick;
+                box.appendChild(createCommentEl(r, [], true));
+            });
+        }
+        const opened = box.style.display !== 'none';
+        box.style.display = opened ? 'none' : 'block';
+        e.target.textContent = opened ? `▽ 답글 ${replies.length}개 보기` : '▲ 답글 접기';
+    });
+
+    return wrap;
 }
-
-/* ===== 모달: 댓글/답글 공용 ===== */
-
-function openCmtModal(mode='comment', targetId=null, targetNick=''){
-  modalMode = mode; replyingParentId = targetId;
-  $('#cmtModalTitle').textContent = mode==='reply' ? '답글 달기' : '댓글 달기';
-  if (mode==='reply'){
-    $('#cmtTargetInfo').style.display='block';
-    $('#cmtTargetInfo').textContent = `대상: @${targetNick} (${targetId})`;
-  } else {
-    $('#cmtTargetInfo').style.display='none';
-    $('#cmtTargetInfo').textContent='';
-  }
-  $('#cmtText').value='';
-  $('#cmtModal').style.display='flex';
-}
-function closeCmtModal(){ $('#cmtModal').style.display='none'; }
-
-$('#openCommentModal').addEventListener('click', ()=> openCmtModal('comment'));
-$('#cmtCancel').addEventListener('click', closeCmtModal);
-
-// 답글 버튼(이벤트 위임)
-document.addEventListener('click', (e)=>{
-  const btn = e.target.closest('.reply-btn');
-  if (!btn) return;
-  openCmtModal('reply', btn.dataset.target, btn.dataset.nick);
-});
-
-// 등록
-$('#cmtSubmit').addEventListener('click', async ()=>{
-  const text = ($('#cmtText').value || '').trim();
-  if (!text || !currentUser || !currentChallengeId) return;
-
-  const base = {
-    uid: currentUser.uid,
-    nickname: currentUser.displayName || (currentUserProfile?.nickname) || '사용자',
-    photoURL: currentUser.photoURL || null,
-    text,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-    isAutoComment: false
-  };
-
-  // reply는 @멘션 자동 프리픽스
-  if (modalMode==='reply' && replyingParentId){
-    // UI에는 @표시되지만, 저장 데이터에도 남기려면 다음 줄 유지
-    base.text = /^@\S+/.test(text) ? text : `@${$('#cmtTargetInfo').textContent.replace(/^대상:\s*@/,'').split(' ')[0]} ${text}`;
-    base.parentId = replyingParentId;
-  }
-
-  try{
-    await db.collection('challenges').doc(currentChallengeId).collection('comments').add(base);
-    closeCmtModal(); toast('등록되었습니다.');
-    renderComments(currentChallengeId);
-  }catch(e){ console.error(e); toast('등록 실패'); }
-});
-
-/* ===== 상세 진입 시 호출 예시 =====
-   showView('detail', id) 같은 곳에서 renderComments(id) 호출만 보장해줘.
-   또한 빠른 체험을 위해 아래처럼 currentChallengeId 세팅 위치만 확인하면 됨.
-*/
-
 
   // --- 헬퍼 함수 ---
   function escapeHTML(s) { return String(s || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
@@ -1230,8 +1175,6 @@ function initials2(name='사용자') {
 }
 
 
-
-
   // --- 초기화 ---
   auth.onAuthStateChanged(user => {
       if (user) {
@@ -1254,19 +1197,6 @@ function initials2(name='사용자') {
   });
 })
 </script>
-<!-- 댓글/답글 공용 모달 -->
-<div id="cmtModal"
-     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:20px;">
-  <div style="background:var(--card-bg); padding:20px; border-radius:12px; width:100%; max-width:520px;">
-    <h3 id="cmtModalTitle" style="margin:0 0 8px 0;">댓글 달기</h3>
-    <div id="cmtTargetInfo" style="font-size:.9rem; color:var(--text-light); margin-bottom:8px; display:none;"></div>
-    <textarea id="cmtText" rows="4" class="onb-input" placeholder="내용을 입력하세요"></textarea>
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
-      <button id="cmtCancel" class="onb-btn">취소</button>
-      <button id="cmtSubmit" class="onb-btn onb-primary">등록</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
