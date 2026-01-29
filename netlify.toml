@@ -3,13 +3,3 @@
 
 [build.environment]
   SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
-```
-
----
-
-### 또는 환경변수로 설정
-
-Netlify Dashboard → **Site settings** → **Environment variables** → **Add a variable**
-```
-Key: SECRETS_SCAN_SMART_DETECTION_ENABLED
-Value: false
