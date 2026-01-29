@@ -34,7 +34,7 @@
   // 중복 로드 방지 + 전역 버전 표기
   if (window.__AUTH_BOOT__) return;
   window.__AUTH_BOOT__ = true;
-  window.__APP_VERSION__ = '2025.09.06-v8.5';
+window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
   console.log('[fastmate] version', window.__APP_VERSION__);
 
   // 스플래시 가드(다른 스크립트보다 먼저 안전하게 호출 가능)
