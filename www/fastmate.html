@@ -1000,19 +1000,6 @@ picked.setHours(hour, mm, 0, 0);
     });
   }
 
-  // === 챌린지 
-   // --- 챌린지 생성/참여 관련 (나중에 추가) ---
-const challengeBtn = document.getElementById('challengeBtn');
-challengeBtn?.addEventListener('click', () => { window.location.href = 'challenge.html'; });
-
-    // --- 확인 모달 버튼 ---
-    confirmYesBtn?.addEventListener('click', () => {
-        if (pendingTargetHours !== null) {
-            applyDurationChange(pendingTargetHours);
-            pendingTargetHours = null;
-        }
-        if(confirmChangeModal) confirmChangeModal.style.display = 'none';
-    });
 
     // ▼▼▼ 이전에 생략되었던 기록 모달 관련 코드 ▼▼▼
 
@@ -1046,16 +1033,16 @@ challengeBtn?.addEventListener('click', () => { window.location.href = 'challeng
  * @param {object} data - 댓글 내용 생성에 필요한 데이터
  */
 async function postAutoComment(type, data) {
-    if (!activeChallengeId || !currentUser) return;
+    if (!activeChallengeId || !currentUser) return; //
 
-    let commentText = '';
+    let commentText = ''; //
+    const currentNickname = userChipName.textContent || currentUser.displayName || '사용자'; // 칩 이름 우선 사용
 
-    switch (type) {
+    switch (type) { //
         case 'weight':
-            // 체중 기록은 이전 값과 비교해야 하므로, 가장 최근 데이터를 가져옵니다.
             const weightRef = db.collection('users').doc(currentUser.uid)
                 .collection('measurements').doc('weight').collection('items')
-                .orderBy('date', 'desc').limit(2); // 현재+이전 기록 2개
+                .orderBy('date', 'desc').limit(2);
             
             const weightSnap = await weightRef.get();
             if (weightSnap.docs.length > 1) {
@@ -1064,43 +1051,66 @@ async function postAutoComment(type, data) {
                 const diff = Math.abs(latest - previous).toFixed(1);
 
                 if (latest < previous) {
-                    commentText = `${currentUser.displayName || '사용자'}님이 ${diff}kg 감량에 성공했습니다! 🎉`;
+                    commentText = `${currentNickname}님이 ${diff}kg 감량에 성공했습니다! 🎉`;
                 } else if (latest > previous) {
-                    commentText = `${currentUser.displayName || '사용자'}님이 ${diff}kg 증량했습니다.`;
+                    commentText = `${currentNickname}님이 ${diff}kg 증량했습니다.`;
                 }
-                // 몸무게가 같으면 댓글을 달지 않을 수 있습니다.
+            } else {
+                commentText = `${currentNickname}님이 첫 체중(${data.value}kg)을 기록했습니다!`;
             }
             break;
 
         case 'exercise':
-            commentText = `${currentUser.displayName || '사용자'}님이 '${data.type}' ${data.duration}분 기록을 완료했습니다.`;
+            commentText = `${currentNickname}님이 '${data.type}' ${data.duration}분 기록을 완료했습니다.`;
             break;
 
         case 'bloodSugar':
-            commentText = `${currentUser.displayName || '사용자'}님이 혈당 ${data.value} (mg/dL)을 기록했습니다.`;
+            commentText = `${currentNickname}님이 혈당 ${data.value} (mg/dL)을 기록했습니다.`;
             break;
         
         case 'ketone':
-             commentText = `${currentUser.displayName || '사용자'}님이 케톤 ${data.value} (mmol/L)을 기록했습니다.`;
+             commentText = `${currentNickname}님이 케톤 ${data.value} (mmol/L)을 기록했습니다.`;
             break;
     }
 
-    // 생성된 메시지가 있을 경우에만 댓글을 저장합니다.
-    if (commentText) {
+    if (commentText) { //
         try {
             await db.collection('challenges').doc(activeChallengeId).collection('comments').add({
                 uid: currentUser.uid,
-                nickname: currentUser.displayName || '사용자',
+                nickname: currentNickname,
+                photoURL: currentUser.photoURL || null, // 아바타 표시를 위해 추가
                 text: commentText,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                isAutoComment: true, // 자동 댓글임을 표시
-                parentId: null       // 최상위 댓글
+                isAutoComment: true, //
+                parentId: null       //
             });
+            console.log("챌린지 타임라인 전송 성공!");
         } catch (error) {
             console.error("자동 댓글 생성 실패:", error);
         }
     }
 }
+
+// 3. 인증 리스너 내에서 챌린지 ID 가져오기
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        currentUser = user;
+        
+        // 사용자가 참여 중인 활성화된 챌린지 1개를 가져옵니다.
+        try {
+            const snap = await db.collection('challenges')
+                .where('participantUids', 'array-contains', user.uid)
+                .limit(1)
+                .get();
+            
+            if (!snap.empty) {
+                activeChallengeId = snap.docs[0].id; // 전역 변수에 저장
+            }
+        } catch (e) {
+            console.error("챌린지 ID 로드 실패:", e);
+        }
+    }
+});
 
    // ========================================
     // ===== 9) 앱 초기화 및 인증 리스너

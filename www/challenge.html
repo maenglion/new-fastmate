@@ -294,6 +294,58 @@
 }
 .icon-ghost-btn .icon { width:20px; height:20px; display:block; background-size:contain; background-repeat:no-repeat; }
 
+/*추가 */
+/* 버튼 및 입력창 공통 스타일 */
+.onb-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.onb-primary { background: var(--primary-color); color: white; }
+.onb-ghost { background: var(--border-color); color: var(--text-color); }
+.onb-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-top: 8px;
+  box-sizing: border-box;
+}
+
+/* 폼 행 레이아웃 */
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; font-weight: 500; margin-bottom: 6px; }
+
+/* 하단 댓글 바 스타일 수정 */
+.add-comment-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--card-bg);
+  padding: 12px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+}
+.add-comment-bar input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--bg-color);
+}
+.send-comment-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-weight: bold;
+  cursor: pointer;
+}
+
   </style>
 </head>
 <body>
@@ -313,20 +365,17 @@
     <div id="challengeInfo" class="challenge-info-card"><!-- JS가 채움 --></div>
 
     <!-- 댓글 섹션 -->
-    <section class="card comment-section">
-      <h4>챌린지 타임라인</h4>
-      <div class="comment-form">
-        <textarea id="newCommentText" placeholder="응원 댓글을 남겨보세요." rows="1"></textarea>
-        <button id="submitCommentBtn" class="onb-btn onb-primary">등록</button>
-      </div>
+   <section class="card comment-section" style="padding-bottom: 70px;">
+      <h4 id="commentTitle">챌린지 타임라인</h4>
       <div id="commentFeed"></div>
-      <!-- 입력창 placeholder (클릭하면 모달 오픈) -->
-  <div class="add-comment-bar">
-    <img id="myAvatar" class="comment-avatar" alt="me">
-    <input id="openCommentModal" type="text" placeholder="댓글을 남겨보세요" readonly>
-  </div>
-</section>
-  </div><!-- /#challengeDetailView -->
+    </section>
+
+    <div class="add-comment-bar">
+      <img id="myAvatar" class="comment-avatar" alt="me">
+      <input id="directCommentInput" type="text" placeholder="댓글을 남겨보세요...">
+      <button id="directSubmitBtn" class="send-comment-btn">게시</button>
+    </div>
+</div>
 
   <!-- 생성 모달(목록/상세와 '형제' 위치) -->
   <div id="createChallengeModal"
@@ -827,6 +876,52 @@ function renderChallengeInfo(ch){
     </div>
   `;
 
+  // 등록 버튼 클릭 이벤트
+document.getElementById('directSubmitBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('directCommentInput');
+    const text = input.value.trim();
+    
+    if (!text || !currentUser || !currentChallengeId) return;
+
+    const payload = {
+        uid: currentUser.uid,
+        nickname: currentUserProfile?.nickname || '사용자',
+        photoURL: currentUser.photoURL || null,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        isAutoComment: false,
+        parentId: replyingParentId || null // 답글일 경우에만 ID 할당
+    };
+
+    try {
+        await db.collection('challenges').doc(currentChallengeId).collection('comments').add(payload);
+        input.value = '';
+        replyingParentId = null; // 초기화
+        renderComments(currentChallengeId); // 새로고침
+        toast('댓글이 등록되었습니다.');
+    } catch (e) {
+        console.error(e);
+        toast('등록 실패');
+    }
+});
+
+    // === 챌린지 
+   // --- 챌린지 생성/참여 관련 (나중에 추가) ---
+const challengeBtn = document.getElementById('challengeBtn');
+challengeBtn?.addEventListener('click', () => { window.location.href = 'challenge.html'; });
+
+    // --- 확인 모달 버튼 ---
+    confirmYesBtn?.addEventListener('click', () => {
+        if (pendingTargetHours !== null) {
+            applyDurationChange(pendingTargetHours);
+            pendingTargetHours = null;
+        }
+        if(confirmChangeModal) confirmChangeModal.style.display = 'none';
+    });
+
+ 
+
+
   // 링크 공유
   document.getElementById('shareLinkBtn')?.addEventListener('click', async ()=>{
     const url = `${location.origin}/challenge-invite.html?id=${encodeURIComponent(ch.id)}`;
@@ -848,7 +943,6 @@ function renderChallengeInfo(ch){
     toast('삭제되었습니다.'); showView('list');
   });
 }
-
 
 
 /* ===== 유틸 ===== */
