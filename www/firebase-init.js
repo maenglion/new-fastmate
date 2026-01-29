@@ -175,12 +175,13 @@ window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
     return db.collection('users').doc(u.uid);
   };
 
-  window.getUserDoc = async () => {
-    const ref = userDocRef();
-    if (!ref) return null;
+ window.getUserDoc = async (uid = null) => {
+    const targetUid = uid || auth.currentUser?.uid;
+    if (!targetUid) return null;
+    const ref = db.collection('users').doc(targetUid);
     const snap = await ref.get();
     return snap.exists ? snap.data() : null;
-  };
+};
 
   // =========================================================
   // 10) 최초 가입 시 기본 프로필 생성(옵션)
