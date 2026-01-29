@@ -218,6 +218,13 @@ window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
       return false;
     }
   };
+window.fastmateApp = {
+    auth: window.auth,
+    db: window.db,
+    getUserDoc: window.getUserDoc,
+    signOutUser: window.appSignOut // mypage.html에서 사용하는 이름으로 매칭
+  };
 
   console.log('[firebase-init] ready');
 })();
+
