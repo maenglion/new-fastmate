@@ -495,19 +495,17 @@ CSS
   </div><!-- /#challengeListView -->
 
   <!-- 상세 뷰(단 하나만 유지) -->
-  <div id="challengeDetailView" style="display:none;">
-    <div id="challengeInfo" class="challenge-info-card"><!-- JS가 채움 --></div>
+<div id="challengeDetailView" style="display:none; padding-bottom: 80px;">
+    <div id="challengeInfo" class="challenge-info-card" style="margin-bottom: 10px;"></div>
 
-    <!-- 댓글 섹션 -->
-   <section class="card comment-section" style="padding-bottom: 70px;">
-      <h4 id="commentTitle">챌린지 타임라인</h4>
-      <div id="commentFeed"></div>
-    </section>
+    <section class="card comment-section" style="margin-top: 0; padding-top: 0;">
+      <h4 id="commentTitle" style="font-size: 1rem; margin-bottom: 10px; color: var(--text-color);">챌린지 타임라인</h4>
+      <div id="commentFeed"></div> </section>
 
-    <div class="add-comment-bar">
-      <img id="myAvatar" class="comment-avatar" alt="me">
-      <input id="directCommentInput" type="text" placeholder="댓글을 남겨보세요...">
-      <button id="directSubmitBtn" class="send-comment-btn">게시</button>
+    <div class="add-comment-bar" style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); padding: 12px 16px; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; z-index: 2000;">
+      <img id="myAvatar" class="comment-avatar" style="width: 34px; height: 34px; border-radius: 50%;" alt="me">
+      <input id="directCommentInput" type="text" placeholder="댓글을 남겨보세요..." style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-color); outline: none; font-size: 0.95rem;">
+      <button id="directSubmitBtn" style="background: none; border: none; color: var(--primary-color); font-weight: bold; cursor: pointer;">게시</button>
     </div>
 </div>
 
@@ -849,6 +847,8 @@ function renderChallengeInfo(ch) {
     if (!$info) return;
 
     const isPrivate = (ch.visibility || 'private') === 'private';
+    // 고정된 이름 대신 DB의 실제 호스트명을 사용합니다.
+    const hostName = ch.hostName || ch.ownerName || '사용자';
     const d = ch.startTime?.toDate?.();
     const dateStr = d ? d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
     const timeStr = d ? d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-';
@@ -894,6 +894,37 @@ function renderChallengeInfo(ch) {
       </ul>
     </div>
     `;
+// 댓글 등록 자동 갱신 로직
+document.getElementById('directSubmitBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('directCommentInput');
+    const text = input.value.trim();
+    
+    // 필수 정보 체크
+    if (!text || !currentUser || !currentChallengeId) return;
+
+    const payload = {
+        uid: currentUser.uid,
+        // 현재 앱에 설정된 실제 닉네임을 사용합니다.
+        nickname: currentUserProfile?.nickname || currentUser.displayName || '사용자',
+        photoURL: currentUser.photoURL || null,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        isAutoComment: false,
+        parentId: replyingParentId || null
+    };
+
+    try {
+        await db.collection('challenges').doc(currentChallengeId).collection('comments').add(payload);
+        input.value = '';
+        replyingParentId = null;
+        // 등록 즉시 피드 업데이트
+        renderComments(currentChallengeId); 
+    } catch (e) {
+        console.error("댓글 등록 오류:", e);
+        toast('등록 실패');
+    }
+});
+
 
     // --- 이벤트 바인딩 (기존 로직 유지) ---
     document.getElementById('shareLinkBtn')?.addEventListener('click', async () => {
@@ -901,6 +932,7 @@ function renderChallengeInfo(ch) {
         try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요'); }
         catch { prompt('링크 복사:', url); }
     });
+    
 
     document.getElementById('editChallengeBtn')?.addEventListener('click', () => {
         const startMs = ch.startTime?.toDate?.()?.getTime?.() || 0;
@@ -975,44 +1007,6 @@ function renderDetailHeader(challenge) {
   document.getElementById('backToListBtn')?.addEventListener('click', () => showView('list'));
 }  
 
-
-function renderChallengeInfo(ch){
-  const $info = document.getElementById('challengeInfo'); if(!$info) return;
-  const isPrivate = (ch.visibility||'private')==='private';
-  const d = ch.startTime?.toDate?.();
-  const dateStr = d ? d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}) : '-';
-  const timeStr = d ? d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) : '-';
-  const memberCount = Array.isArray(ch.participantUids)? ch.participantUids.length : (ch.memberCount||1);
-  const desc = (ch.description||'').trim();
-  const goal = (ch.detailedGoal||'').trim();
-
-  $info.innerHTML = `
-    <div class="card challenge-details" style="position:relative;">
-      <div class="detail-actions">
-        <button id="shareLinkBtn" class="icon-ghost-btn" title="링크 공유">
-          <span class="icon" style="background-image:var(--icon-link)"></span>
-        </button>
-        <button id="editChallengeBtn" class="icon-ghost-btn" title="수정">🖊️</button>
-        <button id="deleteChallengeBtn" class="icon-ghost-btn" title="삭제">🗑️</button>
-      </div>
-
-      <div class="challenge-title-row" style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
-        <h2 class="challenge-title" style="margin:0;">${escapeHTML(ch.challengeName||'-')}</h2>
-        <div class="card-visibility" title="${isPrivate?'비공개':'공개'}">
-          <span class="lock" style="background-image:var(${isPrivate?'--icon-private':'--icon-public'})"></span>
-        </div>
-      </div>
-
-      ${desc ? `<p class="challenge-desc">${escapeHTML(desc)}</p>` : ``}
-
-      <ul class="challenge-meta-list">
-        <li class="meta-item"><span class="icon" style="background-image:var(--icon-people)"></span><div class="meta-text"><div class="meta-label">참여자</div><div class="meta-value">${memberCount}명</div></div></li>
-        <li class="meta-item"><span class="icon" style="background-image:var(--icon-date)"></span><div class="meta-text"><div class="meta-label">날짜</div><div class="meta-value">${dateStr}</div></div></li>
-        <li class="meta-item"><span class="icon" style="background-image:var(--icon-time)"></span><div class="meta-text"><div class="meta-label">시작시간</div><div class="meta-value">${timeStr}</div></div></li>
-        ${goal ? `<li class="meta-item"><span class="icon" style="background-image:var(--icon-goal)"></span><div class="meta-text"><div class="meta-label">목표</div><div class="meta-value">${escapeHTML(goal)}</div></div></li>` : ``}
-      </ul>
-    </div>
-  `;
 
   // 등록 버튼 클릭 이벤트
 document.getElementById('directSubmitBtn')?.addEventListener('click', async () => {
