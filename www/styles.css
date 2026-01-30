@@ -792,3 +792,22 @@ body {
             text-decoration: underline;
         }
 
+/* 텍스트 액션 버튼 스타일 */
+.text-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.text-action-btn:hover {
+    color: var(--primary-color); /* 마우스 올리면 초록색 */
+}
+
+.text-action-btn.delete:hover {
+    color: #dc3545; /* 삭제는 빨간색 */
+}

@@ -443,6 +443,43 @@ CSS
     margin-right: 6px;
 }
 
+/* 텍스트 버튼 스타일 (공유, 수정, 삭제) */
+.text-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+.text-action-btn:hover {
+    color: var(--primary-color); /* 마우스 올릴 때 초록색으로 */
+}
+
+.text-action-btn.delete:hover {
+    color: #dc3545; /* 삭제 버튼은 빨간색으로 강조 가능 */
+}
+
+/* 제목 앞 비공개 텍스트 스타일 */
+.private-badge {
+    color: var(--text-light);
+    font-weight: 500;
+    margin-right: 6px;
+    font-size: 1.1rem;
+}
+
+/* 상세 카드 내 버튼 정렬 */
+.detail-actions-text {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 12px;
+}
+
   </style>
 </head>
 <body>
@@ -807,74 +844,78 @@ function showView(viewName, challengeId = null) {
       challengeListDiv.innerHTML = '<p>목록을 불러오는 데 실패했습니다.</p>';
     }
   }
+function renderChallengeInfo(ch) {
+    const $info = document.getElementById('challengeInfo');
+    if (!$info) return;
 
-function renderChallengePage() {
-  if (allChallenges.length === 0) {
-    challengeListDiv.innerHTML = '<div class="challenge-card" style="text-align:center;"><p>아직 참여한 챌린지가 없습니다.</p></div>';
-    paginationControls.innerHTML = '';
-    return;
-  }
+    const isPrivate = (ch.visibility || 'private') === 'private';
+    const d = ch.startTime?.toDate?.();
+    const dateStr = d ? d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+    const timeStr = d ? d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-';
+    const memberCount = Array.isArray(ch.participantUids) ? ch.participantUids.length : (ch.memberCount || 1);
+    const desc = (ch.description || '').trim();
+    const goal = (ch.detailedGoal || '').trim();
 
-  challengeListDiv.innerHTML = '';
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex   = startIndex + ITEMS_PER_PAGE;
-  const pageItems  = allChallenges.slice(startIndex, endIndex);
-
-  // --- 아이콘 경로 ---
-  const peopleIcon = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757595393/people_fh71ri.png";
-  const dateIcon   = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757595328/date_w4uttj.png";
-  const timeIcon   = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757595327/time-dark_auvyve.png";
-  const goalIcon   = "https://res.cloudinary.com/dnswboo5z/image/upload/v1757595329/goal_icon_ldahyt.png"; // 네가 준 링크
-
-pageItems.forEach(challenge => {
-  const card = document.createElement('div');
-  card.className = 'challenge-card';
-
-  const memberCount = Array.isArray(challenge.participantUids)
-    ? challenge.participantUids.length
-    : (challenge.memberCount || 1);
-
-  const d = challenge.startTime?.toDate?.();
-  const dateStr = challenge.startDateStr || (d ? d.toLocaleDateString('ko-KR') : '-');
-  const timeStr = challenge.startClockStr || (d ? d.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) : '-');
-  const goalStr = challenge.detailedGoal ? escapeHTML(challenge.detailedGoal) : '-';
-  const isPrivate = (challenge.visibility || 'private') === 'private';
-
-  card.innerHTML = `
-    <div class="challenge-content">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <h3>${escapeHTML(challenge.challengeName || '-')}</h3>
-        <div class="card-visibility" title="${isPrivate ? '비공개' : '공개'}">
-          <span class="lock" style="background-image: var(${isPrivate ? '--icon-private' : '--icon-public'});"></span>
-        </div>
+    $info.innerHTML = `
+    <div class="card challenge-details" style="position:relative; padding: 24px;">
+      <div class="detail-actions-text" style="position: absolute; top: 20px; right: 20px; display: flex; gap: 15px;">
+        <button id="shareLinkBtn" class="text-action-btn">공유</button>
+        <button id="editChallengeBtn" class="text-action-btn">수정</button>
+        <button id="deleteChallengeBtn" class="text-action-btn delete">삭제</button>
       </div>
 
-      <div class="challenge-meta">
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-date);"></span>
-          <span>${dateStr}</span>
-        </div>
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-time);"></span>
-          <span>${timeStr}</span>
-        </div>
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-people);"></span>
-          <span>${memberCount}명</span>
-        </div>
-        <div class="meta-row">
-          <span class="icon" style="background-image: var(--icon-goal);"></span>
-          <span>${goalStr}</span>
-        </div>
+      <div class="challenge-title-row" style="margin-bottom: 15px; margin-top: 10px;">
+        <h2 class="challenge-title" style="margin:0; font-size: 1.4rem; display: flex; align-items: center; gap: 6px;">
+          ${isPrivate ? '<span class="private-badge" style="color: var(--text-light); font-weight: 500;">[비공개]</span>' : ''}
+          ${escapeHTML(ch.challengeName || '-')}
+        </h2>
       </div>
+
+      ${desc ? `<p class="challenge-desc" style="color: var(--text-light); line-height: 1.6; margin-bottom: 24px;">${escapeHTML(desc)}</p>` : ``}
+
+      <ul class="challenge-meta-list" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px;">
+        <li class="meta-item" style="display: flex; align-items: center; gap: 10px;">
+            <span class="icon" style="background-image:var(--icon-people); width:20px; height:20px; display:inline-block;"></span>
+            <span class="meta-value">${memberCount}명</span>
+        </li>
+        <li class="meta-item" style="display: flex; align-items: center; gap: 10px;">
+            <span class="icon" style="background-image:var(--icon-date); width:20px; height:20px; display:inline-block;"></span>
+            <span class="meta-value">${dateStr}</span>
+        </li>
+        <li class="meta-item" style="display: flex; align-items: center; gap: 10px;">
+            <span class="icon" style="background-image:var(--icon-time); width:20px; height:20px; display:inline-block;"></span>
+            <span class="meta-value">${timeStr}</span>
+        </li>
+        ${goal ? `
+        <li class="meta-item" style="display: flex; align-items: center; gap: 10px;">
+            <span class="icon" style="background-image:var(--icon-goal); width:20px; height:20px; display:inline-block;"></span>
+            <span class="meta-value">${escapeHTML(goal)}</span>
+        </li>` : ``}
+      </ul>
     </div>
-  `;
-  card.addEventListener('click', () => showView('detail', challenge.id));
-  challengeListDiv.appendChild(card);
-});
+    `;
 
+    // --- 이벤트 바인딩 (기존 로직 유지) ---
+    document.getElementById('shareLinkBtn')?.addEventListener('click', async () => {
+        const url = `${location.origin}/challenge-invite.html?id=${encodeURIComponent(ch.id)}`;
+        try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요'); }
+        catch { prompt('링크 복사:', url); }
+    });
 
-  renderPagination();
+    document.getElementById('editChallengeBtn')?.addEventListener('click', () => {
+        const startMs = ch.startTime?.toDate?.()?.getTime?.() || 0;
+        if (startMs - Date.now() < 30 * 60 * 1000) return toast('시작 30분 전까지만 수정 가능합니다.');
+        openEditChallengeModal(ch);
+    });
+
+    document.getElementById('deleteChallengeBtn')?.addEventListener('click', async () => {
+        if (!confirm('정말 삭제할까요?')) return;
+        try {
+            await db.collection('challenges').doc(ch.id).delete();
+            toast('삭제되었습니다.');
+            showView('list');
+        } catch (e) { toast('삭제 실패'); }
+    });
 }
 
   function renderPagination() {
