@@ -709,6 +709,38 @@
       font-weight: bold;
       cursor: pointer;
     }
+    /* 댓글 입력창 - 타임라인 밑 고정 스타일 */
+.comment-section .add-comment-bar {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 25px;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-section .add-comment-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  padding: 8px;
+}
+
+.send-comment-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-weight: bold;
+  cursor: pointer;
+  padding: 8px 12px;
+}
   </style>
 </head>
 <body>
@@ -724,20 +756,38 @@
     </div>
 
     <!-- 상세 뷰 -->
-    <div id="challengeDetailView" style="display:none; padding-bottom: 80px;">
-      <div id="challengeInfo" class="challenge-info-card" style="margin-bottom: 10px;"></div>
+<div id="challengeDetailView" style="display:none;">
+    <div id="challengeInfo" class="challenge-info-card"></div>
 
-      <section class="card comment-section" style="margin-top: 0; padding-top: 0;">
-        <h4 id="commentTitle" style="font-size: 1rem; margin-bottom: 10px; color: var(--text-color);">챌린지 타임라인</h4>
-        <div id="commentFeed"></div>
-      </section>
-
-      <div class="add-comment-bar" style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); padding: 12px 16px; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; z-index: 2000;">
+    <section class="card comment-section">
+      <h4 id="commentTitle">챌린지 타임라인</h4>
+      
+      <!-- ✅ 타임라인 제목 바로 밑에 댓글 입력창 -->
+      <div class="add-comment-bar" style="margin-bottom: 16px; position:relative; border-radius:25px;">
         <img id="myAvatar" class="comment-avatar" style="width: 34px; height: 34px; border-radius: 50%;" alt="me">
-        <input id="directCommentInput" type="text" placeholder="댓글을 남겨보세요..." style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-color); outline: none; font-size: 0.95rem;">
-        <button id="directSubmitBtn" style="background: none; border: none; color: var(--primary-color); font-weight: bold; cursor: pointer;">게시</button>
+        <input id="directCommentInput" type="text" placeholder="댓글을 남겨보세요...">
+        <button id="directSubmitBtn" class="send-comment-btn">게시</button>
       </div>
+      
+      <div id="commentFeed"></div>
+    </section>
+</div>
+
+<!-- ✅ 답글 모달 (body 끝에) -->
+<div id="replyModal" class="modal">
+  <div class="modal-content" style="max-width:480px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">답글 달기</h3>
+      <button id="closeReplyModal" class="icon-btn">✕</button>
     </div>
+    <div id="replyTargetInfo" style="font-size:.9rem; color:var(--text-light); margin-bottom:12px; padding:10px; background:var(--bg-color); border-radius:8px;"></div>
+    <textarea id="replyText" rows="3" placeholder="답글을 입력하세요..." style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:8px; resize:none;"></textarea>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+      <button id="replyCancel" class="onb-btn onb-ghost">취소</button>
+      <button id="replySubmit" class="onb-btn onb-primary">등록</button>
+    </div>
+  </div>
+</div>
 
     <!-- 생성 모달 -->
     <div id="createChallengeModal" class="modal">
@@ -1209,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function createCommentEl(c, replies = [], isReply = false) {
+function createCommentEl(c, replies = [], isReply = false) {
     const wrap = document.createElement('div');
     wrap.className = 'comment' + (isReply ? ' reply' : '');
     const nick = c.nickname || '사용자';
@@ -1237,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="comment-text">${textHtml}</div>
           <div class="comment-actions">
-            ${!isReply ? `<button class="reply-btn" data-target="${c.id}" data-nick="${nick}">답글달기</button>` : ''}
+            ${!isReply ? `<button class="reply-btn" data-target="${c.id}" data-nick="${nick}" data-text="${escapeHTML(c.text || '')}">답글달기</button>` : ''}
           </div>
           ${!isReply && replies.length > 0 ? `
             <button class="onb-btn toggle-replies" data-toggle="${c.id}" style="margin-top:6px; font-size:0.8rem; background:none; color:var(--primary-color);">▽ 답글 ${replies.length}개 보기</button>
@@ -1246,16 +1296,30 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
 
+    // ✅ 답글 버튼 → 모달 열기
     wrap.querySelector('.reply-btn')?.addEventListener('click', (e) => {
       const targetId = e.target.dataset.target;
       const targetNick = e.target.dataset.nick;
-      const input = document.getElementById('directCommentInput');
+      const targetText = e.target.dataset.text || '';
 
       replyingParentId = targetId;
-      input.value = `@${targetNick} `;
-      input.focus();
+      
+      const infoEl = document.getElementById('replyTargetInfo');
+      if (infoEl) {
+        infoEl.innerHTML = `<strong>@${targetNick}</strong>에게 답글<br><span style="color:var(--text-light);">${targetText.slice(0, 50)}${targetText.length > 50 ? '...' : ''}</span>`;
+      }
+      
+      const textEl = document.getElementById('replyText');
+      if (textEl) textEl.value = '';
+      
+      const modal = document.getElementById('replyModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        textEl?.focus();
+      }
     });
 
+    // ✅ 답글 토글
     wrap.querySelector('.toggle-replies')?.addEventListener('click', (e) => {
       const box = wrap.querySelector(`#rc-${c.id}`);
       if (box && box.childElementCount === 0) {
@@ -1270,10 +1334,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     return wrap;
-  }
+}
 
-  // --- 수정 모달 ---
-  function openEditChallengeModal(ch) {
+// --- 수정 모달 ---
+function openEditChallengeModal(ch) {
     const modal = document.getElementById('editChallengeModal');
     const descEl = document.getElementById('ec-desc');
     const startEl = document.getElementById('ec-start');
@@ -1326,10 +1390,10 @@ document.addEventListener('DOMContentLoaded', () => {
         toast('저장에 실패했습니다.');
       }
     };
-  }
+}
 
-  // --- 모달 이벤트 바인딩 ---
-  (function bindCreateModalOnce() {
+// --- 모달 이벤트 바인딩 ---
+(function bindCreateModalOnce() {
     if (window.__BIND_CREATE_MODAL__) return;
     window.__BIND_CREATE_MODAL__ = true;
 
@@ -1442,10 +1506,10 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('챌린지 생성 중 오류가 발생했습니다');
       }
     });
-  })();
+})();
 
-  // --- 댓글 등록 ---
-  document.getElementById('directSubmitBtn')?.addEventListener('click', async () => {
+// --- 댓글 등록 (일반) ---
+document.getElementById('directSubmitBtn')?.addEventListener('click', async () => {
     const input = document.getElementById('directCommentInput');
     const text = input.value.trim();
 
@@ -1458,20 +1522,73 @@ document.addEventListener('DOMContentLoaded', () => {
       text: text,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       isAutoComment: false,
-      parentId: replyingParentId || null
+      parentId: null  // 일반 댓글은 parentId 없음
     };
 
     try {
       await db.collection('challenges').doc(currentChallengeId).collection('comments').add(payload);
       input.value = '';
-      replyingParentId = null;
       renderComments(currentChallengeId);
       toast('댓글이 등록되었습니다.');
     } catch (e) {
       console.error(e);
       toast('등록 실패');
     }
-  });
+});
+
+// --- 답글 모달 이벤트 (1회만 바인딩) ---
+(function bindReplyModalOnce() {
+    if (window.__BIND_REPLY_MODAL__) return;
+    window.__BIND_REPLY_MODAL__ = true;
+
+    // 닫기 버튼
+    document.getElementById('closeReplyModal')?.addEventListener('click', () => {
+      document.getElementById('replyModal').style.display = 'none';
+      replyingParentId = null;
+    });
+
+    // 취소 버튼
+    document.getElementById('replyCancel')?.addEventListener('click', () => {
+      document.getElementById('replyModal').style.display = 'none';
+      replyingParentId = null;
+    });
+
+    // 배경 클릭
+    document.getElementById('replyModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'replyModal') {
+        e.target.style.display = 'none';
+        replyingParentId = null;
+      }
+    });
+
+    // 답글 등록
+    document.getElementById('replySubmit')?.addEventListener('click', async () => {
+      const text = document.getElementById('replyText').value.trim();
+      if (!text || !currentUser || !currentChallengeId || !replyingParentId) return;
+
+      const payload = {
+        uid: currentUser.uid,
+        nickname: currentUserProfile?.nickname || '사용자',
+        photoURL: currentUser.photoURL || null,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        isAutoComment: false,
+        parentId: replyingParentId
+      };
+
+      try {
+        await db.collection('challenges').doc(currentChallengeId).collection('comments').add(payload);
+        document.getElementById('replyModal').style.display = 'none';
+        document.getElementById('replyText').value = '';
+        replyingParentId = null;
+        renderComments(currentChallengeId);
+        toast('답글이 등록되었습니다.');
+      } catch (e) {
+        console.error(e);
+        toast('등록 실패');
+      }
+    });
+})();
 
   // --- 초기화 ---
   auth.onAuthStateChanged(user => {
