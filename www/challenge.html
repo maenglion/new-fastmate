@@ -206,8 +206,8 @@
     }
 
     .challenge-meta .meta-row img {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
     }
 
     /* --- 페이징 --- */
@@ -509,11 +509,12 @@
     /* 메타 아이콘 공통 규격 */
     .meta-item .icon,
     .challenge-meta .meta-row .icon {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       display: inline-block;
       background-size: contain;
       background-repeat: no-repeat;
+      flex-shrink: 0;
     }
 
     /* 카드 제목줄 오른쪽 잠금 아이콘 */
@@ -960,12 +961,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderDetailHeader(challenge) {
+    const isPrivate = (challenge.visibility || 'private') === 'private';
+    const visibilityLabel = isPrivate ? '[비공개]' : '[공개]';
+    
     pageHeader.innerHTML = `
       <button class="header-btn" id="backToListBtn">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       </button>
       <div class="page-title-group">
-        <h1 class="page-title" style="font-size: 1.2rem;">${escapeHTML(challenge.challengeName)}</h1>
+        <h1 class="page-title" style="font-size: 1.1rem;">
+          <span style="color: var(--text-light); font-weight: 500;">${visibilityLabel}</span> ${escapeHTML(challenge.challengeName)}
+        </h1>
       </div>
       <div style="width: 40px;"></div>
     `;
@@ -1091,6 +1097,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const d = ch.startTime?.toDate?.();
     const dateStr = d ? d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
     const timeStr = d ? d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-';
+    
+    // 끝나는 시간 계산 (단식 모델 시간 더하기)
+    const fastingMinutes = ch.fastingModelMinutes || 16 * 60; // 기본 16시간
+    let endTimeStr = '-';
+    if (d) {
+      const endDate = new Date(d.getTime() + fastingMinutes * 60 * 1000);
+      endTimeStr = endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    }
+    
     const memberCount = Array.isArray(ch.participantUids) ? ch.participantUids.length : (ch.memberCount || 1);
     const desc = (ch.description || '').trim();
     const goal = (ch.detailedGoal || '').trim();
@@ -1105,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="challenge-title-row" style="margin-bottom: 15px; margin-top: 10px;">
           <h2 class="challenge-title" style="margin:0; font-size: 1.35rem; display: flex; align-items: center; gap: 6px;">
-            ${isPrivate ? '<span class="private-badge">[비공개]</span>' : ''}
+            ${isPrivate ? '<span class="private-badge">[비공개]</span>' : '<span class="private-badge">[공개]</span>'}
             <span style="color: var(--primary-color); font-weight: 700;">${escapeHTML(hostName)}</span>님의 ${escapeHTML(ch.fastingModelLabel || '')} 단식
           </h2>
         </div>
@@ -1114,20 +1129,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <ul class="challenge-meta-list">
           <li class="meta-item">
-            <span class="icon" style="background-image:var(--icon-people);"></span>
+            <span class="icon" style="background-image:var(--icon-people); width:22px; height:22px;"></span>
             <span>참여자: ${memberCount}명</span>
           </li>
           <li class="meta-item">
-            <span class="icon" style="background-image:var(--icon-date);"></span>
+            <span class="icon" style="background-image:var(--icon-date); width:22px; height:22px;"></span>
             <span>날짜: ${dateStr}</span>
           </li>
           <li class="meta-item">
-            <span class="icon" style="background-image:var(--icon-time);"></span>
+            <span class="icon" style="background-image:var(--icon-time); width:22px; height:22px;"></span>
             <span>시작시간: ${timeStr}</span>
+          </li>
+          <li class="meta-item">
+            <span class="icon" style="background-image:var(--icon-time); width:22px; height:22px;"></span>
+            <span>종료시간: ${endTimeStr}</span>
           </li>
           ${goal ? `
           <li class="meta-item">
-            <span class="icon" style="background-image:var(--icon-goal);"></span>
+            <span class="icon" style="background-image:var(--icon-goal); width:22px; height:22px;"></span>
             <span>목표: ${escapeHTML(goal)}</span>
           </li>` : ''}
         </ul>
