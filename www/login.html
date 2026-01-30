@@ -123,24 +123,6 @@
         .google-login-btn svg { width: 20px; height: 20px; }
     </style>
 </head>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Firebase SDK (compat 버전) -->
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/manifest.json">
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-    <script src="./firebase-init.js"></script>
-
-    <title>로그인 - fastmate</title>
-    <link rel="stylesheet" href="./styles.css">
-</head>
 <body>
 
     <div class="login-container">
@@ -163,7 +145,20 @@
             카카오로 로그인
         </button>
         <p class="signup-link">계정이 없다면 <a href="./signup.html">회원가입하기</a></p>
-    </div>
+      </div>
+      <!-- 준비중 모달 -->
+<div id="prepareModal" class="modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+  <div style="background:white; padding:24px; border-radius:12px; text-align:center; max-width:300px; margin:20px;">
+    <p style="margin:0 0 16px; font-size:1.1rem;">카카오 로그인은 준비중입니다 🙏</p>
+    <button id="closePrepareModal" style="padding:10px 24px; background:#1c8e3e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">확인</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script defer src="/firebase-init.js?v=2025.09.06-v8"></script>
+
         
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -174,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const kakaoLoginBtn = document.getElementById('kakaoLoginBtn');
 
     // ========================================
-    // [수정 1] 이미 로그인 상태면 fastmate로 이동 (한 곳에서만 처리)
+    // 이미 로그인 상태면 fastmate로 이동
     // ========================================
     let redirected = false;
     auth.onAuthStateChanged((user) => {
@@ -192,14 +187,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = passwordInput?.value || '';
 
         if (!email || !password) {
-            alert('이메일과 비밀번호를 입력해주세요.');
+            showModal('이메일과 비밀번호를 입력해주세요.');
             return;
         }
 
         emailLoginBtn.disabled = true;
         try {
             await auth.signInWithEmailAndPassword(email, password);
-            // onAuthStateChanged에서 리디렉션 처리됨
         } catch (e) {
             console.error(e);
             let msg = '로그인에 실패했습니다.';
@@ -212,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (e.code === 'auth/too-many-requests') {
                 msg = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.';
             }
-            alert(msg);
+            showModal(msg);
         } finally {
             emailLoginBtn.disabled = false;
         }
@@ -226,22 +220,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ========================================
-    // [수정 2] 구글 로그인 - firebase-init.js의 헬퍼 사용
+    // 구글 로그인
     // ========================================
     googleLoginBtn?.addEventListener('click', async () => {
         if (googleLoginBtn.disabled) return;
         googleLoginBtn.disabled = true;
 
         try {
-            const user = await signInWithGoogle(); // firebase-init.js 헬퍼
-            // 성공 시 onAuthStateChanged에서 fastmate.html로 이동
+            const user = await signInWithGoogle();
             if (!user) {
-                // 팝업 닫힘 또는 리다이렉트 폴백 진행 중
                 console.log('Google 로그인: 팝업 닫힘 또는 리다이렉트 진행 중');
             }
         } catch (e) {
             console.error(e);
-            alert(e.message || 'Google 로그인에 실패했습니다.');
+            showModal(e.message || 'Google 로그인에 실패했습니다.');
         } finally {
             googleLoginBtn.disabled = false;
         }
@@ -251,16 +243,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // 카카오 로그인 (준비중)
     // ========================================
     kakaoLoginBtn?.addEventListener('click', () => {
-        alert('카카오 로그인은 준비중입니다.');
+        showModal('카카오 로그인은 준비중입니다 🙏');
+    });
+
+    // ========================================
+    // 모달 함수
+    // ========================================
+    function showModal(message) {
+        const modal = document.getElementById('alertModal');
+        const msgEl = document.getElementById('alertModalMessage');
+        if (modal && msgEl) {
+            msgEl.textContent = message;
+            modal.style.display = 'flex';
+        }
+    }
+
+    // 모달 닫기
+    document.getElementById('closeAlertModal')?.addEventListener('click', () => {
+        document.getElementById('alertModal').style.display = 'none';
+    });
+
+    // 배경 클릭 시 닫기
+    document.getElementById('alertModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'alertModal') {
+            e.target.style.display = 'none';
+        }
     });
 });
 </script>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script defer src="/firebase-init.js?v=2025.09.06-v8"></script>
-
-
-</body>
+</body> 
 </html>
