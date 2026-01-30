@@ -346,6 +346,103 @@
   cursor: pointer;
 }
 
+네, 충분히 혼동될 수 있는 상황입니다! 결론부터 말씀드리면, CSS를 styles.css로 옮기지 않아도 challenge.html 내의 <style> 태그 안에서 충분히 해결 가능합니다.
+
+지금 CSS가 적용되지 않는 이유는 모달 내부에서 사용한 클래스명(onb-btn, onb-input, onb-primary 등)에 대한 구체적인 스타일 정의가 현재 challenge.html의 CSS 섹션에 빠져있기 때문입니다.
+
+아래 코드를 challenge.html의 <style> 태그 안에 추가하면 "챌린지 만들기" 모달이 fastmate 특유의 깔끔한 디자인으로 변신할 거예요.
+
+1. 챌린지 만들기 모달 전용 CSS 추가
+이 스타일들을 challenge.html 파일 상단 <style> 태그 내의 마지막 부분에 붙여넣으세요.
+
+CSS
+/* --- 챌린지 만들기 모달 전용 스타일 --- */
+.modal {
+    display: none; 
+    position: fixed; 
+    inset: 0; 
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.5); /* 배경 어둡게 */
+    align-items: center; 
+    justify-content: center; 
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 16px;
+    max-width: 500px; /* 너무 넓지 않게 조정 */
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.form-row {
+    margin-bottom: 20px;
+}
+
+.form-row label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+/* 입력창 스타일 */
+.onb-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.onb-input:focus {
+    border-color: var(--primary-color);
+}
+
+/* 버튼 스타일 */
+.onb-btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    font-size: 1rem;
+    transition: opacity 0.2s;
+}
+
+.onb-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.onb-ghost {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.onb-btn:hover {
+    opacity: 0.9;
+}
+
+/* 라디오 버튼 정렬 */
+.radio {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.radio input {
+    margin-right: 6px;
+}
+
   </style>
 </head>
 <body>
