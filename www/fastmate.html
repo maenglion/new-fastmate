@@ -266,6 +266,8 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
 </div>
 
 
+
+
     <!-- 온보딩 모달 (화면 전체를 덮는 배경 포함) -->
     <div id="appShield">
         <div id="onboardingModal">
@@ -805,6 +807,10 @@ picked.setHours(hour, mm, 0, 0);
         modelSelect?.addEventListener('change', handleModelChange);
         userChip?.addEventListener('click', () => { window.location.href = 'mypage.html'; });
 
+        document.getElementById('challengeBtn')?.addEventListener('click', () => {
+        window.location.href = 'challenge.html';
+    });
+        
         confirmYesBtn?.addEventListener('click', () => {
             if (pendingTargetHours !== null) {
                 applyDurationChange(pendingTargetHours);
