@@ -785,7 +785,6 @@ picked.setHours(hour, mm, 0, 0);
         const title = (mode === 'start') ? '시작 시간 선택' : '종료 시간 선택';
         if(timePickerTitle) timePickerTitle.textContent = title;
 
-            // ▼▼▼ 이 부분을 추가하세요 ▼▼▼
     if (datePickerInput) {
         const now = new Date();
         const year = now.getFullYear();
@@ -825,10 +824,10 @@ picked.setHours(hour, mm, 0, 0);
         }
     }
 
-    // 사용자가 마이페이지에서 기록 삭제 후 다시 이 탭으로 돌아왔을 때 작동
+ 
 window.addEventListener('focus', () => {
     if (currentUser) {
-        // 포커스를 얻을 때마다 DB 상태와 현재 프론트 상태를 대조함
+        
         refreshFastingState(); 
     }
 });
@@ -837,7 +836,7 @@ async function refreshFastingState() {
     if (!currentUser) return;
     const profile = await getUserDoc(currentUser.uid);
     
-    // DB에 데이터가 아예 없거나(undefined) null인 경우 
+    // DB에 데이터가 아예 없거나 null인 경우 
     if ((!profile?.currentFasting || profile.currentFasting === null) && fastingState === 'running') {
         console.log("DB 데이터 부재 감지 -> 타이머 강제 종료");
         
@@ -1086,9 +1085,6 @@ async function refreshFastingState() {
     });
   }
 
-
-    // ▼▼▼ 이전에 생략되었던 기록 모달 관련 코드 ▼▼▼
-
     // --- 공통 모달 닫기 로직 ---
     document.addEventListener('click', (e) => {
         const closeId = e.target?.getAttribute?.('data-close');
@@ -1113,8 +1109,7 @@ async function refreshFastingState() {
   }
 
 
-  /**
- * 챌린지에 자동 댓글을 포스트하는 함수
+  /** 챌린지 시 자동 댓글 달리는 기능
  * @param {string} type - 'weight', 'exercise', 'bloodSugar', 'ketone' 등 기록의 종류
  * @param {object} data - 댓글 내용 생성에 필요한 데이터
  */
@@ -1164,7 +1159,7 @@ async function postAutoComment(type, data) {
             await db.collection('challenges').doc(activeChallengeId).collection('comments').add({
                 uid: currentUser.uid,
                 nickname: currentNickname,
-                photoURL: currentUser.photoURL || null, // 아바타 표시를 위해 추가
+                photoURL: currentUser.photoURL || null, // 아바타 표시
                 text: commentText,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 isAutoComment: true, //
@@ -1182,15 +1177,14 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
         
-        // 사용자가 참여 중인 활성화된 챌린지 1개를 가져옵니다.
-        try {
+              try {
             const snap = await db.collection('challenges')
                 .where('participantUids', 'array-contains', user.uid)
                 .limit(1)
                 .get();
             
             if (!snap.empty) {
-                activeChallengeId = snap.docs[0].id; // 전역 변수에 저장
+                activeChallengeId = snap.docs[0].id; 
             }
         } catch (e) {
             console.error("챌린지 ID 로드 실패:", e);
@@ -1246,27 +1240,9 @@ try {
         // 온보딩 완료됨 → 락 해제
         sessionStorage.removeItem('onboardingLock');
     }
-    // ========================================
 
     const nickname = profile?.nickname || user.displayName || '사용자';
     setUserChip(nickname);
-
-/* 
-challengesRef = db.collection('challenges');
-    const query = challengesRef
-        .where('participantUids', 'array-contains', user.uid)
-        .where('status', '==', 'active');
-    
-    const challengeSnap = await query.get();
-    if (!challengeSnap.empty) {
-        // 진행중인 챌린지가 있다면, 첫 번째 챌린지 ID를 저장합니다.
-        const challengeDoc = challengeSnap.docs[0];
-        activeChallengeId = challengeDoc.id;
-        console.log("Active challenge found:", activeChallengeId);
-    } else {
-        activeChallengeId = null;
-    }  
-        */
 
 
                     const savedFasting = profile?.currentFasting;

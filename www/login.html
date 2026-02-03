@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const kakaoLoginBtn = document.getElementById('kakaoLoginBtn');
 
     // ========================================
-    // 이미 로그인 상태면 fastmate로 이동
+    // 이미 로그인 상태면 메인페이지로
     // ========================================
     let redirected = false;
     auth.onAuthStateChanged((user) => {
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ========================================
-    // 카카오 로그인 (준비중)
+    // 카카오 로그인 (PWA 만들기 직전에 할 예정)
     // ========================================
     kakaoLoginBtn?.addEventListener('click', () => {
         showModal('카카오 로그인은 준비중입니다 🙏');
