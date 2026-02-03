@@ -613,35 +613,50 @@ function updateTimeDisplays() {
     }
 
     async function finalizeStopFasting(endDate) {
-        if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
-        clearInterval(__fastTimer);
-        fastingState = 'idle';
-        const finalEndDate = endDate || new Date();
-        const record = {
-            startTime: selectedStartTime,
-            endTime: finalEndDate,
-            targetHours: parseFloat(targetHours),
-            actualDurationHours: (finalEndDate - selectedStartTime) / 3600000,
-            challengeId: activeChallengeId || null // ⭐ challengeId 추가
-        };
-        if (currentUser) {
-            try {
-                await db.collection('users').doc(currentUser.uid).collection('fastingHistory').add(record);
-                await db.collection('users').doc(currentUser.uid).update({ currentFasting: firebase.firestore.FieldValue.delete() });
-            } catch (e) {
-                console.error('단식 기록 저장 실패:', e);
-                showToast('기록 저장에 실패했습니다.');
-            }
+    if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
+
+    // 1. 프론트엔드 타이머 즉시 정지
+    clearInterval(__fastTimer);
+    fastingState = 'idle';
+
+    const finalEndDate = endDate || new Date();
+    const record = {
+        startTime: selectedStartTime,
+        endTime: finalEndDate,
+        targetHours: parseFloat(targetHours),
+        actualDurationHours: (finalEndDate - selectedStartTime) / 3600000,
+        challengeId: activeChallengeId || null
+    };
+
+    if (currentUser) {
+        try {
+            // 기록 저장
+            await db.collection('users').doc(currentUser.uid).collection('fastingHistory').add(record);
+            
+            // [수정] delete() 대신 null을 넣어 에러 방지 및 필드 초기화
+            await db.collection('users').doc(currentUser.uid).update({ 
+                currentFasting: null 
+            });
+            
+            console.log("단식 종료 데이터 처리 완료");
+        } catch (e) {
+            console.error('단식 기록 저장 실패:', e);
+            // 에러가 나더라도 UI는 초기화될 수 있도록 구성
         }
-        if (progressArc) progressArc.style.strokeDasharray = '0 100';
-        if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
-        if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
-        if (saltTip) saltTip.style.display = 'none';
-        initializeTime();
-        updateUIState();
-        resetSelectOptions();
-        showToast('단식을 종료했습니다. 수고하셨습니다!');
     }
+
+    // 2. UI 초기화 (중복 코드 정리를 위해 resetTimerToIdle 사용 권장)
+    if (progressArc) progressArc.style.strokeDasharray = '0 100';
+    if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+    if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+    if (saltTip) saltTip.style.display = 'none';
+    
+    initializeTime();
+    updateUIState();
+    resetSelectOptions();
+    showToast('단식을 종료했습니다. 수고하셨습니다!');
+}
+    
 
    // ===== 6) 메인 기능 함수 ===== 섹션에 있는
 // 기존 applyDurationChange 함수를 아래 코드로 교체하세요.
@@ -809,6 +824,34 @@ picked.setHours(hour, mm, 0, 0);
             }
         }
     }
+
+    // 사용자가 마이페이지에서 기록 삭제 후 다시 이 탭으로 돌아왔을 때 작동
+window.addEventListener('focus', () => {
+    if (currentUser) {
+        // 포커스를 얻을 때마다 DB 상태와 현재 프론트 상태를 대조함
+        refreshFastingState(); 
+    }
+});
+
+async function refreshFastingState() {
+    if (!currentUser) return;
+    const profile = await getUserDoc(currentUser.uid);
+    
+    // DB에 데이터가 아예 없거나(undefined) null인 경우 
+    if ((!profile?.currentFasting || profile.currentFasting === null) && fastingState === 'running') {
+        console.log("DB 데이터 부재 감지 -> 타이머 강제 종료");
+        
+        // UI 초기화 로직 실행
+        clearInterval(__fastTimer);
+        fastingState = 'idle';
+        if (progressArc) progressArc.style.strokeDasharray = '0 100';
+        if (remainingTimeEl) remainingTimeEl.textContent = '00:00:00';
+        if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
+        initializeTime();
+        updateUIState();
+        resetSelectOptions();
+    }
+}
     
     // ========================================
     // ===== 8) 이벤트 핸들러 및 연결
