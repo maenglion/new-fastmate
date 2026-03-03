@@ -586,14 +586,24 @@
         <p style="font-size: 0.8rem; color: var(--text-light); margin: 5px 0;">© 2025 2e-studio. All rights reserved.</p>
     </footer>
 
+<!-- 
+============================================
+mypage.html 수정 가이드
+============================================
+589번 줄의 <script> 태그부터 </script> 까지 전체를 아래 코드로 교체하세요.
+-->
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
         // 1. 전역 도구 및 변수 준비
-        const auth = window.fastmateApp.auth;
-        const db = window.fastmateApp.db;
-        const getUserDoc = window.fastmateApp.getUserDoc;
-        const signOutUser = window.fastmateApp.signOutUser;
+        const auth = window.auth || firebase.auth();
+        const db = window.db || firebase.firestore();
+        const getUserDoc = window.getUserDoc || async function(uid) {
+            const snap = await db.collection('users').doc(uid).get();
+            return snap.exists ? snap.data() : null;
+        };
+        const signOutUser = window.appSignOut || function() { return auth.signOut(); };
         
         let currentUser = null;
         let allCharts = {};
@@ -645,33 +655,30 @@
 
         // 4. 화면 렌더링 함수 (UI 업데이트)
         function renderProfileCard() {
-    // 이 함수는 onAuthStateChanged에서 currentUser와 allData가
-    // 준비된 후에 호출되므로 안전합니다.
-    if (!currentUser || !allData.profile) return;
-    
-    const profile = allData.profile;
-    const user = currentUser; // firebase.auth().currentUser 대신 안전한 currentUser를 사용합니다.
+            if (!currentUser || !allData.profile) return;
+            
+            const profile = allData.profile;
+            const user = currentUser;
 
-    const nickname = profile.nickname || profile.displayName || user.displayName || '사용자';
-    if (pfNickname) pfNickname.textContent = `${nickname}님`;
-    if (pfEmail) pfEmail.textContent = user.email || '이메일 정보 없음';
-    
-    // '가입 목적' 렌더링 로직 (사용자님 코드)
-    const goals = profile.onboarding?.reasons || [];
-    if (pfGoals) {
-        pfGoals.innerHTML = '';
-        if (goals.length > 0) {
-            goals.forEach(goalText => {
-                const tag = document.createElement('div');
-                tag.className = 'goal-tag';
-                tag.textContent = goalText;
-                pfGoals.appendChild(tag);
-            });
-        } else {
-            pfGoals.textContent = '설정된 목표가 없습니다.';
+            const nickname = profile.nickname || profile.displayName || user.displayName || '사용자';
+            if (pfNickname) pfNickname.textContent = `${nickname}님`;
+            if (pfEmail) pfEmail.textContent = user.email || '이메일 정보 없음';
+            
+            const goals = profile.onboarding?.reasons || [];
+            if (pfGoals) {
+                pfGoals.innerHTML = '';
+                if (goals.length > 0) {
+                    goals.forEach(goalText => {
+                        const tag = document.createElement('div');
+                        tag.className = 'goal-tag';
+                        tag.textContent = goalText;
+                        pfGoals.appendChild(tag);
+                    });
+                } else {
+                    pfGoals.textContent = '설정된 목표가 없습니다.';
+                }
+            }
         }
-    }
-}
 
         function renderPagination(container, currentPage, totalPages, onPageChange) {
             if (totalPages <= 1) { container.innerHTML = ''; return; }
@@ -742,155 +749,199 @@
             }
         };
 
-function createChart(canvasId, label, data, customScaleOptions = {}) {
-    if (allCharts[canvasId]) {
-        allCharts[canvasId].destroy();
-    }
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    
-    // 다크모드 여부 확인
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    // 다크모드에 따라 다른 색상 변수 설정
-    const lineColor = isDarkMode ? '#888888' : '#7FE89B';
-    const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
-    const gridColor = isDarkMode ? '#333' : '#f0f0f0';
-    const textColor = isDarkMode ? '#e0e0e0' : '#333';
-    const textLightColor = isDarkMode ? '#888' : '#777'; // 연한 회색
+        function createChart(canvasId, label, data, customScaleOptions = {}) {
+            if (allCharts[canvasId]) {
+                allCharts[canvasId].destroy();
+            }
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            const lineColor = isDarkMode ? '#888888' : '#7FE89B';
+            const bubbleBgColor = isDarkMode ? '#2a2a2a' : '#E1FDC5';
+            const gridColor = isDarkMode ? '#333' : '#f0f0f0';
+            const textColor = isDarkMode ? '#e0e0e0' : '#333';
+            const textLightColor = isDarkMode ? '#888' : '#777';
 
-    const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
+            const chartData = (data || []).filter(d => d && typeof d.value === 'number' && !isNaN(d.value)).map(d => ({ x: d.date, y: d.value, createdAt: d.createdAt }));
 
-    allCharts[canvasId] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: label,
-                data: chartData,
-                borderColor: lineColor,
-                borderWidth: 2.5,
-                tension: 0.2,
-                pointRadius: 4,
-                pointBackgroundColor: lineColor,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                x: {
-                    type: 'time',
-                    time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
-                    grid: { color: gridColor },
-                    ticks: { color: textColor }
+            allCharts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: label,
+                        data: chartData,
+                        borderColor: lineColor,
+                        borderWidth: 2.5,
+                        tension: 0.2,
+                        pointRadius: 4,
+                        pointBackgroundColor: lineColor,
+                        pointHoverRadius: 6,
+                        // ✅ [추가] 점을 선으로 연결
+                        fill: false,
+                        spanGaps: true
+                    }]
                 },
-                y: {
-                    beginAtZero: false,
-                    grid: { color: gridColor },
-                    ticks: { color: textColor, font: { weight: 'bold' } },
-                    ...customScaleOptions
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
-                tooltip: {
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: bubbleBgColor,
-                    padding: 12,
-                    cornerRadius: 8,
-                    
-                    // [핵심 수정] 이 옵션 하나로 네모 상자를 완전히 제거합니다.
-                    displayColors: false,
-
-                    // --- 폰트 및 색상 스타일 ---
-                    titleFont: { weight: 'normal', size: 13 },
-                    titleColor: textLightColor,
-                    
-                    bodyFont: { weight: 'bold', size: 14 },
-                    bodyColor: textColor,
-
-                    footerFont: { weight: 'normal', size: 12 },
-                    footerColor: textLightColor,
-                    
-                    callbacks: {
-                        title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
-                        label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
-                        footer: (tooltipItems) => {
-                            const rawData = tooltipItems[0].raw;
-                            if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
-                            return '';
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MM/dd' } },
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { weight: 'bold' } },
+                            // ✅ [핵심] customScaleOptions 적용
+                            ...customScaleOptions
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: bubbleBgColor,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            titleFont: { weight: 'normal', size: 13 },
+                            titleColor: textLightColor,
+                            bodyFont: { weight: 'bold', size: 14 },
+                            bodyColor: textColor,
+                            footerFont: { weight: 'normal', size: 12 },
+                            footerColor: textLightColor,
+                            callbacks: {
+                                title: (tooltipItems) => new Date(tooltipItems[0].parsed.x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                                label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+                                footer: (tooltipItems) => {
+                                    const rawData = tooltipItems[0].raw;
+                                    if (rawData.createdAt) return '기록 시간: ' + new Date(rawData.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                    return '';
+                                }
+                            }
                         }
                     }
+                },
+                plugins: [newIconPlugin]
+            });
+        }
+
+        function renderAllCharts() {
+            const range = dateRangeSelector.value;
+            const filterFn = (data) => {
+                if (range === 'all' || !data) return data;
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
+                return data.filter(d => d && d.date >= cutoffDate);
+            };
+
+            const filteredWeight = filterFn(allData.weight);
+            const filteredBloodSugar = filterFn(allData.bloodSugar);
+            const filteredKetone = filterFn(allData.ketone);
+
+            // ============================================
+            // 데이터 기반 동적 Y축 스케일 계산
+            // ============================================
+
+            // 체중: 데이터 기준 ±10 범위, 10단위
+            const weightValues = (filteredWeight || []).map(d => d.value).filter(v => !isNaN(v));
+            const weightMin = weightValues.length ? Math.floor(Math.min(...weightValues) / 10) * 10 - 10 : 30;
+            const weightMax = weightValues.length ? Math.ceil(Math.max(...weightValues) / 10) * 10 + 10 : 120;
+            const weightScaleOptions = {
+                min: Math.max(0, weightMin),
+                max: weightMax,
+                ticks: { stepSize: 10 }
+            };
+
+            // 혈당: 40부터 시작, 20단위
+            const bloodSugarValues = (filteredBloodSugar || []).map(d => d.value).filter(v => !isNaN(v));
+            const bloodSugarMax = bloodSugarValues.length 
+                ? Math.ceil(Math.max(...bloodSugarValues) / 20) * 20 + 40 
+                : 200;
+            const bloodSugarScaleOptions = {
+                min: 40,
+                max: Math.max(bloodSugarMax, 200),
+                ticks: { stepSize: 20 }
+            };
+
+            // 케톤: 데이터 기준 동적 (최대값에 맞춰 확장)
+            const ketoneValues = (filteredKetone || []).map(d => d.value).filter(v => !isNaN(v));
+            const ketoneMaxValue = ketoneValues.length ? Math.max(...ketoneValues) : 1;
+            const ketoneMax = Math.max(Math.ceil(ketoneMaxValue * 2) / 2 + 0.5, 2);
+            const ketoneScaleOptions = {
+                min: 0,
+                max: ketoneMax,
+                ticks: { stepSize: 0.5 }
+            };
+
+         !
+            createChart('weightChart', '체중 (kg)', filteredWeight, weightScaleOptions);
+            createChart('bloodSugarChart', '혈당 (mg/dL)', filteredBloodSugar, bloodSugarScaleOptions);
+            createChart('ketoneChart', '케톤 (mmol/L)', filteredKetone, ketoneScaleOptions);
+        }
+
+        // 6. 이벤트 핸들러 연결
+        let eventsWired = false;
+        function wireEventsOnce() {
+            if (eventsWired) return;
+            eventsWired = true;
+            
+            homeBtn?.addEventListener('click', () => { window.location.href = 'fastmate.html'; });
+            
+            logoutBtn?.addEventListener('click', () => {
+                if (confirm('정말 로그아웃하시겠습니까?')) {
+                    signOutUser()
+                        .then(() => {
+                            alert('로그아웃 되었습니다.');
+                            window.location.href = '/login.html';
+                        })
+                        .catch((error) => {
+                            console.error("로그아웃 오류:", error);
+                            alert("로그아웃 중 문제가 발생했습니다.");
+                        });
                 }
-            }
-        },
-        plugins: [newIconPlugin]
-    });
-}
-// ============================================
-// mypage.html 차트 수정 코드
-// renderAllCharts 함수를 찾아서 아래 코드로 교체하세요
-// ============================================
-
-// [수정] 차트 렌더링 함수 (각 차트별 축 옵션 전달)
-function renderAllCharts() {
-    const range = dateRangeSelector.value;
-    const filterFn = (data) => {
-        if (range === 'all' || !data) return data;
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - parseInt(range));
-        return data.filter(d => d && d.date >= cutoffDate);
-    };
-
-    // 필터링된 데이터
-    const filteredWeight = filterFn(allData.weight);
-    const filteredBloodSugar = filterFn(allData.bloodSugar);
-    const filteredKetone = filterFn(allData.ketone);
-
-    // ============================================
-    // [수정] 데이터 기반 동적 Y축 스케일 계산
-    // ============================================
-
-    // 체중: 데이터 기준 ±10 범위, 10단위
-    const weightValues = (filteredWeight || []).map(d => d.value).filter(v => !isNaN(v));
-    const weightMin = weightValues.length ? Math.floor(Math.min(...weightValues) / 10) * 10 - 10 : 30;
-    const weightMax = weightValues.length ? Math.ceil(Math.max(...weightValues) / 10) * 10 + 10 : 120;
-    const weightScaleOptions = {
-        min: Math.max(0, weightMin),
-        max: weightMax,
-        ticks: { stepSize: 10 }
-    };
-
-    // 혈당: 40부터 시작, 20단위
-    const bloodSugarValues = (filteredBloodSugar || []).map(d => d.value).filter(v => !isNaN(v));
-    const bloodSugarMax = bloodSugarValues.length 
-        ? Math.ceil(Math.max(...bloodSugarValues) / 20) * 20 + 20 
-        : 200;
-    const bloodSugarScaleOptions = {
-        min: 40,
-        max: Math.max(bloodSugarMax, 200),
-        ticks: { stepSize: 20 }
-    };
-
-    // 케톤: 데이터 기준 동적 (최대값에 맞춰 확장)
-    const ketoneValues = (filteredKetone || []).map(d => d.value).filter(v => !isNaN(v));
-    const ketoneMaxValue = ketoneValues.length ? Math.max(...ketoneValues) : 1;
-    const ketoneMax = Math.max(Math.ceil(ketoneMaxValue * 2) / 2 + 0.5, 2); // 0.5 단위로 올림 + 여유
-    const ketoneScaleOptions = {
-        min: 0,
-        max: ketoneMax,
-        ticks: { stepSize: 0.5 }
-    };
-
-    // ============================================
-    // [핵심 수정] 옵션을 실제로 전달!
-    // ============================================
-    createChart('weightChart', '체중 (kg)', filteredWeight, weightScaleOptions);
-    createChart('bloodSugarChart', '혈당 (mg/dL)', filteredBloodSugar, bloodSugarScaleOptions);
-    createChart('ketoneChart', '케톤 (mmol/L)', filteredKetone, ketoneScaleOptions);
-}
+            });
+            
+            fastingHistoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const li = e.target.closest('.history-item');
+                    if (li.dataset.docId) deleteFastingRecord(li.dataset.docId);
+                }
+            });
+            
+            // ✅ [핵심 수정] 탭 전환 이벤트 - 차트 리사이즈 추가
+            tabs.forEach(tab => tab.addEventListener('click', () => {
+                // 탭 활성화 상태 변경
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // 컨텐츠 표시/숨김
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const tabContent = document.getElementById(tab.dataset.tab + 'Content');
+                if (tabContent) tabContent.classList.add('active');
+                
+                // ✅ [추가] 탭 전환 시 해당 차트 리사이즈 & 업데이트
+                const chartId = tab.dataset.tab + 'Chart';
+                setTimeout(() => {
+                    if (allCharts[chartId]) {
+                        allCharts[chartId].resize();
+                        allCharts[chartId].update();
+                    }
+                }, 50);
+            }));
+            
+            dateRangeSelector.addEventListener('change', renderAllCharts);
+        }
 
         // 7. 메인 로직: 데이터 로딩 및 앱 초기화
         async function loadAndRenderAllData() {
@@ -921,9 +972,10 @@ function renderAllCharts() {
             if (user) {
                 currentUser = user;
                 loadAndRenderAllData();
+            } else {
+                // 비로그인 시 로그인 페이지로
+                window.location.href = '/login.html';
             }
         });
     });
-    </script>
-</body>
-</html>
+</script>
