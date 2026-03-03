@@ -811,3 +811,126 @@ body {
 .text-action-btn.delete:hover {
     color: #dc3545; /* 삭제는 빨간색 */
 }
+
+/* ============================================
+   갤럭시 폴드/Z6 펼침 모드 대응
+   ============================================ */
+
+/* 넓은 화면(펼침 모드) - 600px ~ 1000px */
+@media screen and (min-width: 600px) and (max-width: 1000px) {
+    body {
+        padding-top: 20px; /* 상단 여백 줄임 */
+    }
+    
+    .container {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .main-title {
+        margin-top: 5px;
+        margin-bottom: 15px;
+        font-size: 1.6rem;
+    }
+    
+    .ring-wrap {
+        max-width: 250px;
+        margin: 15px auto;
+    }
+    
+    .timer-display .time {
+        font-size: 2rem;
+    }
+    
+    .status-message {
+        margin: 5px 0 15px 0;
+    }
+    
+    .time-info {
+        margin-bottom: 15px;
+    }
+    
+    .controls {
+        gap: 10px;
+    }
+    
+    .bottom-nav {
+        margin-top: 15px;
+        padding-top: 10px;
+    }
+}
+
+/* 폴더블 가로/정사각형 모드*/
+@media screen and (max-height: 700px) and (min-width: 500px) {
+    body {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    .main-title {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 1.4rem;
+    }
+    
+    .ring-wrap {
+        max-width: 180px;
+        margin: 10px auto;
+    }
+    
+    .timer-display .time {
+        font-size: 1.6rem;
+    }
+    
+    .status-message {
+        margin: 5px 0 10px 0;
+        font-size: 0.95rem;
+        min-height: 20px;
+    }
+    
+    .time-info {
+        margin-bottom: 10px;
+    }
+    
+    .time-box {
+        padding: 8px;
+    }
+    
+    .time-box .value {
+        font-size: 1rem;
+    }
+    
+    .controls {
+        gap: 8px;
+    }
+    
+    .bottom-nav {
+        margin-top: 10px;
+        padding-top: 8px;
+    }
+    
+    .nav-btn {
+        font-size: 0.7rem;
+    }
+    
+    .nav-btn svg {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .app-footer {
+        margin-top: 10px;
+        padding-top: 8px;
+    }
+}
+
+/* PWA 전체화면 모드 - 상태바 영역 최소화 */
+@media all and (display-mode: standalone) {
+    body {
+        padding-top: env(safe-area-inset-top, 10px);
+    }
+}

@@ -729,25 +729,31 @@ mypage.html 수정 가이드
 
         // 5. 차트 관련 함수
         const newIconPlugin = {
-            id: 'newIconPlugin',
-            afterDraw: (chart) => {
-                const ctx = chart.ctx;
-                const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-                chart.data.datasets.forEach((dataset, i) => {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach((element, index) => {
-                        const dataPoint = dataset.data[index];
-                        if (dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo) {
-                            const { x, y } = element.getProps(['x', 'y'], true);
-                            ctx.save(); ctx.beginPath();
-                            ctx.arc(x, y - 12, 4, 0, 2 * Math.PI);
-                            ctx.fillStyle = 'var(--gauge-start-color, #ffd400)';
-                            ctx.fill(); ctx.restore();
-                        }
-                    });
-                });
-            }
-        };
+    id: 'newIconPlugin',
+    afterDraw: (chart) => {
+        const ctx = chart.ctx;
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const pointColor = isDarkMode ? '#888888' : '#7FE89B';
+        const newPointColor = '#ffd400'; // 6시간 내 데이터는 노란색
+        
+        chart.data.datasets.forEach((dataset, i) => {
+            const meta = chart.getDatasetMeta(i);
+            meta.data.forEach((element, index) => {
+                const dataPoint = dataset.data[index];
+                const { x, y } = element.getProps(['x', 'y'], true);
+                const isNew = dataPoint.createdAt && dataPoint.createdAt > sixHoursAgo;
+                
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = isNew ? newPointColor : pointColor;
+                ctx.fill();
+                ctx.restore();
+            });
+        });
+    }
+};
 
         function createChart(canvasId, label, data, customScaleOptions = {}) {
             if (allCharts[canvasId]) {
@@ -772,17 +778,17 @@ mypage.html 수정 가이드
                 type: 'line',
                 data: {
                     datasets: [{
-                        label: label,
-                        data: chartData,
-                        borderColor: lineColor,
-                        borderWidth: 2.5,
-                        tension: 0.2,
-                        pointRadius: 4,
-                        pointBackgroundColor: lineColor,
-                        pointHoverRadius: 6,
-                        // ✅ [추가] 점을 선으로 연결
-                        fill: false,
-                        spanGaps: true
+                            label: label,
+    data: chartData,
+    borderColor: lineColor,
+    borderWidth: 2.5,
+    tension: 0.2,
+    // ✅ [수정] 기본 점 숨기기 - newIconPlugin이 그리는 점만 보이게
+    pointRadius: 0,
+    pointHoverRadius: 6,
+    pointBackgroundColor: lineColor,
+    fill: false,
+    spanGaps: true
                     }]
                 },
                 options: {
