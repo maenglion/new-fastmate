@@ -81,8 +81,8 @@
         }
 
         .home-btn {
-    position: absolute; /* 헤더의 왼쪽 끝에 배치 */
-    left: 10px;
+    position: absolute; /* 헤더의 왼쪽 끝에 배치 */ 
+        left: 10px;
     top: 50%;
     transform: translateY(-50%); /* 수직 중앙 정렬 */
     
@@ -829,6 +829,11 @@ function createChart(canvasId, label, data, customScaleOptions = {}) {
         plugins: [newIconPlugin]
     });
 }
+// ============================================
+// mypage.html 차트 수정 코드
+// renderAllCharts 함수를 찾아서 아래 코드로 교체하세요
+// ============================================
+
 // [수정] 차트 렌더링 함수 (각 차트별 축 옵션 전달)
 function renderAllCharts() {
     const range = dateRangeSelector.value;
@@ -839,59 +844,53 @@ function renderAllCharts() {
         return data.filter(d => d && d.date >= cutoffDate);
     };
 
-    // [수정] 요청하신 y축 옵션을 명확하게 정의합니다.
+    // 필터링된 데이터
+    const filteredWeight = filterFn(allData.weight);
+    const filteredBloodSugar = filterFn(allData.bloodSugar);
+    const filteredKetone = filterFn(allData.ketone);
+
+    // ============================================
+    // [수정] 데이터 기반 동적 Y축 스케일 계산
+    // ============================================
+
+    // 체중: 데이터 기준 ±10 범위, 10단위
+    const weightValues = (filteredWeight || []).map(d => d.value).filter(v => !isNaN(v));
+    const weightMin = weightValues.length ? Math.floor(Math.min(...weightValues) / 10) * 10 - 10 : 30;
+    const weightMax = weightValues.length ? Math.ceil(Math.max(...weightValues) / 10) * 10 + 10 : 120;
     const weightScaleOptions = {
-        max: 120,
+        min: Math.max(0, weightMin),
+        max: weightMax,
         ticks: { stepSize: 10 }
     };
+
+    // 혈당: 40부터 시작, 20단위
+    const bloodSugarValues = (filteredBloodSugar || []).map(d => d.value).filter(v => !isNaN(v));
+    const bloodSugarMax = bloodSugarValues.length 
+        ? Math.ceil(Math.max(...bloodSugarValues) / 20) * 20 + 20 
+        : 200;
     const bloodSugarScaleOptions = {
-        max: 300,
-        ticks: { stepSize: 10 }
+        min: 40,
+        max: Math.max(bloodSugarMax, 200),
+        ticks: { stepSize: 20 }
     };
+
+    // 케톤: 데이터 기준 동적 (최대값에 맞춰 확장)
+    const ketoneValues = (filteredKetone || []).map(d => d.value).filter(v => !isNaN(v));
+    const ketoneMaxValue = ketoneValues.length ? Math.max(...ketoneValues) : 1;
+    const ketoneMax = Math.max(Math.ceil(ketoneMaxValue * 2) / 2 + 0.5, 2); // 0.5 단위로 올림 + 여유
     const ketoneScaleOptions = {
-        max: 5,
+        min: 0,
+        max: ketoneMax,
         ticks: { stepSize: 0.5 }
     };
 
-
-            createChart('weightChart', '체중 (kg)', filterFn(allData.weight));
-            createChart('bloodSugarChart', '혈당 (mg/dL)', filterFn(allData.bloodSugar));
-            createChart('ketoneChart', '케톤 (mmol/L)', filterFn(allData.ketone));
-        }
-
-        // 6. 이벤트 핸들러 연결
-        let eventsWired = false;
-        function wireEventsOnce() {
-            if (eventsWired) return;
-            eventsWired = true;
-            homeBtn?.addEventListener('click', () => { window.location.href = 'fastmate.html'; });
-            logoutBtn?.addEventListener('click', () => {
-    if (confirm('정말 로그아웃하시겠습니까?')) {
-        signOutUser()
-            .then(() => {
-                alert('로그아웃 되었습니다.');
-                window.location.href = '/login.html'; // 로그인 페이지로 이동
-            })
-            .catch((error) => {
-                console.error("로그아웃 오류:", error);
-                alert("로그아웃 중 문제가 발생했습니다.");
-            });
-    }
-});
-            fastingHistoryList.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-btn')) {
-                    const li = e.target.closest('.history-item');
-                    if (li.dataset.docId) deleteFastingRecord(li.dataset.docId);
-                }
-            });
-            tabs.forEach(tab => tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
-            }));
-            dateRangeSelector.addEventListener('change', renderAllCharts);
-        }
+    // ============================================
+    // [핵심 수정] 옵션을 실제로 전달!
+    // ============================================
+    createChart('weightChart', '체중 (kg)', filteredWeight, weightScaleOptions);
+    createChart('bloodSugarChart', '혈당 (mg/dL)', filteredBloodSugar, bloodSugarScaleOptions);
+    createChart('ketoneChart', '케톤 (mmol/L)', filteredKetone, ketoneScaleOptions);
+}
 
         // 7. 메인 로직: 데이터 로딩 및 앱 초기화
         async function loadAndRenderAllData() {
