@@ -862,22 +862,35 @@
             <label for="ec-desc">목표/설명</label>
             <textarea id="ec-desc" rows="3"></textarea>
           </div>
-          <div class="form-row">
-            <label for="ec-start">시작일</label>
-            <input id="ec-start" type="datetime-local" />
+              <div class="form-row">
+            <label for="cc-start">시작일시</label>
+            <div style="display:flex; gap:10px;">
+              <input id="cc-start" name="startDate" type="date" style="flex:1;" />
+              <input id="cc-start-time" name="startTime" type="time" value="09:00" style="flex:1;" />
+            </div>
           </div>
-          <fieldset class="form-row" style="margin-top:8px; border:none; padding:0;">
+        <fieldset class="form-row visibility-fieldset" style="margin-top:8px; border:none; padding:0;">
             <legend>공개 범위</legend>
-            <label class="radio"><input type="radio" name="ec-visibility" value="private"> 비공개</label>
-            <label class="radio" style="margin-left:16px;"><input type="radio" name="ec-visibility" value="public"> 공개</label>
+            <div class="visibility-options" style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+              
+              <label class="visibility-card" style="display:flex; align-items:flex-start; gap:12px; padding:14px; border:2px solid var(--border-color); border-radius:10px; cursor:pointer; transition: all 0.2s;">
+                <input type="radio" name="visibility" value="private" checked style="margin-top:3px;">
+                <div>
+                  <div style="font-weight:600; color:var(--text-color);">🔒 비공개</div>
+                  <div style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">초대 링크를 받은 사람만 참여할 수 있어요</div>
+                </div>
+              </label>
+              
+              <label class="visibility-card" style="display:flex; align-items:flex-start; gap:12px; padding:14px; border:2px solid var(--border-color); border-radius:10px; cursor:pointer; transition: all 0.2s;">
+                <input type="radio" name="visibility" value="public" style="margin-top:3px;">
+                <div>
+                  <div style="font-weight:600; color:var(--text-color);">🌐 공개</div>
+                  <div style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">누구나 검색하고 참여할 수 있어요</div>
+                </div>
+              </label>
+              
+            </div>
           </fieldset>
-          <div class="modal-footer" style="margin-top:16px; display:flex; justify-content:flex-end; gap:8px;">
-            <button type="button" class="onb-btn onb-ghost" id="ec-cancel">취소</button>
-            <button type="submit" class="onb-btn onb-primary">저장</button>
-          </div>
-        </form>
-      </div>
-    </div>
 
     <!-- 답글 모달 -->
     <div id="replyModal" class="modal">

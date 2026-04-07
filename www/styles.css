@@ -934,3 +934,13 @@ body {
         padding-top: env(safe-area-inset-top, 10px);
     }
 }
+
+/* 공개 범위 카드 스타일 */
+.visibility-card:has(input:checked) {
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-light);
+}
+
+.visibility-card:hover {
+  border-color: var(--primary-color);
+}
