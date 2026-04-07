@@ -1591,29 +1591,42 @@ document.getElementById('directSubmitBtn')?.addEventListener('click', async () =
 })();
 
   // --- 초기화 ---
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
+  // auth.onAuthStateChanged 부분을 이렇게 수정
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    
+    // ✅ Firestore에서 닉네임 가져오기
+    try {
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
+      currentUserProfile = {
+        nickname: userData.nickname || user.displayName || '사용자',
+        photoURL: userData.photoURL || user.photoURL || null,
+      };
+    } catch (e) {
+      console.error('프로필 로드 실패:', e);
       currentUserProfile = {
         nickname: user.displayName || '사용자',
         photoURL: user.photoURL || null,
       };
-
-      const avatar = document.getElementById('myAvatar');
-      if (avatar) {
-        if (user.photoURL) avatar.src = user.photoURL;
-        else {
-          avatar.removeAttribute('src');
-          avatar.style.background = '#ddd';
-        }
-      }
-
-      showView('list');
-    } else {
-      currentUser = null;
-      document.body.innerHTML = `<div class="container" style="text-align:center; padding-top: 50px;">챌린지 기능을 사용하려면 로그인이 필요합니다.</div>`;
     }
-  });
+
+    const avatar = document.getElementById('myAvatar');
+    if (avatar) {
+      if (currentUserProfile.photoURL) avatar.src = currentUserProfile.photoURL;
+      else {
+        avatar.removeAttribute('src');
+        avatar.style.background = '#ddd';
+      }
+    }
+
+    showView('list');
+  } else {
+    currentUser = null;
+    document.body.innerHTML = `<div class="container" style="text-align:center; padding-top: 50px;">챌린지 기능을 사용하려면 로그인이 필요합니다.</div>`;
+  }
+});
 
   // 열린 메뉴 닫기
   document.addEventListener('click', () => {
