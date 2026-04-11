@@ -189,9 +189,8 @@
     height: 20px;
     display: block;
 }
- .settings-icon-light { display: block; }
- .settings-icon-dark { display: none; }
-
+.settings-btn .settings-icon-light { display: block !important; }
+.settings-btn .settings-icon-dark { display: none !important; }
         .goals-container {
             display: flex;
             flex-wrap: wrap;
@@ -497,9 +496,8 @@
     .user-chip:active {
         background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
     }
-    .settings-icon-light { display: none; }
-    .settings-icon-dark { display: block; }
-
+    .settings-btn .settings-icon-light { display: none !important; }
+    .settings-btn .settings-icon-dark { display: block !important; }
 
 
     /* --- 차트 섹션 --- */
