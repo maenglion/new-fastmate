@@ -502,24 +502,25 @@
 .settings-btn {
     background: none;
     border: none;
-    padding: 4px;
+    padding: 0;
     cursor: pointer;
-    color: var(--text-light);
-    opacity: 0.6;
-    transition: opacity 0.2s;
-    margin-left: 8px;
+    vertical-align: middle;
+    margin-left: 6px;
 }
-.settings-btn:hover {
-    opacity: 1;
-}
-.settings-btn svg {
+.settings-btn img {
     width: 16px;
     height: 16px;
+    vertical-align: middle;
+}
+/* 라이트모드: light 보이고 dark 숨김 */
+.settings-icon-dark { display: none; }
+
+@media (prefers-color-scheme: dark) {
+    .settings-icon-light { display: none; }
+    .settings-icon-dark { display: inline; }
 }
 
 }
-
-
     </style>
 </head>
 <body>
@@ -541,11 +542,9 @@
         <div class="profile-info">
             <h2 id="pfNickname" style="display: inline;">-</h2>
             <button id="settingsBtn" class="settings-btn" title="설정">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-            </button>
+    <img src="/settings_Btn_light.png" alt="설정" class="settings-icon-light">
+    <img src="/settings_Btn_dark.png" alt="설정" class="settings-icon-dark">
+</button>
             <p id="pfEmail">-</p>
         </div>
     </div>
@@ -1086,73 +1085,75 @@
 </div>
  
 <script>
-// ============================================
-// 설정 모달 이벤트
-// ============================================
-document.getElementById('settingsBtn')?.addEventListener('click', async () => {
-    document.getElementById('settingsModal').style.display = 'flex';
-    await updatePushStatusUI();
-});
- 
-document.getElementById('closeSettingsBtn')?.addEventListener('click', () => {
-    document.getElementById('settingsModal').style.display = 'none';
-});
- 
-document.getElementById('settingsModal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'settingsModal') {
-        e.target.style.display = 'none';
-    }
-});
- 
-document.getElementById('enablePushBtn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('enablePushBtn');
-    btn.textContent = '권한 요청 중...';
-    btn.disabled = true;
-    
-    const subscription = await requestPushPermission();
-    
-    if (subscription) {
-        alert('🔔 알림이 활성화되었습니다!');
+document.addEventListener('DOMContentLoaded', () => {
+    // ============================================
+    // 설정 모달 이벤트
+    // ============================================
+    document.getElementById('settingsBtn')?.addEventListener('click', async () => {
+        document.getElementById('settingsModal').style.display = 'flex';
         await updatePushStatusUI();
-    } else {
-        alert('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
-        btn.textContent = '알림 허용하기';
-        btn.disabled = false;
-    }
-});
- 
-document.getElementById('disablePushBtn')?.addEventListener('click', async () => {
-    if (confirm('알림을 끄시겠습니까?')) {
-        await disablePushNotifications();
-        alert('알림이 비활성화되었습니다.');
-        await updatePushStatusUI();
-    }
-});
- 
-document.getElementById('savePushSettings')?.addEventListener('click', async () => {
-    const settings = {
-        fastingStart: document.getElementById('pushFastingStart')?.checked ?? true,
-        milestone: document.getElementById('pushMilestone')?.checked ?? true,
-        fastingEnd: document.getElementById('pushFastingEnd')?.checked ?? true,
-        longFasting: document.getElementById('pushLongFasting')?.checked ?? true,
-        challenge: document.getElementById('pushChallenge')?.checked ?? true
-    };
-    
-    try {
-        const user = auth.currentUser;
-        if (user) {
-            await db.collection('users').doc(user.uid).set({
-                pushSettings: settings,
-                pushSettingsUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-            alert('✅ 설정이 저장되었습니다!');
+    });
+     
+    document.getElementById('closeSettingsBtn')?.addEventListener('click', () => {
+        document.getElementById('settingsModal').style.display = 'none';
+    });
+     
+    document.getElementById('settingsModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'settingsModal') {
+            e.target.style.display = 'none';
         }
-    } catch (e) {
-        console.error('설정 저장 실패:', e);
-        alert('설정 저장에 실패했습니다.');
-    }
+    });
+     
+    document.getElementById('enablePushBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('enablePushBtn');
+        btn.textContent = '권한 요청 중...';
+        btn.disabled = true;
+        
+        const subscription = await requestPushPermission();
+        
+        if (subscription) {
+            alert('🔔 알림이 활성화되었습니다!');
+            await updatePushStatusUI();
+        } else {
+            alert('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
+            btn.textContent = '알림 허용하기';
+            btn.disabled = false;
+        }
+    });
+     
+    document.getElementById('disablePushBtn')?.addEventListener('click', async () => {
+        if (confirm('알림을 끄시겠습니까?')) {
+            await disablePushNotifications();
+            alert('알림이 비활성화되었습니다.');
+            await updatePushStatusUI();
+        }
+    });
+     
+    document.getElementById('savePushSettings')?.addEventListener('click', async () => {
+        const settings = {
+            fastingStart: document.getElementById('pushFastingStart')?.checked ?? true,
+            milestone: document.getElementById('pushMilestone')?.checked ?? true,
+            fastingEnd: document.getElementById('pushFastingEnd')?.checked ?? true,
+            longFasting: document.getElementById('pushLongFasting')?.checked ?? true,
+            challenge: document.getElementById('pushChallenge')?.checked ?? true
+        };
+        
+        try {
+            const user = auth.currentUser;
+            if (user) {
+                await db.collection('users').doc(user.uid).set({
+                    pushSettings: settings,
+                    pushSettingsUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                alert('✅ 설정이 저장되었습니다!');
+            }
+        } catch (e) {
+            console.error('설정 저장 실패:', e);
+            alert('설정 저장에 실패했습니다.');
+        }
+    });
 });
- 
+
 async function updatePushStatusUI() {
     const statusText = document.getElementById('pushStatusText');
     const enableBtn = document.getElementById('enablePushBtn');
@@ -1205,6 +1206,5 @@ async function loadPushSettings() {
     }
 }
 </script>
- 
 </body>
 </html>
