@@ -435,6 +435,18 @@
         .tab-content.active { display: block; }
         /* mypage.html의 <style> 안에 추가 */
 
+
+ .settings-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}           
+
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-color: #121212;
