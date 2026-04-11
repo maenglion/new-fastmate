@@ -156,8 +156,6 @@
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-color);
-            display: inline;
-            vertical-align: middle;
         }
         .profile-info p {
             margin: 4px 0 0;
@@ -191,9 +189,8 @@
     height: 20px;
     display: block;
 }
- .settings-icon-light { display: block; }
- .settings-icon-dark { display: none; }
-
+.settings-btn .settings-icon-light { display: block !important; }
+.settings-btn .settings-icon-dark { display: none !important; }
         .goals-container {
             display: flex;
             flex-wrap: wrap;
@@ -435,10 +432,8 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
-/* ============================================
-   설정 모달 스타일
-   ============================================ */
+       
+ /* 설정 - */
 .settings-modal {
     position: fixed;
     inset: 0;
@@ -447,7 +442,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
 }
 
 .settings-modal-content {
@@ -455,10 +449,9 @@
     border-radius: 16px;
     padding: 25px;
     max-width: 400px;
-    width: 100%;
+    width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
 
 .settings-header {
@@ -466,40 +459,27 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
 }
 
 .settings-header h3 {
     margin: 0;
     font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-color);
 }
 
 .settings-close-btn {
     background: none;
     border: none;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     cursor: pointer;
     color: var(--text-light);
-    padding: 5px;
-    line-height: 1;
-}
-
-.settings-close-btn:hover {
-    color: var(--text-color);
 }
 
 .settings-section h4 {
     margin: 0 0 10px 0;
-    font-size: 1rem;
-    color: var(--text-color);
 }
 
 .settings-desc {
     color: var(--text-light);
-    font-size: 0.9rem;
     margin-bottom: 15px;
 }
 
@@ -511,9 +491,7 @@
     border: none;
     border-radius: 8px;
     font-size: 1rem;
-    font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .settings-btn-primary:hover {
@@ -523,50 +501,24 @@
 .settings-btn-danger {
     width: 100%;
     padding: 12px;
-    background: none;
-    color: #dc3545;
-    border: 1px solid #dc3545;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.2s;
-}
-
-.settings-btn-danger:hover {
     background: #dc3545;
     color: white;
-}
-
-.push-options {
-    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 10px;
 }
 
 .toggle-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 0;
+    padding: 12px 0;
     border-bottom: 1px solid var(--border-color);
-    gap: 15px;
 }
 
-.toggle-item:last-of-type {
-    border-bottom: none;
-}
-
-.toggle-item span {
-    flex: 1;
-}
-
-.toggle-item strong {
-    display: block;
-    font-size: 0.95rem;
-    color: var(--text-color);
-    margin-bottom: 3px;
-}
-
-.toggle-item small {
+.toggle-item span small {
     display: block;
     color: var(--text-light);
     font-size: 0.8rem;
@@ -575,10 +527,7 @@
 .toggle-item input[type="checkbox"] {
     width: 20px;
     height: 20px;
-    accent-color: var(--primary-color);
-    cursor: pointer;
-    flex-shrink: 0;
-}
+}          
 
 @media (prefers-color-scheme: dark) {
     :root {
@@ -630,9 +579,8 @@
     .user-chip:active {
         background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
     }
-    .settings-icon-light { display: none; }
-    .settings-icon-dark { display: block; }
-
+    .settings-btn .settings-icon-light { display: none !important; }
+    .settings-btn .settings-icon-dark { display: block !important; }
 
 
     /* --- 차트 섹션 --- */
