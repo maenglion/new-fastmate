@@ -762,10 +762,16 @@ picked.setHours(hour, mm, 0, 0);
                         showToast('시간 변경 저장에 실패했습니다.');
                     }
                 }
-            } else if (timePickerMode === 'end') {
-                if (picked < selectedStartTime) return showToast('종료 시간은 시작 시간 이후여야 합니다.');
-                finalizeStopFasting(picked);
-            }
+           } else if (timePickerMode === 'end') {
+    const now = new Date();
+    if (picked < selectedStartTime) {
+        return showToast('종료 시간은 시작 시간 이후여야 합니다.');
+    }
+    if (picked > now) {
+        return showToast('종료 시간은 현재 시간을 넘을 수 없습니다.');
+    }
+    finalizeStopFasting(picked);
+}
         });
 
         timePickerModal?.addEventListener('click', (e) => {
