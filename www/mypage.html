@@ -172,11 +172,32 @@
             font-weight: 700;
             color: var(--text-color);
         }
+.settings-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    vertical-align: middle;
+    margin-left: 6px;
+    line-height: 1;
+}
+.settings-btn:hover {
+    opacity: 0.7;
+}
+.settings-btn img {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.settings-icon-light { display: none; }
+
         .goals-container {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
         }
+ .settings-icon-light { display: block; }
+ .settings-icon-dark { display: none; }
       
 .goal-tag {
     background-color: var(--primary-light);
@@ -414,30 +435,6 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         /* mypage.html의 <style> 안에 추가 */
-
-/* 설정 버튼 - 심플하게 */
-/* ============================================
-   설정 버튼 스타일 (다크모드 미디어쿼리 바깥에!)
-   ============================================ */
-.settings-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    vertical-align: middle;
-    margin-left: 6px;
-    line-height: 1;
-}
-.settings-btn:hover {
-    opacity: 0.7;
-}
-.settings-btn img {
-    width: 20px;
-    height: 20px;
-    display: block;
-}
-
-/* mypage.html의 <style> 태그 안에 추가 */
 
 @media (prefers-color-scheme: dark) {
     :root {
