@@ -156,6 +156,8 @@
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-color);
+            display: inline;
+            vertical-align: middle;
         }
         .profile-info p {
             margin: 4px 0 0;
@@ -187,10 +189,10 @@
 .settings-btn img {
     width: 20px;
     height: 20px;
-    display: block;
 }
-.settings-btn .settings-icon-light { display: block !important; }
-.settings-btn .settings-icon-dark { display: none !important; }
+.settings-icon-light { display: block; }
+.settings-icon-dark { display: none; }
+
         .goals-container {
             display: flex;
             flex-wrap: wrap;
@@ -432,8 +434,10 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-       
- /* 설정 - */
+
+/* ============================================
+   설정 모달 스타일
+   ============================================ */
 .settings-modal {
     position: fixed;
     inset: 0;
@@ -442,6 +446,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
 }
 
 .settings-modal-content {
@@ -449,9 +454,10 @@
     border-radius: 16px;
     padding: 25px;
     max-width: 400px;
-    width: 90%;
+    width: 100%;
     max-height: 80vh;
     overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
 
 .settings-header {
@@ -459,27 +465,40 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .settings-header h3 {
     margin: 0;
     font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-color);
 }
 
 .settings-close-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     cursor: pointer;
     color: var(--text-light);
+    padding: 5px;
+    line-height: 1;
+}
+
+.settings-close-btn:hover {
+    color: var(--text-color);
 }
 
 .settings-section h4 {
     margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: var(--text-color);
 }
 
 .settings-desc {
     color: var(--text-light);
+    font-size: 0.9rem;
     margin-bottom: 15px;
 }
 
@@ -491,7 +510,9 @@
     border: none;
     border-radius: 8px;
     font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: background 0.2s;
 }
 
 .settings-btn-primary:hover {
@@ -501,24 +522,50 @@
 .settings-btn-danger {
     width: 100%;
     padding: 12px;
-    background: #dc3545;
-    color: white;
-    border: none;
+    background: none;
+    color: #dc3545;
+    border: 1px solid #dc3545;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     cursor: pointer;
     margin-top: 10px;
+    transition: all 0.2s;
+}
+
+.settings-btn-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.push-options {
+    margin-top: 15px;
 }
 
 .toggle-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: 15px 0;
     border-bottom: 1px solid var(--border-color);
+    gap: 15px;
 }
 
-.toggle-item span small {
+.toggle-item:last-of-type {
+    border-bottom: none;
+}
+
+.toggle-item span {
+    flex: 1;
+}
+
+.toggle-item strong {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    margin-bottom: 3px;
+}
+
+.toggle-item small {
     display: block;
     color: var(--text-light);
     font-size: 0.8rem;
@@ -527,7 +574,10 @@
 .toggle-item input[type="checkbox"] {
     width: 20px;
     height: 20px;
-}          
+    accent-color: var(--primary-color);
+    cursor: pointer;
+    flex-shrink: 0;
+}
 
 @media (prefers-color-scheme: dark) {
     :root {
@@ -579,8 +629,9 @@
     .user-chip:active {
         background-color: rgba(255, 212, 0, 0.1); /* 살짝 노란색 (var(--gauge-start-color) 기반) */
     }
-    .settings-btn .settings-icon-light { display: none !important; }
-    .settings-btn .settings-icon-dark { display: block !important; }
+    .settings-icon-light { display: none; }
+    .settings-icon-dark { display: block; }
+
 
 
     /* --- 차트 섹션 --- */
@@ -707,7 +758,7 @@
 <div id="settingsModal" class="settings-modal" style="display:none;">
     <div class="settings-modal-content">
         <div class="settings-header">
-            <h3>⚙️ 설정</h3>
+            <h3>설정</h3>
             <button id="closeSettingsBtn" class="settings-close-btn">✕</button>
         </div>
         
@@ -716,18 +767,14 @@
                 <h4>🔔 알림 설정</h4>
                 <p class="settings-desc" id="pushStatusText">알림 상태를 확인 중...</p>
                 
-                <button id="enablePushBtn" class="settings-btn-primary" style="display:none;">
-                    알림 허용하기
-                </button>
-                
-                <div id="pushOptions" class="push-options" style="display:none;">
+                <!-- 알림 항목 (항상 보임) -->
+                <div id="pushOptions" class="push-options">
                     <label class="toggle-item">
                         <span>
                             <strong>단식 시작 알림</strong>
                             <small>단식 시작 30분 전 리마인더</small>
                         </span>
                         <input type="checkbox" id="pushFastingStart" checked>
-                        <span class="toggle-slider"></span>
                     </label>
                     
                     <label class="toggle-item">
@@ -736,7 +783,6 @@
                             <small>50%, 100% 달성 시 축하 알림</small>
                         </span>
                         <input type="checkbox" id="pushMilestone" checked>
-                        <span class="toggle-slider"></span>
                     </label>
                     
                     <label class="toggle-item">
@@ -745,7 +791,6 @@
                             <small>목표 시간 30분, 1시간 전 알림</small>
                         </span>
                         <input type="checkbox" id="pushFastingEnd" checked>
-                        <span class="toggle-slider"></span>
                     </label>
                     
                     <label class="toggle-item">
@@ -754,7 +799,6 @@
                             <small>24시간 이상: 24h, 36h, 48h 알림</small>
                         </span>
                         <input type="checkbox" id="pushLongFasting" checked>
-                        <span class="toggle-slider"></span>
                     </label>
                     
                     <label class="toggle-item">
@@ -763,9 +807,16 @@
                             <small>챌린지 댓글, 초대 알림</small>
                         </span>
                         <input type="checkbox" id="pushChallenge" checked>
-                        <span class="toggle-slider"></span>
                     </label>
-                    
+                </div>
+                
+                <!-- 허용 전: 허용하기 버튼 -->
+                <button id="enablePushBtn" class="settings-btn-primary" style="margin-top:15px;">
+                    알림 허용하기
+                </button>
+                
+                <!-- 허용 후: 저장/끄기 버튼 -->
+                <div id="pushEnabledActions" style="display:none;">
                     <button id="savePushSettings" class="settings-btn-primary" style="margin-top:15px;">
                         설정 저장
                     </button>
@@ -1206,33 +1257,33 @@
         async function updatePushStatusUI() {
             const statusText = document.getElementById('pushStatusText');
             const enableBtn = document.getElementById('enablePushBtn');
-            const pushOptions = document.getElementById('pushOptions');
+            const enabledActions = document.getElementById('pushEnabledActions');
             
             const status = await getPushStatus();
             
             if (!status.supported) {
                 statusText.textContent = '❌ 이 브라우저는 알림을 지원하지 않습니다.';
                 enableBtn.style.display = 'none';
-                pushOptions.style.display = 'none';
+                enabledActions.style.display = 'none';
                 return;
             }
             
             if (status.permission === 'denied') {
                 statusText.textContent = '🚫 알림이 차단되었습니다. 브라우저 설정에서 허용해주세요.';
                 enableBtn.style.display = 'none';
-                pushOptions.style.display = 'none';
+                enabledActions.style.display = 'none';
                 return;
             }
             
             if (status.subscribed) {
                 statusText.textContent = '✅ 알림이 활성화되어 있습니다.';
                 enableBtn.style.display = 'none';
-                pushOptions.style.display = 'block';
+                enabledActions.style.display = 'block';
                 await loadPushSettings();
             } else {
-                statusText.textContent = '알림을 허용하면 단식 리마인더를 받을 수 있어요.';
+                statusText.textContent = '받고 싶은 알림을 선택하고 허용해주세요.';
                 enableBtn.style.display = 'block';
-                pushOptions.style.display = 'none';
+                enabledActions.style.display = 'none';
             }
         }
          
