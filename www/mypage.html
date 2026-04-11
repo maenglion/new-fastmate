@@ -537,8 +537,8 @@
         <div class="profile-info">
             <h2 id="pfNickname" style="display: inline;">-</h2>
             <button id="settingsBtn" class="settings-btn" title="설정">
-    <img src="/settings_Btn_light.png" alt="설정" class="settings-icon-light">
-    <img src="/settings_Btn_dark.png" alt="설정" class="settings-icon-dark">
+    <img src="/settings_Btn_light.png" alt="" class="settings-icon-light">
+    <img src="/settings_Btn_dark.png" alt="" class="settings-icon-dark">
 </button>
             <p id="pfEmail">-</p>
         </div>
@@ -608,6 +608,83 @@
         <p style="font-size: 0.8rem; color: var(--text-light); margin: 5px 0;">© 2025 2e-studio. All rights reserved.</p>
     </footer>
 
+<!-- ============================================
+     설정 모달 HTML
+     ============================================ -->
+<div id="settingsModal" class="settings-modal" style="display:none;">
+    <div class="settings-modal-content">
+        <div class="settings-header">
+            <h3>⚙️ 설정</h3>
+            <button id="closeSettingsBtn" class="settings-close-btn">✕</button>
+        </div>
+        
+        <div class="settings-body">
+            <div class="settings-section">
+                <h4>🔔 알림 설정</h4>
+                <p class="settings-desc" id="pushStatusText">알림 상태를 확인 중...</p>
+                
+                <button id="enablePushBtn" class="settings-btn-primary" style="display:none;">
+                    알림 허용하기
+                </button>
+                
+                <div id="pushOptions" class="push-options" style="display:none;">
+                    <label class="toggle-item">
+                        <span>
+                            <strong>단식 시작 알림</strong>
+                            <small>단식 시작 30분 전 리마인더</small>
+                        </span>
+                        <input type="checkbox" id="pushFastingStart" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    
+                    <label class="toggle-item">
+                        <span>
+                            <strong>목표 달성 알림</strong>
+                            <small>50%, 100% 달성 시 축하 알림</small>
+                        </span>
+                        <input type="checkbox" id="pushMilestone" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    
+                    <label class="toggle-item">
+                        <span>
+                            <strong>단식 종료 알림</strong>
+                            <small>목표 시간 30분, 1시간 전 알림</small>
+                        </span>
+                        <input type="checkbox" id="pushFastingEnd" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    
+                    <label class="toggle-item">
+                        <span>
+                            <strong>장기 단식 마일스톤</strong>
+                            <small>24시간 이상: 24h, 36h, 48h 알림</small>
+                        </span>
+                        <input type="checkbox" id="pushLongFasting" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    
+                    <label class="toggle-item">
+                        <span>
+                            <strong>챌린지 알림</strong>
+                            <small>챌린지 댓글, 초대 알림</small>
+                        </span>
+                        <input type="checkbox" id="pushChallenge" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    
+                    <button id="savePushSettings" class="settings-btn-primary" style="margin-top:15px;">
+                        설정 저장
+                    </button>
+                    
+                    <button id="disablePushBtn" class="settings-btn-danger">
+                        알림 끄기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -963,6 +1040,126 @@
             }));
             
             dateRangeSelector.addEventListener('change', renderAllCharts);
+            
+            // ============================================
+            // 설정 모달 이벤트
+            // ============================================
+            document.getElementById('settingsBtn')?.addEventListener('click', async () => {
+                document.getElementById('settingsModal').style.display = 'flex';
+                await updatePushStatusUI();
+            });
+             
+            document.getElementById('closeSettingsBtn')?.addEventListener('click', () => {
+                document.getElementById('settingsModal').style.display = 'none';
+            });
+             
+            document.getElementById('settingsModal')?.addEventListener('click', (e) => {
+                if (e.target.id === 'settingsModal') {
+                    e.target.style.display = 'none';
+                }
+            });
+             
+            document.getElementById('enablePushBtn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('enablePushBtn');
+                btn.textContent = '권한 요청 중...';
+                btn.disabled = true;
+                
+                const subscription = await requestPushPermission();
+                
+                if (subscription) {
+                    alert('🔔 알림이 활성화되었습니다!');
+                    await updatePushStatusUI();
+                } else {
+                    alert('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
+                    btn.textContent = '알림 허용하기';
+                    btn.disabled = false;
+                }
+            });
+             
+            document.getElementById('disablePushBtn')?.addEventListener('click', async () => {
+                if (confirm('알림을 끄시겠습니까?')) {
+                    await disablePushNotifications();
+                    alert('알림이 비활성화되었습니다.');
+                    await updatePushStatusUI();
+                }
+            });
+             
+            document.getElementById('savePushSettings')?.addEventListener('click', async () => {
+                const settings = {
+                    fastingStart: document.getElementById('pushFastingStart')?.checked ?? true,
+                    milestone: document.getElementById('pushMilestone')?.checked ?? true,
+                    fastingEnd: document.getElementById('pushFastingEnd')?.checked ?? true,
+                    longFasting: document.getElementById('pushLongFasting')?.checked ?? true,
+                    challenge: document.getElementById('pushChallenge')?.checked ?? true
+                };
+                
+                try {
+                    const user = auth.currentUser;
+                    if (user) {
+                        await db.collection('users').doc(user.uid).set({
+                            pushSettings: settings,
+                            pushSettingsUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        alert('✅ 설정이 저장되었습니다!');
+                    }
+                } catch (e) {
+                    console.error('설정 저장 실패:', e);
+                    alert('설정 저장에 실패했습니다.');
+                }
+            });
+        }
+        
+        // 푸시 상태 UI 업데이트
+        async function updatePushStatusUI() {
+            const statusText = document.getElementById('pushStatusText');
+            const enableBtn = document.getElementById('enablePushBtn');
+            const pushOptions = document.getElementById('pushOptions');
+            
+            const status = await getPushStatus();
+            
+            if (!status.supported) {
+                statusText.textContent = '❌ 이 브라우저는 알림을 지원하지 않습니다.';
+                enableBtn.style.display = 'none';
+                pushOptions.style.display = 'none';
+                return;
+            }
+            
+            if (status.permission === 'denied') {
+                statusText.textContent = '🚫 알림이 차단되었습니다. 브라우저 설정에서 허용해주세요.';
+                enableBtn.style.display = 'none';
+                pushOptions.style.display = 'none';
+                return;
+            }
+            
+            if (status.subscribed) {
+                statusText.textContent = '✅ 알림이 활성화되어 있습니다.';
+                enableBtn.style.display = 'none';
+                pushOptions.style.display = 'block';
+                await loadPushSettings();
+            } else {
+                statusText.textContent = '알림을 허용하면 단식 리마인더를 받을 수 있어요.';
+                enableBtn.style.display = 'block';
+                pushOptions.style.display = 'none';
+            }
+        }
+         
+        async function loadPushSettings() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const doc = await db.collection('users').doc(user.uid).get();
+                const data = doc.data();
+                const settings = data?.pushSettings || {};
+                
+                document.getElementById('pushFastingStart').checked = settings.fastingStart ?? true;
+                document.getElementById('pushMilestone').checked = settings.milestone ?? true;
+                document.getElementById('pushFastingEnd').checked = settings.fastingEnd ?? true;
+                document.getElementById('pushLongFasting').checked = settings.longFasting ?? true;
+                document.getElementById('pushChallenge').checked = settings.challenge ?? true;
+            } catch (e) {
+                console.error('설정 불러오기 실패:', e);
+            }
         }
 
         // 7. 메인 로직: 데이터 로딩 및 앱 초기화
@@ -1000,206 +1197,6 @@
             }
         });
     });
-</script>
-<!-- ============================================
-     설정 모달 HTML
-     ============================================ -->
-<div id="settingsModal" class="settings-modal" style="display:none;">
-    <div class="settings-modal-content">
-        <div class="settings-header">
-            <h3>⚙️ 설정</h3>
-            <button id="closeSettingsBtn" class="settings-close-btn">✕</button>
-        </div>
-        
-        <div class="settings-body">
-            <div class="settings-section">
-                <h4>🔔 알림 설정</h4>
-                <p class="settings-desc" id="pushStatusText">알림 상태를 확인 중...</p>
-                
-                <button id="enablePushBtn" class="settings-btn-primary" style="display:none;">
-                    알림 허용하기
-                </button>
-                
-                <div id="pushOptions" class="push-options" style="display:none;">
-                    <label class="toggle-item">
-                        <span>
-                            <strong>단식 시작 알림</strong>
-                            <small>단식 시작 30분 전 리마인더</small>
-                        </span>
-                        <input type="checkbox" id="pushFastingStart" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    
-                    <label class="toggle-item">
-                        <span>
-                            <strong>목표 달성 알림</strong>
-                            <small>50%, 100% 달성 시 축하 알림</small>
-                        </span>
-                        <input type="checkbox" id="pushMilestone" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    
-                    <label class="toggle-item">
-                        <span>
-                            <strong>단식 종료 알림</strong>
-                            <small>목표 시간 30분, 1시간 전 알림</small>
-                        </span>
-                        <input type="checkbox" id="pushFastingEnd" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    
-                    <label class="toggle-item">
-                        <span>
-                            <strong>장기 단식 마일스톤</strong>
-                            <small>24시간 이상: 24h, 36h, 48h 알림</small>
-                        </span>
-                        <input type="checkbox" id="pushLongFasting" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    
-                    <label class="toggle-item">
-                        <span>
-                            <strong>챌린지 알림</strong>
-                            <small>챌린지 댓글, 초대 알림</small>
-                        </span>
-                        <input type="checkbox" id="pushChallenge" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    
-                    <button id="savePushSettings" class="settings-btn-primary" style="margin-top:15px;">
-                        설정 저장
-                    </button>
-                    
-                    <button id="disablePushBtn" class="settings-btn-danger">
-                        알림 끄기
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
- 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // ============================================
-    // 설정 모달 이벤트
-    // ============================================
-    document.getElementById('settingsBtn')?.addEventListener('click', async () => {
-        document.getElementById('settingsModal').style.display = 'flex';
-        await updatePushStatusUI();
-    });
-     
-    document.getElementById('closeSettingsBtn')?.addEventListener('click', () => {
-        document.getElementById('settingsModal').style.display = 'none';
-    });
-     
-    document.getElementById('settingsModal')?.addEventListener('click', (e) => {
-        if (e.target.id === 'settingsModal') {
-            e.target.style.display = 'none';
-        }
-    });
-     
-    document.getElementById('enablePushBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('enablePushBtn');
-        btn.textContent = '권한 요청 중...';
-        btn.disabled = true;
-        
-        const subscription = await requestPushPermission();
-        
-        if (subscription) {
-            alert('🔔 알림이 활성화되었습니다!');
-            await updatePushStatusUI();
-        } else {
-            alert('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
-            btn.textContent = '알림 허용하기';
-            btn.disabled = false;
-        }
-    });
-     
-    document.getElementById('disablePushBtn')?.addEventListener('click', async () => {
-        if (confirm('알림을 끄시겠습니까?')) {
-            await disablePushNotifications();
-            alert('알림이 비활성화되었습니다.');
-            await updatePushStatusUI();
-        }
-    });
-     
-    document.getElementById('savePushSettings')?.addEventListener('click', async () => {
-        const settings = {
-            fastingStart: document.getElementById('pushFastingStart')?.checked ?? true,
-            milestone: document.getElementById('pushMilestone')?.checked ?? true,
-            fastingEnd: document.getElementById('pushFastingEnd')?.checked ?? true,
-            longFasting: document.getElementById('pushLongFasting')?.checked ?? true,
-            challenge: document.getElementById('pushChallenge')?.checked ?? true
-        };
-        
-        try {
-            const user = auth.currentUser;
-            if (user) {
-                await db.collection('users').doc(user.uid).set({
-                    pushSettings: settings,
-                    pushSettingsUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                alert('✅ 설정이 저장되었습니다!');
-            }
-        } catch (e) {
-            console.error('설정 저장 실패:', e);
-            alert('설정 저장에 실패했습니다.');
-        }
-    });
-});
-
-async function updatePushStatusUI() {
-    const statusText = document.getElementById('pushStatusText');
-    const enableBtn = document.getElementById('enablePushBtn');
-    const pushOptions = document.getElementById('pushOptions');
-    
-    const status = await getPushStatus();
-    
-    if (!status.supported) {
-        statusText.textContent = '❌ 이 브라우저는 알림을 지원하지 않습니다.';
-        enableBtn.style.display = 'none';
-        pushOptions.style.display = 'none';
-        return;
-    }
-    
-    if (status.permission === 'denied') {
-        statusText.textContent = '🚫 알림이 차단되었습니다. 브라우저 설정에서 허용해주세요.';
-        enableBtn.style.display = 'none';
-        pushOptions.style.display = 'none';
-        return;
-    }
-    
-    if (status.subscribed) {
-        statusText.textContent = '✅ 알림이 활성화되어 있습니다.';
-        enableBtn.style.display = 'none';
-        pushOptions.style.display = 'block';
-        await loadPushSettings();
-    } else {
-        statusText.textContent = '알림을 허용하면 단식 리마인더를 받을 수 있어요.';
-        enableBtn.style.display = 'block';
-        pushOptions.style.display = 'none';
-    }
-}
- 
-async function loadPushSettings() {
-    try {
-        const user = auth.currentUser;
-        if (!user) return;
-        
-        const doc = await db.collection('users').doc(user.uid).get();
-        const data = doc.data();
-        const settings = data?.pushSettings || {};
-        
-        document.getElementById('pushFastingStart').checked = settings.fastingStart ?? true;
-        document.getElementById('pushMilestone').checked = settings.milestone ?? true;
-        document.getElementById('pushFastingEnd').checked = settings.fastingEnd ?? true;
-        document.getElementById('pushLongFasting').checked = settings.longFasting ?? true;
-        document.getElementById('pushChallenge').checked = settings.challenge ?? true;
-    } catch (e) {
-        console.error('설정 불러오기 실패:', e);
-    }
-}
 </script>
 </body>
 </html>
