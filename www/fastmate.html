@@ -189,6 +189,21 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
         
         </footer>
 
+<!-- ============================================
+     푸시 알림 요청 팝업
+     ============================================ -->
+<div id="pushPromptModal" style="display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    <div style="background: var(--card-bg); border-radius: 16px; padding: 25px; box-shadow: 0 16px 60px rgba(0,0,0,.2); text-align: center; width:100%; max-width: 320px;">
+        <div id="pushPromptIcon" style="font-size: 2.5rem; margin-bottom: 15px;">🔔</div>
+        <h3 id="pushPromptTitle" style="margin: 0 0 10px 0; font-size: 1.2rem; color: var(--text-color);">단식 알림을 받으시겠어요?</h3>
+        <p id="pushPromptDesc" style="margin: 0 0 20px 0; font-size: 0.9rem; color: var(--text-light);">목표 달성을 도와드릴게요!</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="pushPromptYes" style="width:100%; padding:12px; background:var(--primary-color); color:white; border:none; border-radius:8px; font-size:1rem; font-weight:500; cursor:pointer;">알림 허용하기</button>
+            <button id="pushPromptNo" style="width:100%; padding:12px; background:none; color:var(--text-light); border:none; font-size:0.9rem; cursor:pointer;">나중에</button>
+        </div>
+    </div>
+</div>
+
 
     <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
         <div class="time-picker-content" style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 16px 60px rgba(0,0,0,.2); text-align: center; width:100%; max-width: 320px;">
@@ -579,6 +594,13 @@ function updateTimeDisplays() {
     async function startFasting() {
         if (fastingState === 'running') return showToast('이미 단식이 진행 중입니다.');
         if (!getSignedInUser()) return showToast('로그인이 필요합니다.');
+        
+        // 푸시 알림 권한 체크 및 팝업 표시
+        const shouldShowPushPrompt = await checkAndShowPushPrompt();
+        if (shouldShowPushPrompt) {
+            // 팝업 표시 후 단식은 계속 진행
+        }
+        
         resetMilestones();
         fastingState = 'running';
         targetHours = parseFloat(modelSelect.value || targetHours);
@@ -1278,6 +1300,7 @@ try {
                     
                     initializeTimePicker();
                     wireEventsOnce();
+                    wirePushPromptEvents();
 
                 } catch (e) {
                     console.error('앱 초기화 중 오류:', e);
@@ -1287,4 +1310,116 @@ try {
         }
     }
 });
+
+// ============================================
+// 푸시 알림 팝업 관련 함수들
+// ============================================
+
+const pushPromptMessages = [
+    { icon: '🔔', title: '단식 알림을 받으시겠어요?', desc: '목표 달성을 도와드릴게요!' },
+    { icon: '📊', title: '알림 설정한 사람들의 성공률이 23% 더 높아요!', desc: '알림으로 함께 해볼까요?' },
+    { icon: '🏆', title: '꾸준히 단식 중이시네요!', desc: '알림 받으면 더 쉬워져요~' },
+    { icon: '💡', title: '', desc: '마이페이지 설정에서 알림을 켤 수 있어요!', isToast: true }
+];
+
+async function checkAndShowPushPrompt() {
+    // 이미 푸시 권한이 있으면 스킵
+    const status = await getPushStatus();
+    if (status.subscribed || status.permission === 'denied') {
+        return false;
+    }
+    
+    // Firestore에서 pushPromptCount 가져오기
+    const profile = await getUserDoc(currentUser.uid);
+    let count = profile?.pushPromptCount || 0;
+    
+    // 표시할 타이밍인지 확인 (1,2,3,4번째 / 11,12,13,14번째 / 21,22,23,24번째...)
+    const cyclePosition = count % 10; // 0~9 반복
+    const cycleNumber = Math.floor(count / 10); // 0, 1, 2...
+    
+    // 첫 사이클(0~3), 11~14(10~13), 21~24(20~23) 에서만 표시
+    const shouldShow = (cycleNumber === 0 && cyclePosition < 4) || 
+                       (cycleNumber === 1 && cyclePosition === 0) || (cycleNumber === 1 && cyclePosition < 4) ||
+                       (cycleNumber === 2 && cyclePosition === 0) || (cycleNumber === 2 && cyclePosition < 4);
+    
+    // 더 간단하게: 1~4, 11~14, 21~24 번째
+    const actualCount = count + 1; // 1-based
+    const showAtCounts = [1,2,3,4, 11,12,13,14, 21,22,23,24];
+    
+    if (showAtCounts.includes(actualCount)) {
+        const msgIndex = (actualCount - 1) % 4; // 0,1,2,3 반복
+        const msg = pushPromptMessages[msgIndex];
+        
+        if (msg.isToast) {
+            // 4번째, 14번째, 24번째는 토스트로
+            showToast(msg.desc);
+        } else {
+            // 팝업 표시
+            showPushPromptModal(msg);
+        }
+    }
+    
+    // 카운트 증가 저장
+    await db.collection('users').doc(currentUser.uid).set({
+        pushPromptCount: count + 1
+    }, { merge: true });
+    
+    return true;
+}
+
+function showPushPromptModal(msg) {
+    const modal = document.getElementById('pushPromptModal');
+    const icon = document.getElementById('pushPromptIcon');
+    const title = document.getElementById('pushPromptTitle');
+    const desc = document.getElementById('pushPromptDesc');
+    
+    if (modal && icon && title && desc) {
+        icon.textContent = msg.icon;
+        title.textContent = msg.title;
+        desc.textContent = msg.desc;
+        modal.style.display = 'flex';
+    }
+}
+
+function wirePushPromptEvents() {
+    const modal = document.getElementById('pushPromptModal');
+    const yesBtn = document.getElementById('pushPromptYes');
+    const noBtn = document.getElementById('pushPromptNo');
+    
+    yesBtn?.addEventListener('click', async () => {
+        modal.style.display = 'none';
+        
+        // 푸시 권한 요청
+        const subscription = await requestPushPermission();
+        
+        if (subscription) {
+            // 전체 알림 ON으로 설정
+            await db.collection('users').doc(currentUser.uid).set({
+                pushSettings: {
+                    fastingStart: true,
+                    milestone: true,
+                    fastingEnd: true,
+                    longFasting: true,
+                    challenge: true
+                },
+                pushSettingsUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            showToast('🔔 알림이 설정되었습니다! 개별 설정은 마이페이지에서 할 수 있어요.');
+        } else {
+            showToast('알림 권한이 거부되었습니다.');
+        }
+    });
+    
+    noBtn?.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+    
+    // 배경 클릭시 닫기
+    modal?.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
 </script>
