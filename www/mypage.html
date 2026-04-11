@@ -519,6 +519,15 @@
     background: var(--primary-hover);
 }
 
+.settings-btn-primary.settings-btn-disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.settings-btn-primary.settings-btn-disabled:hover {
+    background: #ccc;
+}
+
 .settings-btn-danger {
     width: 100%;
     padding: 12px;
@@ -815,14 +824,10 @@
                     알림 허용하기
                 </button>
                 
-                <!-- 허용 후: 저장/끄기 버튼 -->
+                <!-- 허용 후: 저장 버튼 -->
                 <div id="pushEnabledActions" style="display:none;">
-                    <button id="savePushSettings" class="settings-btn-primary" style="margin-top:15px;">
+                    <button id="savePushSettings" class="settings-btn-primary settings-btn-disabled" style="margin-top:15px;" disabled>
                         설정 저장
-                    </button>
-                    
-                    <button id="disablePushBtn" class="settings-btn-danger">
-                        알림 끄기
                     </button>
                 </div>
             </div>
@@ -1220,12 +1225,16 @@
                 }
             });
              
-            document.getElementById('disablePushBtn')?.addEventListener('click', async () => {
-                if (confirm('알림을 끄시겠습니까?')) {
-                    await disablePushNotifications();
-                    alert('알림이 비활성화되었습니다.');
-                    await updatePushStatusUI();
-                }
+            // 체크박스 변경 감지 - 저장 버튼 활성화
+            const checkboxIds = ['pushFastingStart', 'pushMilestone', 'pushFastingEnd', 'pushLongFasting', 'pushChallenge'];
+            checkboxIds.forEach(id => {
+                document.getElementById(id)?.addEventListener('change', () => {
+                    const saveBtn = document.getElementById('savePushSettings');
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.classList.remove('settings-btn-disabled');
+                    }
+                });
             });
              
             document.getElementById('savePushSettings')?.addEventListener('click', async () => {
@@ -1237,6 +1246,9 @@
                     challenge: document.getElementById('pushChallenge')?.checked ?? true
                 };
                 
+                // 전부 끄면 알림 비활성화
+                const allOff = !settings.fastingStart && !settings.milestone && !settings.fastingEnd && !settings.longFasting && !settings.challenge;
+                
                 try {
                     const user = auth.currentUser;
                     if (user) {
@@ -1244,7 +1256,20 @@
                             pushSettings: settings,
                             pushSettingsUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
                         }, { merge: true });
-                        alert('✅ 설정이 저장되었습니다!');
+                        
+                        if (allOff) {
+                            await disablePushNotifications();
+                            alert('모든 알림이 꺼졌습니다.');
+                        } else {
+                            alert('✅ 설정이 저장되었습니다!');
+                        }
+                        
+                        // 저장 후 버튼 다시 비활성화
+                        const saveBtn = document.getElementById('savePushSettings');
+                        if (saveBtn) {
+                            saveBtn.disabled = true;
+                            saveBtn.classList.add('settings-btn-disabled');
+                        }
                     }
                 } catch (e) {
                     console.error('설정 저장 실패:', e);
