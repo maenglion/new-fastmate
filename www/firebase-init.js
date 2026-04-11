@@ -1,4 +1,4 @@
-// /firebase-init.js — v8.5 (공통)
+// /firebase-init.js — v8.6 (FCM 푸시 알림 추가)
 
 // panic refresh: https://fastmate.kr/fastmate.html?nocache=1 로 들어오면 캐시/서비스워커 제거
 (function panicRefresh(){
@@ -34,8 +34,11 @@
   // 중복 로드 방지 + 전역 버전 표기
   if (window.__AUTH_BOOT__) return;
   window.__AUTH_BOOT__ = true;
-window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
+  window.__APP_VERSION__ = '2026.04.11-v10';  // ✅ FCM 추가 버전
   console.log('[fastmate] version', window.__APP_VERSION__);
+
+  // ✅ VAPID 키 (웹 푸시 인증서 공개 키)
+  const VAPID_KEY = 'BFDJ6NMNYmgz9UuD0Lqm58btDn9zL5e0vaGPYaf2V6I_GkWYqQT4GUF9p_zxUhU0C9L76C_ccYprRgVMyO6LjjI';
 
   // 스플래시 가드(다른 스크립트보다 먼저 안전하게 호출 가능)
   if (!window.showApp) {
@@ -56,7 +59,7 @@ window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
     appId: "1:879518503068:web:295b1d4e21a40f9cc29d59",
     measurementId: "G-EX5HR2CB35"
   };
- if (!firebase?.apps?.length) {
+  if (!firebase?.apps?.length) {
     firebase.initializeApp(firebaseConfig);
   }
 
@@ -66,6 +69,131 @@ window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
 
   // 4) 로그인 상태 유지 (로컬)
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
+
+  // =========================================================
+  // ✅ FCM 푸시 알림 기능 (새로 추가)
+  // =========================================================
+
+  /**
+   * VAPID 키 변환 유틸리티
+   */
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  /**
+   * 푸시 알림 권한 요청 및 구독
+   * @returns {Promise<PushSubscription|null>}
+   */
+  window.requestPushPermission = async () => {
+    try {
+      // 1. 브라우저 지원 확인
+      if (!('Notification' in window)) {
+        console.warn('[FCM] 이 브라우저는 알림을 지원하지 않습니다.');
+        return null;
+      }
+      if (!('serviceWorker' in navigator)) {
+        console.warn('[FCM] Service Worker를 지원하지 않습니다.');
+        return null;
+      }
+
+      // 2. 알림 권한 요청
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.log('[FCM] 알림 권한이 거부되었습니다.');
+        return null;
+      }
+
+      // 3. Service Worker 등록 확인
+      const registration = await navigator.serviceWorker.ready;
+      console.log('[FCM] Service Worker ready');
+
+      // 4. 푸시 구독 생성
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+      });
+      console.log('[FCM] Push subscription created');
+
+      // 5. 구독 정보를 Firestore에 저장
+      const user = auth.currentUser;
+      if (user && subscription) {
+        const subscriptionData = subscription.toJSON();
+        await db.collection('users').doc(user.uid).set({
+          pushSubscription: subscriptionData,
+          pushEnabled: true,
+          pushUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log('[FCM] 푸시 구독 정보 저장 완료');
+      }
+
+      return subscription;
+
+    } catch (error) {
+      console.error('[FCM] 푸시 권한 요청 실패:', error);
+      return null;
+    }
+  };
+
+  /**
+   * 푸시 알림 비활성화
+   */
+  window.disablePushNotifications = async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        await subscription.unsubscribe();
+        console.log('[FCM] 푸시 구독 해제됨');
+      }
+
+      const user = auth.currentUser;
+      if (user) {
+        await db.collection('users').doc(user.uid).set({
+          pushEnabled: false,
+          pushSubscription: null,
+          pushUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+      return true;
+    } catch (error) {
+      console.error('[FCM] 푸시 비활성화 실패:', error);
+      return false;
+    }
+  };
+
+  /**
+   * 현재 푸시 알림 상태 확인
+   */
+  window.getPushStatus = async () => {
+    try {
+      if (!('Notification' in window)) {
+        return { supported: false, permission: 'unsupported', subscribed: false };
+      }
+      const permission = Notification.permission;
+      let subscribed = false;
+
+      if (permission === 'granted' && 'serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        subscribed = !!subscription;
+      }
+      return { supported: true, permission, subscribed };
+    } catch (error) {
+      console.error('[FCM] 상태 확인 실패:', error);
+      return { supported: false, permission: 'error', subscribed: false };
+    }
+  };
 
   // =========================================================
   // 5) 헬퍼: 구글 로그인 (팝업 우선, 실패 시 리다이렉트 폴백)
@@ -175,13 +303,13 @@ window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
     return db.collection('users').doc(u.uid);
   };
 
- window.getUserDoc = async (uid = null) => {
+  window.getUserDoc = async (uid = null) => {
     const targetUid = uid || auth.currentUser?.uid;
     if (!targetUid) return null;
     const ref = db.collection('users').doc(targetUid);
     const snap = await ref.get();
     return snap.exists ? snap.data() : null;
-};
+  };
 
   // =========================================================
   // 10) 최초 가입 시 기본 프로필 생성(옵션)
@@ -218,13 +346,13 @@ window.__APP_VERSION__ = '2026.01.29-v9';  // ✅ 새 버전으로
       return false;
     }
   };
-window.fastmateApp = {
+
+  window.fastmateApp = {
     auth: window.auth,
     db: window.db,
     getUserDoc: window.getUserDoc,
-    signOutUser: window.appSignOut // mypage.html에서 사용하는 이름으로 매칭
+    signOutUser: window.appSignOut
   };
 
-  console.log('[firebase-init] ready');
+  console.log('[firebase-init] ready (with FCM)');
 })();
-

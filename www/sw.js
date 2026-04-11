@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'v9';
-const CACHE_NAME = 'fastmate-2026.01.29-v9';
+const CACHE_VERSION = 'v10';
+const CACHE_NAME = 'fastmate-2026.04.11-v10';
 self.addEventListener('install', e => {
   self.skipWaiting(); 
 });
