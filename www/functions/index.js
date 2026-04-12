@@ -31,12 +31,31 @@ webpush.setVapidDetails(
 );
 
 // ============================================
-// 헬퍼 함수: 푸시 알림 발송
+// 헬퍼 함수: 푸시 알림 발송 + Firestore 저장
 // ============================================
 async function sendPushNotification(userId, title, body, data = {}) {
   try {
     const userDoc = await db.collection('users').doc(userId).get();
     const userData = userDoc.data();
+    
+    // Firestore에 알림 히스토리 저장 (푸시 여부와 관계없이)
+    const notificationType = data.type || 'general';
+    let icon = '🔔';
+    if (notificationType.includes('challenge') || notificationType.includes('comment')) {
+      icon = '💬';
+    } else if (notificationType.includes('milestone') || notificationType.includes('complete')) {
+      icon = '🎉';
+    }
+    
+    await db.collection('users').doc(userId).collection('notifications').add({
+      type: notificationType,
+      icon: icon,
+      title: title,
+      body: body,
+      data: data,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false
+    });
     
     if (!userData?.pushEnabled || !userData?.pushSubscription) {
       console.log(`[Push] User ${userId} has no push subscription`);
