@@ -1285,7 +1285,25 @@
             createChart('weightChart', '체중 (kg)', filteredWeight, weightScaleOptions);
             createChart('bloodSugarChart', '혈당 (mg/dL)', filteredBloodSugar, bloodSugarScaleOptions);
             createChart('ketoneChart', '케톤 (mmol/L)', filteredKetone, ketoneScaleOptions);
+         const latestDates = [
+                { tab: 'weight', date: filteredWeight?.[0]?.date || filteredWeight?.[0]?.createdAt },
+                { tab: 'bloodSugar', date: filteredBloodSugar?.[0]?.date || filteredBloodSugar?.[0]?.createdAt },
+                { tab: 'ketone', date: filteredKetone?.[0]?.date || filteredKetone?.[0]?.createdAt }
+            ].filter(item => item.date);
+
+            if (latestDates.length > 0) {
+                latestDates.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const latestTab = latestDates[0].tab;
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelector(`[data-tab="${latestTab}"]`)?.classList.add('active');
+                
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(latestTab + 'Content')?.classList.add('active');
+            }
         }
+
+        
 
         // 6. 이벤트 핸들러 연결
         let eventsWired = false;
