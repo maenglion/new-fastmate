@@ -321,6 +321,41 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+/* 예약된 단식 스타일 */
+.scheduled-item {
+    background: var(--primary-light);
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.scheduled-badge {
+    display: inline-block;
+    background: var(--primary-color);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.cancel-scheduled-btn {
+    background: none;
+    border: 1px solid var(--text-light);
+    color: var(--text-light);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-scheduled-btn:hover {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
 /* 2. .history-actions 규칙을 찾아 아래 코드로 교체 */
 .history-actions {
     display: flex;
@@ -1521,12 +1556,60 @@
 
                 renderProfileCard();
                 loadNotifications();
+                renderScheduledFasting(profile?.currentFasting);
                 renderFastingHistory();
                 renderExerciseHistory();
                 renderAllCharts();
                 
                 wireEventsOnce();
             } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
+        }
+        
+        // 예약된 단식 표시
+        function renderScheduledFasting(currentFasting) {
+            if (!currentFasting || !currentFasting.scheduled) return;
+            
+            const startTime = currentFasting.startTime?.toDate ? currentFasting.startTime.toDate() : new Date(currentFasting.startTime);
+            const now = new Date();
+            
+            // 아직 시작 안 한 예약만 표시
+            if (startTime <= now) return;
+            
+            const targetHours = currentFasting.targetHours || 16;
+            const endTime = new Date(startTime.getTime() + targetHours * 3600000);
+            
+            const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+            
+            const scheduledItem = document.createElement('li');
+            scheduledItem.className = 'history-item scheduled-item';
+            scheduledItem.innerHTML = `
+                <div class="history-info">
+                    <div class="duration">${targetHours}시간 <span class="scheduled-badge">[예정]</span></div>
+                    <div class="period">${format(startTime)} ~ ${format(endTime)}</div>
+                </div>
+                <div class="history-actions">
+                    <button class="cancel-scheduled-btn" title="예약 취소">취소</button>
+                </div>
+            `;
+            
+            // 예약 취소 이벤트
+            scheduledItem.querySelector('.cancel-scheduled-btn')?.addEventListener('click', async () => {
+                if (confirm('예약된 단식을 취소하시겠습니까?')) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).update({
+                            currentFasting: null
+                        });
+                        scheduledItem.remove();
+                        alert('예약이 취소되었습니다.');
+                    } catch (e) {
+                        console.error('예약 취소 실패:', e);
+                        alert('취소에 실패했습니다.');
+                    }
+                }
+            });
+            
+            // 리스트 맨 앞에 추가
+            fastingHistoryList.prepend(scheduledItem);
         }
 
         // 8. 최종 실행 지점: 인증 상태 리스너

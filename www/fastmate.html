@@ -205,6 +205,18 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
     </div>
 </div>
 
+<!-- ============================================
+     중복 예약 방지 모달
+     ============================================ -->
+<div id="duplicateReservationModal" style="display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    <div style="position:relative; background: var(--card-bg); border-radius: 16px; padding: 25px; box-shadow: 0 16px 60px rgba(0,0,0,.2); text-align: center; width:100%; max-width: 320px;">
+        <button id="closeDuplicateModal" style="position:absolute; top:12px; right:12px; background:none; border:none; font-size:1.5rem; color:var(--text-light); cursor:pointer; line-height:1;">&times;</button>
+        <div style="font-size: 2.5rem; margin-bottom: 15px;">⚠️</div>
+        <h3 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text-color);">이미 예약된 단식이 있습니다.</h3>
+        <p style="margin: 0 0 20px 0; font-size: 0.9rem; color: var(--text-light);">마이페이지에서 기존 예약을 수정하거나 취소해주세요.</p>
+        <button id="goToMypageBtn" style="width:100%; padding:12px; background:var(--primary-color); color:white; border:none; border-radius:8px; font-size:1rem; font-weight:500; cursor:pointer;">마이페이지로 이동</button>
+    </div>
+</div>
 
     <div id="timePickerModal" style="display:none; position:fixed; inset:0; z-index:1900; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
         <div class="time-picker-content" style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 16px 60px rgba(0,0,0,.2); text-align: center; width:100%; max-width: 320px;">
@@ -551,20 +563,31 @@ function tickOnce() {
     
     function updateUIState() {
         const running = fastingState === 'running';
-        if (startBtn) startBtn.disabled = running;
-        if (stopBtn) stopBtn.disabled = !running;
+        const scheduled = fastingState === 'scheduled';
+        if (startBtn) startBtn.disabled = running || scheduled;
+        if (stopBtn) stopBtn.disabled = !running && !scheduled;
+        
+        // 예약 상태일 때 상태 메시지 업데이트
+        if (scheduled && statusMessage) {
+            const formatted = formatDateTime(selectedStartTime);
+            statusMessage.textContent = `${formatted}에 ${targetHours}시간 단식이 예약되어 있습니다.`;
+        }
     }
 
     function updateSelectOptions() {
         if (!modelSelect) return;
         const running = fastingState === 'running';
-        modelSelect.classList.toggle('is-fasting', running);
+        const scheduled = fastingState === 'scheduled';
+        modelSelect.classList.toggle('is-fasting', running || scheduled);
         const options = modelSelect.options;
         for (let i = 0; i < options.length; i++) {
             const opt = options[i];
             if (!opt.dataset.originalText) opt.dataset.originalText = opt.textContent;
             if (running && opt.value == targetHours) {
                 opt.textContent = `${opt.dataset.originalText} (진행중)`;
+                opt.classList.add('is-running');
+            } else if (scheduled && opt.value == targetHours) {
+                opt.textContent = `${opt.dataset.originalText} (예정)`;
                 opt.classList.add('is-running');
             } else {
                 opt.textContent = opt.dataset.originalText;
@@ -596,6 +619,24 @@ function updateTimeDisplays() {
         if (fastingState === 'running') return showToast('이미 단식이 진행 중입니다.');
         if (!getSignedInUser()) return showToast('로그인이 필요합니다.');
         
+        targetHours = parseFloat(modelSelect.value || targetHours);
+        if (!timePickerUsed) {
+            selectedStartTime = new Date();
+        }
+        
+        const now = new Date();
+        const isScheduled = selectedStartTime > now;
+        
+        // 중복 예약 체크 (미래 시간 선택한 경우에만)
+        if (isScheduled) {
+            const existingScheduled = await checkExistingScheduledFasting();
+            if (existingScheduled) {
+                // 중복 예약 모달 표시
+                document.getElementById('duplicateReservationModal').style.display = 'flex';
+                return;
+            }
+        }
+        
         // 푸시 알림 권한 체크 및 팝업 표시
         const shouldShowPushPrompt = await checkAndShowPushPrompt();
         if (shouldShowPushPrompt) {
@@ -603,32 +644,112 @@ function updateTimeDisplays() {
         }
         
         resetMilestones();
-        fastingState = 'running';
-        targetHours = parseFloat(modelSelect.value || targetHours);
-        if (!timePickerUsed) {
-            selectedStartTime = new Date();
-        }
+        
         const startMs = selectedStartTime.getTime();
         const endMs = startMs + (targetHours * 3600000);
-        window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
-        try {
-            await db.collection('users').doc(currentUser.uid).set({
-                currentFasting: { startTime: selectedStartTime, targetHours: targetHours }
-            }, { merge: true });
-            showToast(`${targetHours}시간 단식을 시작합니다!`);
-            updateTimeDisplays();
-            updateUIState();
-            updateSelectOptions();
-        } catch (err) {
-            console.error('Firestore 저장 실패:', err);
-            showToast('단식 시작 저장에 실패했습니다.');
-            clearInterval(__fastTimer);
-            fastingState = 'idle';
-            updateUIState();
-            resetSelectOptions();
-        } finally {
-            timePickerUsed = false;
+        
+        // 예약인 경우
+        if (isScheduled) {
+            fastingState = 'scheduled';
+            try {
+                await db.collection('users').doc(currentUser.uid).set({
+                    currentFasting: { 
+                        startTime: selectedStartTime, 
+                        targetHours: targetHours,
+                        scheduled: true 
+                    }
+                }, { merge: true });
+                
+                // 알림 히스토리에 예약 알림 저장
+                await db.collection('users').doc(currentUser.uid).collection('notifications').add({
+                    type: 'scheduled',
+                    icon: '🚩',
+                    title: formatScheduledNotification(selectedStartTime, targetHours),
+                    body: `${targetHours}시간 단식이 예약되었습니다.`,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false
+                });
+                
+                const formatted = formatDateTime(selectedStartTime);
+                showToast(`${formatted}에 ${targetHours}시간 단식이 예약되었습니다!`);
+                updateUIState();
+                updateSelectOptions();
+            } catch (err) {
+                console.error('Firestore 저장 실패:', err);
+                showToast('단식 예약 저장에 실패했습니다.');
+                fastingState = 'idle';
+                updateUIState();
+                resetSelectOptions();
+            }
+        } else {
+            // 즉시 시작
+            fastingState = 'running';
+            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+            try {
+                await db.collection('users').doc(currentUser.uid).set({
+                    currentFasting: { 
+                        startTime: selectedStartTime, 
+                        targetHours: targetHours,
+                        scheduled: false 
+                    }
+                }, { merge: true });
+                showToast(`${targetHours}시간 단식을 시작합니다!`);
+                updateTimeDisplays();
+                updateUIState();
+                updateSelectOptions();
+            } catch (err) {
+                console.error('Firestore 저장 실패:', err);
+                showToast('단식 시작 저장에 실패했습니다.');
+                clearInterval(__fastTimer);
+                fastingState = 'idle';
+                updateUIState();
+                resetSelectOptions();
+            }
         }
+        
+        timePickerUsed = false;
+    }
+    
+    // 기존 예약된 단식 체크
+    async function checkExistingScheduledFasting() {
+        if (!currentUser) return false;
+        try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const userData = userDoc.data();
+            const currentFasting = userData?.currentFasting;
+            if (currentFasting && currentFasting.scheduled && currentFasting.startTime) {
+                const scheduledTime = currentFasting.startTime.toDate ? currentFasting.startTime.toDate() : new Date(currentFasting.startTime);
+                if (scheduledTime > new Date()) {
+                    return true; // 미래에 예약된 단식 있음
+                }
+            }
+            return false;
+        } catch (e) {
+            console.error('예약 체크 실패:', e);
+            return false;
+        }
+    }
+    
+    // 예약 알림 포맷
+    function formatScheduledNotification(startTime, hours) {
+        const month = startTime.getMonth() + 1;
+        const day = startTime.getDate();
+        const hour = startTime.getHours();
+        const minute = String(startTime.getMinutes()).padStart(2, '0');
+        const ampm = hour < 12 ? '오전' : '오후';
+        const hour12 = hour % 12 || 12;
+        return `${month}/${day} ${ampm} ${hour12}:${minute}에 ${hours}시간 단식이 시작됩니다.`;
+    }
+    
+    // 날짜시간 포맷
+    function formatDateTime(date) {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const hour = date.getHours();
+        const minute = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hour < 12 ? '오전' : '오후';
+        const hour12 = hour % 12 || 12;
+        return `${month}/${day} ${ampm} ${hour12}:${minute}`;
     }
 
     async function finalizeStopFasting(endDate) {
@@ -914,6 +1035,19 @@ async function refreshFastingState() {
         document.getElementById('challengeBtn')?.addEventListener('click', () => {
         window.location.href = 'challenge.html';
     });
+        
+        // 중복 예약 모달 이벤트
+        document.getElementById('closeDuplicateModal')?.addEventListener('click', () => {
+            document.getElementById('duplicateReservationModal').style.display = 'none';
+        });
+        document.getElementById('goToMypageBtn')?.addEventListener('click', () => {
+            window.location.href = 'mypage.html';
+        });
+        document.getElementById('duplicateReservationModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'duplicateReservationModal') {
+                e.target.style.display = 'none';
+            }
+        });
         
         confirmYesBtn?.addEventListener('click', () => {
             if (pendingTargetHours !== null) {
@@ -1272,17 +1406,43 @@ try {
 
                     const savedFasting = profile?.currentFasting;
                     if (savedFasting?.startTime && savedFasting.targetHours) {
-                        fastingState = 'running';
-                        selectedStartTime = savedFasting.startTime.toDate();
+                        selectedStartTime = savedFasting.startTime.toDate ? savedFasting.startTime.toDate() : new Date(savedFasting.startTime);
                         targetHours = Number(savedFasting.targetHours) || 16;
                         if (modelSelect) modelSelect.value = String(targetHours);
                         
+                        const now = new Date();
                         const startMs = selectedStartTime.getTime();
                         const endMs = startMs + (targetHours * 3600000);
-                        window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
                         
-                        updateTimeDisplays();
-                        updateSelectOptions();
+                        // 예약된 단식인지 체크
+                        if (savedFasting.scheduled && selectedStartTime > now) {
+                            fastingState = 'scheduled';
+                            updateTimeDisplays();
+                            updateSelectOptions();
+                        } else if (selectedStartTime <= now) {
+                            // 예약 시간이 지났으면 자동으로 시작
+                            fastingState = 'running';
+                            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+                            
+                            // 예약 플래그 제거
+                            if (savedFasting.scheduled) {
+                                db.collection('users').doc(currentUser.uid).set({
+                                    currentFasting: { 
+                                        startTime: selectedStartTime, 
+                                        targetHours: targetHours,
+                                        scheduled: false 
+                                    }
+                                }, { merge: true });
+                            }
+                            
+                            updateTimeDisplays();
+                            updateSelectOptions();
+                        } else {
+                            fastingState = 'running';
+                            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+                            updateTimeDisplays();
+                            updateSelectOptions();
+                        }
                     } else {
                         fastingState = 'idle';
                         initializeTime();
@@ -1424,3 +1584,5 @@ function wirePushPromptEvents() {
     });
 }
 </script>
+</body>
+</html>
