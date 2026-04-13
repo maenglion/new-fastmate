@@ -564,7 +564,7 @@ function tickOnce() {
     function updateUIState() {
         const running = fastingState === 'running';
         const scheduled = fastingState === 'scheduled';
-        if (startBtn) startBtn.disabled = running || scheduled;
+        if (startBtn) startBtn.disabled = running; // scheduled일 땐 활성화 (클릭하면 모달)
         if (stopBtn) stopBtn.disabled = !running && !scheduled;
         
         // 예약 상태일 때 상태 메시지 업데이트
@@ -617,6 +617,10 @@ function updateTimeDisplays() {
 
     async function startFasting() {
         if (fastingState === 'running') return showToast('이미 단식이 진행 중입니다.');
+        if (fastingState === 'scheduled') {
+            document.getElementById('duplicateReservationModal').style.display = 'flex';
+            return;
+        }
         if (!getSignedInUser()) return showToast('로그인이 필요합니다.');
         
         targetHours = parseFloat(modelSelect.value || targetHours);
