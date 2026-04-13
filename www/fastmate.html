@@ -563,31 +563,20 @@ function tickOnce() {
     
     function updateUIState() {
         const running = fastingState === 'running';
-        const scheduled = fastingState === 'scheduled';
-        if (startBtn) startBtn.disabled = running; // scheduled일 땐 활성화 (클릭하면 모달)
-        if (stopBtn) stopBtn.disabled = !running && !scheduled;
-        
-        // 예약 상태일 때 상태 메시지 업데이트
-        if (scheduled && statusMessage) {
-            const formatted = formatDateTime(selectedStartTime);
-            statusMessage.textContent = `${formatted}에 ${targetHours}시간 단식이 예약되어 있습니다.`;
-        }
+        if (startBtn) startBtn.disabled = running;
+        if (stopBtn) stopBtn.disabled = !running;
     }
 
     function updateSelectOptions() {
         if (!modelSelect) return;
         const running = fastingState === 'running';
-        const scheduled = fastingState === 'scheduled';
-        modelSelect.classList.toggle('is-fasting', running || scheduled);
+        modelSelect.classList.toggle('is-fasting', running);
         const options = modelSelect.options;
         for (let i = 0; i < options.length; i++) {
             const opt = options[i];
             if (!opt.dataset.originalText) opt.dataset.originalText = opt.textContent;
             if (running && opt.value == targetHours) {
                 opt.textContent = `${opt.dataset.originalText} (진행중)`;
-                opt.classList.add('is-running');
-            } else if (scheduled && opt.value == targetHours) {
-                opt.textContent = `${opt.dataset.originalText} (예정)`;
                 opt.classList.add('is-running');
             } else {
                 opt.textContent = opt.dataset.originalText;
@@ -616,11 +605,6 @@ function updateTimeDisplays() {
     // ========================================
 
     async function startFasting() {
-        if (fastingState === 'running') return showToast('이미 단식이 진행 중입니다.');
-        if (fastingState === 'scheduled') {
-            document.getElementById('duplicateReservationModal').style.display = 'flex';
-            return;
-        }
         if (!getSignedInUser()) return showToast('로그인이 필요합니다.');
         
         targetHours = parseFloat(modelSelect.value || targetHours);
@@ -630,15 +614,14 @@ function updateTimeDisplays() {
         
         const now = new Date();
         const isScheduled = selectedStartTime > now;
+        const newStartMs = selectedStartTime.getTime();
+        const newEndMs = newStartMs + (targetHours * 3600000);
         
-        // 중복 예약 체크 (미래 시간 선택한 경우에만)
-        if (isScheduled) {
-            const existingScheduled = await checkExistingScheduledFasting();
-            if (existingScheduled) {
-                // 중복 예약 모달 표시
-                document.getElementById('duplicateReservationModal').style.display = 'flex';
-                return;
-            }
+        // 시간 겹침 체크
+        const overlap = await checkTimeOverlap(newStartMs, newEndMs);
+        if (overlap) {
+            document.getElementById('duplicateReservationModal').style.display = 'flex';
+            return;
         }
         
         // 푸시 알림 권한 체크 및 팝업 표시
@@ -649,20 +632,17 @@ function updateTimeDisplays() {
         
         resetMilestones();
         
-        const startMs = selectedStartTime.getTime();
-        const endMs = startMs + (targetHours * 3600000);
-        
-        // 예약인 경우
+        // 예약인 경우 (미래 시간)
         if (isScheduled) {
-            fastingState = 'scheduled';
             try {
-                await db.collection('users').doc(currentUser.uid).set({
-                    currentFasting: { 
-                        startTime: selectedStartTime, 
+                // scheduledFastings 배열에 추가
+                await db.collection('users').doc(currentUser.uid).update({
+                    scheduledFastings: firebase.firestore.FieldValue.arrayUnion({
+                        startTime: selectedStartTime,
                         targetHours: targetHours,
-                        scheduled: true 
-                    }
-                }, { merge: true });
+                        createdAt: new Date()
+                    })
+                });
                 
                 // 알림 히스토리에 예약 알림 저장
                 await db.collection('users').doc(currentUser.uid).collection('notifications').add({
@@ -676,25 +656,55 @@ function updateTimeDisplays() {
                 
                 const formatted = formatDateTime(selectedStartTime);
                 showToast(`${formatted}에 ${targetHours}시간 단식이 예약되었습니다!`);
+                initializeTime(); // 시간 초기화
                 updateUIState();
-                updateSelectOptions();
             } catch (err) {
-                console.error('Firestore 저장 실패:', err);
-                showToast('단식 예약 저장에 실패했습니다.');
-                fastingState = 'idle';
-                updateUIState();
-                resetSelectOptions();
+                // scheduledFastings 필드가 없으면 생성
+                if (err.code === 'not-found' || err.message?.includes('No document')) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).set({
+                            scheduledFastings: [{
+                                startTime: selectedStartTime,
+                                targetHours: targetHours,
+                                createdAt: new Date()
+                            }]
+                        }, { merge: true });
+                        
+                        await db.collection('users').doc(currentUser.uid).collection('notifications').add({
+                            type: 'scheduled',
+                            icon: '🚩',
+                            title: formatScheduledNotification(selectedStartTime, targetHours),
+                            body: `${targetHours}시간 단식이 예약되었습니다.`,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            read: false
+                        });
+                        
+                        const formatted = formatDateTime(selectedStartTime);
+                        showToast(`${formatted}에 ${targetHours}시간 단식이 예약되었습니다!`);
+                        initializeTime();
+                        updateUIState();
+                    } catch (e2) {
+                        console.error('Firestore 저장 실패:', e2);
+                        showToast('단식 예약 저장에 실패했습니다.');
+                    }
+                } else {
+                    console.error('Firestore 저장 실패:', err);
+                    showToast('단식 예약 저장에 실패했습니다.');
+                }
             }
         } else {
-            // 즉시 시작
+            // 즉시 시작 (현재 시간 또는 과거 시간)
+            if (fastingState === 'running') {
+                return showToast('이미 단식이 진행 중입니다.');
+            }
+            
             fastingState = 'running';
-            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+            window.hydrateFastingTimer({ startAt: newStartMs, endAt: newEndMs });
             try {
                 await db.collection('users').doc(currentUser.uid).set({
                     currentFasting: { 
                         startTime: selectedStartTime, 
-                        targetHours: targetHours,
-                        scheduled: false 
+                        targetHours: targetHours
                     }
                 }, { merge: true });
                 showToast(`${targetHours}시간 단식을 시작합니다!`);
@@ -714,20 +724,46 @@ function updateTimeDisplays() {
         timePickerUsed = false;
     }
     
-    // 기존 예약된 단식 체크
-    async function checkExistingScheduledFasting() {
+    // 시간 겹침 체크 (진행 중 + 예약 모두 체크)
+    async function checkTimeOverlap(newStartMs, newEndMs) {
         if (!currentUser) return false;
         try {
             const userDoc = await db.collection('users').doc(currentUser.uid).get();
             const userData = userDoc.data();
+            
+            // 1. 진행 중인 단식과 겹침 체크
             const currentFasting = userData?.currentFasting;
-            if (currentFasting && currentFasting.scheduled && currentFasting.startTime) {
-                const scheduledTime = currentFasting.startTime.toDate ? currentFasting.startTime.toDate() : new Date(currentFasting.startTime);
-                if (scheduledTime > new Date()) {
-                    return true; // 미래에 예약된 단식 있음
+            if (currentFasting && currentFasting.startTime) {
+                const startTime = currentFasting.startTime.toDate ? currentFasting.startTime.toDate() : new Date(currentFasting.startTime);
+                const endTime = new Date(startTime.getTime() + (currentFasting.targetHours || 16) * 3600000);
+                
+                if (isOverlapping(newStartMs, newEndMs, startTime.getTime(), endTime.getTime())) {
+                    return true;
                 }
             }
+            
+            // 2. 예약된 단식들과 겹침 체크
+            const scheduledFastings = userData?.scheduledFastings || [];
+            for (const scheduled of scheduledFastings) {
+                const startTime = scheduled.startTime.toDate ? scheduled.startTime.toDate() : new Date(scheduled.startTime);
+                const endTime = new Date(startTime.getTime() + (scheduled.targetHours || 16) * 3600000);
+                
+                if (isOverlapping(newStartMs, newEndMs, startTime.getTime(), endTime.getTime())) {
+                    return true;
+                }
+            }
+            
             return false;
+        } catch (e) {
+            console.error('겹침 체크 실패:', e);
+            return false;
+        }
+    }
+    
+    // 두 시간 범위가 겹치는지 체크
+    function isOverlapping(start1, end1, start2, end2) {
+        return start1 < end2 && end1 > start2;
+    };
         } catch (e) {
             console.error('예약 체크 실패:', e);
             return false;
@@ -1414,39 +1450,13 @@ try {
                         targetHours = Number(savedFasting.targetHours) || 16;
                         if (modelSelect) modelSelect.value = String(targetHours);
                         
-                        const now = new Date();
                         const startMs = selectedStartTime.getTime();
                         const endMs = startMs + (targetHours * 3600000);
                         
-                        // 예약된 단식인지 체크
-                        if (savedFasting.scheduled && selectedStartTime > now) {
-                            fastingState = 'scheduled';
-                            updateTimeDisplays();
-                            updateSelectOptions();
-                        } else if (selectedStartTime <= now) {
-                            // 예약 시간이 지났으면 자동으로 시작
-                            fastingState = 'running';
-                            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
-                            
-                            // 예약 플래그 제거
-                            if (savedFasting.scheduled) {
-                                db.collection('users').doc(currentUser.uid).set({
-                                    currentFasting: { 
-                                        startTime: selectedStartTime, 
-                                        targetHours: targetHours,
-                                        scheduled: false 
-                                    }
-                                }, { merge: true });
-                            }
-                            
-                            updateTimeDisplays();
-                            updateSelectOptions();
-                        } else {
-                            fastingState = 'running';
-                            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
-                            updateTimeDisplays();
-                            updateSelectOptions();
-                        }
+                        fastingState = 'running';
+                        window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+                        updateTimeDisplays();
+                        updateSelectOptions();
                     } else {
                         fastingState = 'idle';
                         initializeTime();

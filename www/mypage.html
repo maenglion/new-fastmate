@@ -1556,7 +1556,7 @@
 
                 renderProfileCard();
                 loadNotifications();
-                renderScheduledFasting(profile?.currentFasting);
+                renderScheduledFastings(profile?.scheduledFastings || []);
                 renderFastingHistory();
                 renderExerciseHistory();
                 renderAllCharts();
@@ -1565,51 +1565,70 @@
             } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
         }
         
-        // 예약된 단식 표시
-        function renderScheduledFasting(currentFasting) {
-            if (!currentFasting || !currentFasting.scheduled) return;
+        // 예약된 단식들 표시 (여러 개)
+        function renderScheduledFastings(scheduledFastings) {
+            if (!scheduledFastings || scheduledFastings.length === 0) return;
             
-            const startTime = currentFasting.startTime?.toDate ? currentFasting.startTime.toDate() : new Date(currentFasting.startTime);
             const now = new Date();
-            
-            // 아직 시작 안 한 예약만 표시
-            if (startTime <= now) return;
-            
-            const targetHours = currentFasting.targetHours || 16;
-            const endTime = new Date(startTime.getTime() + targetHours * 3600000);
-            
             const format = (d) => `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
             
-            const scheduledItem = document.createElement('li');
-            scheduledItem.className = 'history-item scheduled-item';
-            scheduledItem.innerHTML = `
-                <div class="history-info">
-                    <div class="duration">${targetHours}시간 <span class="scheduled-badge">[예정]</span></div>
-                    <div class="period">${format(startTime)} ~ ${format(endTime)}</div>
-                </div>
-                <div class="history-actions">
-                    <button class="cancel-scheduled-btn" title="예약 취소">취소</button>
-                </div>
-            `;
+            // 시간순 정렬 (가까운 것부터)
+            const sortedScheduled = scheduledFastings
+                .map(s => ({
+                    ...s,
+                    startTime: s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime)
+                }))
+                .filter(s => s.startTime > now) // 미래 예약만
+                .sort((a, b) => a.startTime - b.startTime);
             
-            // 예약 취소 이벤트
-            scheduledItem.querySelector('.cancel-scheduled-btn')?.addEventListener('click', async () => {
-                if (confirm('예약된 단식을 취소하시겠습니까?')) {
-                    try {
-                        await db.collection('users').doc(currentUser.uid).update({
-                            currentFasting: null
-                        });
-                        scheduledItem.remove();
-                        alert('예약이 취소되었습니다.');
-                    } catch (e) {
-                        console.error('예약 취소 실패:', e);
-                        alert('취소에 실패했습니다.');
+            sortedScheduled.forEach((scheduled, index) => {
+                const targetHours = scheduled.targetHours || 16;
+                const endTime = new Date(scheduled.startTime.getTime() + targetHours * 3600000);
+                
+                const scheduledItem = document.createElement('li');
+                scheduledItem.className = 'history-item scheduled-item';
+                scheduledItem.dataset.startTime = scheduled.startTime.toISOString();
+                scheduledItem.innerHTML = `
+                    <div class="history-info">
+                        <div class="duration">${targetHours}시간 <span class="scheduled-badge">[예정]</span></div>
+                        <div class="period">${format(scheduled.startTime)} ~ ${format(endTime)}</div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="cancel-scheduled-btn" title="예약 취소">취소</button>
+                    </div>
+                `;
+                
+                // 예약 취소 이벤트
+                scheduledItem.querySelector('.cancel-scheduled-btn')?.addEventListener('click', async () => {
+                    if (confirm('예약된 단식을 취소하시겠습니까?')) {
+                        try {
+                            // Firestore에서 해당 예약 제거
+                            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                            const userData = userDoc.data();
+                            const currentScheduled = userData?.scheduledFastings || [];
+                            
+                            // 시간이 일치하는 예약 제거
+                            const updatedScheduled = currentScheduled.filter(s => {
+                                const sTime = s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime);
+                                return sTime.getTime() !== scheduled.startTime.getTime();
+                            });
+                            
+                            await db.collection('users').doc(currentUser.uid).update({
+                                scheduledFastings: updatedScheduled
+                            });
+                            
+                            scheduledItem.remove();
+                            alert('예약이 취소되었습니다.');
+                        } catch (e) {
+                            console.error('예약 취소 실패:', e);
+                            alert('취소에 실패했습니다.');
+                        }
                     }
-                }
+                });
+                
+                // 리스트 맨 앞에 추가
+                fastingHistoryList.prepend(scheduledItem);
             });
-            
-            // 리스트 맨 앞에 추가
-            fastingHistoryList.prepend(scheduledItem);
         }
 
         // 8. 최종 실행 지점: 인증 상태 리스너
