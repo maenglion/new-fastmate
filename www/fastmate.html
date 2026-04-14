@@ -1508,29 +1508,81 @@ try {
     const nickname = profile?.nickname || user.displayName || '사용자';
     setUserChip(nickname);
 
-
-                    const savedFasting = profile?.currentFasting;
-                    if (savedFasting?.startTime && savedFasting.targetHours) {
-                        selectedStartTime = savedFasting.startTime.toDate ? savedFasting.startTime.toDate() : new Date(savedFasting.startTime);
-                        targetHours = Number(savedFasting.targetHours) || 16;
+                    // ========================================
+                    // 예약 시간 지난 단식 자동 시작 처리
+                    // ========================================
+                    const scheduledFastings = profile?.scheduledFastings || [];
+                    const now = new Date();
+                    let startedFromSchedule = false;
+                    
+                    // 시간 지난 예약 찾기
+                    const dueScheduled = scheduledFastings.find(s => {
+                        const startTime = s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime);
+                        return startTime <= now;
+                    });
+                    
+                    if (dueScheduled && !profile?.currentFasting) {
+                        // 예약에서 단식 시작
+                        const startTime = dueScheduled.startTime?.toDate ? dueScheduled.startTime.toDate() : new Date(dueScheduled.startTime);
+                        const hours = dueScheduled.targetHours || 16;
+                        
+                        selectedStartTime = startTime;
+                        targetHours = hours;
                         if (modelSelect) modelSelect.value = String(targetHours);
                         
-                        const startMs = selectedStartTime.getTime();
-                        const endMs = startMs + (targetHours * 3600000);
+                        const startMs = startTime.getTime();
+                        const endMs = startMs + (hours * 3600000);
                         
                         fastingState = 'running';
                         window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
                         updateTimeDisplays();
                         updateSelectOptions();
-                    } else {
-                        fastingState = 'idle';
-                        initializeTime();
-                        updateTimeDisplays();
-                        resetSelectOptions();
+                        startedFromSchedule = true;
+                        
+                        // currentFasting으로 이동하고 scheduledFastings에서 제거
+                        const updatedScheduled = scheduledFastings.filter(s => {
+                            const sTime = s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime);
+                            return sTime.getTime() !== startTime.getTime();
+                        });
+                        
+                        await db.collection('users').doc(currentUser.uid).update({
+                            currentFasting: {
+                                startTime: startTime,
+                                targetHours: hours
+                            },
+                            scheduledFastings: updatedScheduled
+                        });
                     }
                     
-                    // 예약된 단식 배너 표시
-                    showScheduledBanner(profile?.scheduledFastings || []);
+                    // 진행 중인 단식 처리 (예약에서 시작하지 않은 경우)
+                    if (!startedFromSchedule) {
+                        const savedFasting = profile?.currentFasting;
+                        if (savedFasting?.startTime && savedFasting.targetHours) {
+                            selectedStartTime = savedFasting.startTime.toDate ? savedFasting.startTime.toDate() : new Date(savedFasting.startTime);
+                            targetHours = Number(savedFasting.targetHours) || 16;
+                            if (modelSelect) modelSelect.value = String(targetHours);
+                            
+                            const startMs = selectedStartTime.getTime();
+                            const endMs = startMs + (targetHours * 3600000);
+                            
+                            fastingState = 'running';
+                            window.hydrateFastingTimer({ startAt: startMs, endAt: endMs });
+                            updateTimeDisplays();
+                            updateSelectOptions();
+                        } else {
+                            fastingState = 'idle';
+                            initializeTime();
+                            updateTimeDisplays();
+                            resetSelectOptions();
+                        }
+                    }
+                    
+                    // 예약된 단식 배너 표시 (시간 안 지난 것만)
+                    const remainingScheduled = scheduledFastings.filter(s => {
+                        const startTime = s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime);
+                        return startTime > now;
+                    });
+                    showScheduledBanner(remainingScheduled);
 
                     updateUIState();
                     if (saltTip) {
