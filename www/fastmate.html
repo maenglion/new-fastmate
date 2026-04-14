@@ -763,11 +763,6 @@ function updateTimeDisplays() {
     // 두 시간 범위가 겹치는지 체크
     function isOverlapping(start1, end1, start2, end2) {
         return start1 < end2 && end1 > start2;
-    };
-        } catch (e) {
-            console.error('예약 체크 실패:', e);
-            return false;
-        }
     }
     
     // 예약 알림 포맷
