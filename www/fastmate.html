@@ -72,6 +72,17 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
     <!-- 앱 메인 컨텐츠 -->
 <div class="container">
 
+<!-- 예약 알림 배너 -->
+<div id="scheduledBanner" style="display:none; background: linear-gradient(135deg, #1c8e3e 0%, #2eb85c 100%); color: white; padding: 15px 20px; border-radius: 12px; margin: 0 15px 15px 15px; position: relative; animation: fadeIn 0.3s ease-out;">
+    <button id="closeScheduledBanner" style="position: absolute; top: 10px; right: 12px; background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer; opacity: 0.8; line-height: 1;">&times;</button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.5rem;">🚩</span>
+        <div>
+            <div id="scheduledBannerText" style="font-weight: 600; font-size: 0.95rem;">오늘 11:40부터 16시간 단식이 시작됩니다!</div>
+        </div>
+    </div>
+</div>
+
     <div class="main-content">
         <h1 class="main-title">fastmate</h1>
         
@@ -786,6 +797,60 @@ function updateTimeDisplays() {
         const hour12 = hour % 12 || 12;
         return `${month}/${day} ${ampm} ${hour12}:${minute}`;
     }
+    
+    // 예약 배너 표시
+    function showScheduledBanner(scheduledFastings) {
+        const banner = document.getElementById('scheduledBanner');
+        const bannerText = document.getElementById('scheduledBannerText');
+        if (!banner || !bannerText) return;
+        
+        if (!scheduledFastings || scheduledFastings.length === 0) {
+            banner.style.display = 'none';
+            return;
+        }
+        
+        const now = new Date();
+        
+        // 가장 가까운 미래 예약 찾기
+        const futureScheduled = scheduledFastings
+            .map(s => ({
+                ...s,
+                startTime: s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime)
+            }))
+            .filter(s => s.startTime > now)
+            .sort((a, b) => a.startTime - b.startTime);
+        
+        if (futureScheduled.length === 0) {
+            banner.style.display = 'none';
+            return;
+        }
+        
+        const nearest = futureScheduled[0];
+        const startTime = nearest.startTime;
+        const hours = nearest.targetHours || 16;
+        
+        // 오늘/내일 표시
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        let dateStr = '';
+        if (startTime.toDateString() === today.toDateString()) {
+            dateStr = '오늘';
+        } else if (startTime.toDateString() === tomorrow.toDateString()) {
+            dateStr = '내일';
+        } else {
+            dateStr = `${startTime.getMonth() + 1}/${startTime.getDate()}`;
+        }
+        
+        const hour = startTime.getHours();
+        const minute = String(startTime.getMinutes()).padStart(2, '0');
+        const ampm = hour < 12 ? '오전' : '오후';
+        const hour12 = hour % 12 || 12;
+        
+        bannerText.textContent = `${dateStr} ${ampm} ${hour12}:${minute}부터 ${hours}시간 단식이 시작됩니다!`;
+        banner.style.display = 'block';
+    }
 
     async function finalizeStopFasting(endDate) {
     if (fastingState === 'idle') return showToast('시작된 단식이 없습니다.');
@@ -1082,6 +1147,11 @@ async function refreshFastingState() {
             if (e.target.id === 'duplicateReservationModal') {
                 e.target.style.display = 'none';
             }
+        });
+        
+        // 예약 배너 닫기 이벤트
+        document.getElementById('closeScheduledBanner')?.addEventListener('click', () => {
+            document.getElementById('scheduledBanner').style.display = 'none';
         });
         
         confirmYesBtn?.addEventListener('click', () => {
@@ -1458,6 +1528,9 @@ try {
                         updateTimeDisplays();
                         resetSelectOptions();
                     }
+                    
+                    // 예약된 단식 배너 표시
+                    showScheduledBanner(profile?.scheduledFastings || []);
 
                     updateUIState();
                     if (saltTip) {
