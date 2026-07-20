@@ -20,19 +20,16 @@ body {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
+    padding: calc(30px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
     box-sizing: border-box;
-    padding-top: calc(30px + env(safe-area-inset-top));
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    min-height: 100vh;
+    /* flex 제거: 위에서부터 정렬, 위아래 스크롤 정상 작동 */
 }
 
    .container {
     width: 100%;
     max-width: 420px;
+    margin: 0 auto;
     background-color: var(--card-bg);
     border-radius: 16px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
@@ -978,8 +975,6 @@ body {
    =================================================== */
 @media screen and (min-width: 900px) {
     body {
-        justify-content: stretch;
-        align-items: flex-start;
         padding-left: 20px;
         padding-right: 20px;
     }
