@@ -130,6 +130,27 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
     </label>
 </div>
 
+<!-- 오토파지 모드: 케토식 준비 배너 -->
+<div id="keto-prep-banner" style="display:none;" class="keto-prep-banner">
+  <div class="keto-prep-icon">🔬</div>
+  <div class="keto-prep-info">
+    <div class="keto-prep-title">케토식 준비 중</div>
+    <div id="keto-prep-remaining" class="keto-prep-time">72:00:00 남음</div>
+    <div class="keto-prep-desc">탄수화물 20g 이하 식사를 유지하세요</div>
+  </div>
+  <button id="keto-prep-cancel" class="keto-prep-cancel-btn">준비 중단</button>
+</div>
+<!-- 오토파지 모드: 단식 시작 안내 배너 -->
+<div id="keto-ready-banner" style="display:none;" class="keto-ready-banner">
+  <div class="keto-ready-icon">✅</div>
+  <div class="keto-ready-info">
+    <div class="keto-ready-title">케토 준비 완료!</div>
+    <div class="keto-ready-desc">단식을 시작하면 오토파지 진입이 빠르게 활성화됩니다.</div>
+  </div>
+  <button id="keto-ready-start" class="start-btn" style="padding:10px 18px; font-size:13px; flex-shrink:0;">단식 시작</button>
+  <button id="keto-ready-cancel" class="keto-prep-cancel-btn">취소</button>
+</div>
+
         <div class="controls">
             <select id="fastingModelSelect">
                 <option value="8">8:16 (8시간 단식,야식끊기)</option>  
@@ -142,6 +163,9 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
                 <option value="36">36시간(1.5일 단식,고급)</option>
                 <option value="48">48시간 (2일 단식,고급)</option>
                 <option value="72">72시간 (3일 단식,고급)</option>
+                <option value="96">96시간 (4일 단식,고급)</option>
+                <option value="120">120시간 (5일 단식,고급)</option>
+                <option value="autophagy">🔬 오토파지 모드 (케토식 3일 → 단식)</option>
             </select>
             <div class="button-group">
                 <button id="startBtn" class="start-btn">단식 시작</button>
@@ -436,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== 2) 상태 변수 (State)
     // ========================================
     let currentUser = null;
-    let fastingState = 'idle'; // 'idle' | 'running'
+    let fastingState = 'idle'; // 'idle' | 'running' | 'keto-prep'
     let targetHours = 16;
     let selectedStartTime = new Date();
     let pendingTargetHours = null;
@@ -446,7 +470,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let timePickerUsed = false;
     let eventsWired = false;
     let timePickerWired = false; 
-    let activeChallengeId = null; 
+    let activeChallengeId = null;
+
+    // 오토파지 모드: 케토식 준비
+    let ketoPrepStartTime = null;
+    let ketoPrepInterval = null;
+    const KETO_PREP_HOURS = 72;
     
     // 새 타이머 시스템 변수
     let __fastTimer = null;
@@ -573,9 +602,15 @@ function tickOnce() {
     }
     
     function updateUIState() {
-        const running = fastingState === 'running';
-        if (startBtn) startBtn.disabled = running;
-        if (stopBtn) stopBtn.disabled = !running;
+        const running  = fastingState === 'running';
+        const ketoPrep = fastingState === 'keto-prep';
+        if (startBtn) startBtn.disabled = running || ketoPrep;
+        if (stopBtn)  stopBtn.disabled  = !running;
+        if (modelSelect) modelSelect.disabled = running || ketoPrep;
+        const prepBanner  = document.getElementById('keto-prep-banner');
+        const readyBanner = document.getElementById('keto-ready-banner');
+        if (prepBanner)  prepBanner.style.display  = ketoPrep ? 'flex' : 'none';
+        if (readyBanner && !ketoPrep) readyBanner.style.display = 'none';
     }
 
     function updateSelectOptions() {
@@ -891,12 +926,100 @@ function updateTimeDisplays() {
     if (statusMessage) statusMessage.textContent = '단식 계획을 선택하고 시작하세요.';
     if (saltTip) saltTip.style.display = 'none';
     
+    completionFired = false;
+    Object.keys(milestones).forEach(k => milestones[k] = false);
     initializeTime();
     updateUIState();
     resetSelectOptions();
     showToast('단식을 종료했습니다. 수고하셨습니다!');
 }
-    
+
+    // ========================================
+    // ===== 오토파지 모드: 케토식 준비 함수들
+    // ========================================
+
+    async function startKetoPrepMode() {
+        const user = getSignedInUser();
+        if (!user) return showToast('로그인이 필요합니다.');
+        if (fastingState === 'running') return showToast('단식 중에는 오토파지 모드를 시작할 수 없습니다.');
+        if (fastingState === 'keto-prep') return showToast('이미 케토식 준비 중입니다.');
+
+        ketoPrepStartTime = new Date();
+        fastingState = 'keto-prep';
+
+        try {
+            await db.collection('users').doc(user.uid).update({
+                ketoPrep: { startTime: ketoPrepStartTime }
+            });
+        } catch (e) {
+            await db.collection('users').doc(user.uid).set(
+                { ketoPrep: { startTime: ketoPrepStartTime } }, { merge: true }
+            );
+        }
+
+        updateUIState();
+        runKetoPrepTimer();
+        showToast('케토식 준비를 시작합니다! 3일간 탄수화물 20g 이하를 유지하세요.');
+    }
+
+    function runKetoPrepTimer() {
+        clearInterval(ketoPrepInterval);
+        const el = document.getElementById('keto-prep-remaining');
+        const readyBanner = document.getElementById('keto-ready-banner');
+        const prepBanner  = document.getElementById('keto-prep-banner');
+
+        ketoPrepInterval = setInterval(() => {
+            if (!ketoPrepStartTime) { clearInterval(ketoPrepInterval); return; }
+            const elapsed = Date.now() - ketoPrepStartTime.getTime();
+            const remaining = (KETO_PREP_HOURS * 3600000) - elapsed;
+
+            if (remaining <= 0) {
+                clearInterval(ketoPrepInterval);
+                fastingState = 'keto-prep'; // 준비 완료 상태 유지
+                if (prepBanner)  prepBanner.style.display  = 'none';
+                if (readyBanner) readyBanner.style.display = 'flex';
+                if (modelSelect) modelSelect.disabled = false;
+                showToast('케토 준비 완료! 단식을 시작하세요.');
+                return;
+            }
+
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            if (el) el.textContent =
+                `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} 남음`;
+        }, 1000);
+    }
+
+    async function cancelKetoPrepMode(reason) {
+        clearInterval(ketoPrepInterval);
+        const prevStartTime = ketoPrepStartTime;
+        ketoPrepStartTime = null;
+        fastingState = 'idle';
+
+        const user = getSignedInUser();
+        if (user) {
+            try {
+                const record = {
+                    type: 'keto-prep-cancelled',
+                    startTime: prevStartTime,
+                    endTime: new Date(),
+                    reason: reason || 'user-cancel'
+                };
+                await db.collection('users').doc(user.uid).collection('fastingHistory').add(record);
+                await db.collection('users').doc(user.uid).update({
+                    ketoPrep: firebase.firestore.FieldValue.delete()
+                });
+            } catch (e) { console.error('ketoPrep 취소 기록 실패:', e); }
+        }
+
+        if (modelSelect) {
+            modelSelect.disabled = false;
+            modelSelect.value = '16';
+        }
+        updateUIState();
+        showToast('케토식 준비를 중단했습니다.');
+    }
 
    // ===== 6) 메인 기능 함수 ===== 섹션에 있는
 // 기존 applyDurationChange 함수를 아래 코드로 교체하세요.
@@ -1103,6 +1226,10 @@ async function refreshFastingState() {
     // ========================================
 
     function handleModelChange(e) {
+        if (e.target.value === 'autophagy') {
+            startKetoPrepMode();
+            return;
+        }
         const newTarget = parseInt(e.target.value, 10);
         if (fastingState === 'running' && newTarget !== targetHours) {
             pendingTargetHours = newTarget;
@@ -1131,6 +1258,24 @@ async function refreshFastingState() {
         stopBtn?.addEventListener('click', () => openTimePicker('end'));
         modelSelect?.addEventListener('change', handleModelChange);
         userChip?.addEventListener('click', () => { window.location.href = 'mypage.html'; });
+
+        // 케토식 준비 버튼
+        document.getElementById('keto-prep-cancel')
+            ?.addEventListener('click', () => cancelKetoPrepMode('user-cancel'));
+        document.getElementById('keto-ready-cancel')
+            ?.addEventListener('click', () => cancelKetoPrepMode('user-cancel'));
+        document.getElementById('keto-ready-start')
+            ?.addEventListener('click', () => {
+                const readyBanner = document.getElementById('keto-ready-banner');
+                if (readyBanner) readyBanner.style.display = 'none';
+                const user = getSignedInUser();
+                if (user) {
+                    db.collection('users').doc(user.uid).update({
+                        ketoPrep: firebase.firestore.FieldValue.delete()
+                    }).catch(e => console.error('ketoPrep 삭제 실패:', e));
+                }
+                startFasting();
+            });
 
         document.getElementById('challengeBtn')?.addEventListener('click', () => {
         window.location.href = 'challenge.html';
@@ -1570,10 +1715,29 @@ try {
                             updateTimeDisplays();
                             updateSelectOptions();
                         } else {
-                            fastingState = 'idle';
-                            initializeTime();
-                            updateTimeDisplays();
-                            resetSelectOptions();
+                            // currentFasting 없음 → ketoPrep 확인
+                            const savedKetoPrep = profile?.ketoPrep;
+                            if (savedKetoPrep?.startTime) {
+                                ketoPrepStartTime = savedKetoPrep.startTime.toDate
+                                    ? savedKetoPrep.startTime.toDate()
+                                    : new Date(savedKetoPrep.startTime);
+                                const elapsed = Date.now() - ketoPrepStartTime.getTime();
+                                if (elapsed < KETO_PREP_HOURS * 3600000) {
+                                    fastingState = 'keto-prep';
+                                    if (modelSelect) modelSelect.value = 'autophagy';
+                                    runKetoPrepTimer();
+                                } else {
+                                    // 3일 이미 지남 → 단식 시작 안내 표시
+                                    fastingState = 'keto-prep';
+                                    const readyBanner = document.getElementById('keto-ready-banner');
+                                    if (readyBanner) readyBanner.style.display = 'flex';
+                                }
+                            } else {
+                                fastingState = 'idle';
+                                initializeTime();
+                                updateTimeDisplays();
+                                resetSelectOptions();
+                            }
                         }
                     }
                     

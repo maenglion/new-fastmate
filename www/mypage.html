@@ -1130,6 +1130,17 @@
                 const li = document.createElement('li');
                 li.className = 'history-item';
                 li.dataset.docId = item.id;
+
+                // 케토식 준비 중단 레코드 별도 렌더링
+                if (item.type === 'keto-prep-cancelled') {
+                    const format = (d) => d ? `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}` : '-';
+                    const start = item.startTime instanceof Date ? item.startTime : (item.startTime?.toDate ? item.startTime.toDate() : new Date(item.startTime));
+                    const end   = item.endTime   instanceof Date ? item.endTime   : (item.endTime?.toDate   ? item.endTime.toDate()   : new Date(item.endTime));
+                    const elapsed = start && end ? Math.round((end - start) / 3600000 * 10) / 10 : 0;
+                    li.innerHTML = `<div class="history-info"><div class="duration">🔬 케토식 준비 중단</div><div class="period">${format(start)} ~ ${format(end)} (${elapsed}h)</div></div><div class="history-actions"><div class="history-percentage percentage-low">중단</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
+                    return li;
+                }
+
                 const hours = Math.floor(item.actualDurationHours);
                 const minutes = Math.round((item.actualDurationHours - hours) * 60);
                 const percentage = item.targetHours > 0 ? Math.round((item.actualDurationHours / item.targetHours) * 100) : 0;
