@@ -763,7 +763,7 @@
 <div id="ghBanner" style="display:none; background:#f0f8f2; border:1.5px solid #1c8e3e; border-radius:12px; padding:12px 16px; margin-bottom:12px; display:flex; align-items:center; gap:12px; cursor:pointer;" onclick="document.getElementById('settingsBtn').click()">
   <span style="font-size:1.4rem;">💚</span>
   <div style="flex:1;">
-    <div style="font-size:0.9rem; font-weight:600; color:#1c8e3e;">Fitbit Inspire 3 연동 가능</div>
+    <div style="font-size:0.9rem; font-weight:600; color:#1c8e3e;">Google Health 연동 가능</div>
     <div style="font-size:0.8rem; color:#555; margin-top:2px;">운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다. <u>설정에서 연동하기 →</u></div>
   </div>
   <button id="ghBannerClose" style="background:none; border:none; font-size:1.1rem; color:#aaa; cursor:pointer; padding:0;" onclick="event.stopPropagation(); this.parentElement.style.display='none'; localStorage.setItem('ghBannerDismissed','1');">✕</button>
@@ -904,7 +904,7 @@
             <!-- Google Health 연동 섹션 -->
             <div class="settings-section" style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:20px;">
                 <h4>💚 Google Health 연동</h4>
-                <p class="settings-desc" id="ghStatusText">Fitbit Inspire 3 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.</p>
+                <p class="settings-desc" id="ghStatusText">Fitbit, Garmin 등 Google Health 연동 기기의 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.</p>
                 <div id="ghConnectedInfo" style="display:none; margin:10px 0; padding:10px 12px; background:var(--primary-light); border-radius:8px; font-size:0.85rem; color:var(--primary-color);">
                     ✅ 연동됨 &nbsp;<span id="ghConnectedDate"></span>
                 </div>
@@ -1644,7 +1644,7 @@
                 syncBtn.style.display       = 'none';
                 disconnectBtn.style.display = 'none';
                 connectedInfo.style.display = 'none';
-                statusText.textContent = 'Fitbit Inspire 3 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.';
+                statusText.textContent = 'Fitbit, Garmin 등 Google Health 연동 기기의 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.';
                 // 배너: 사용자가 닫지 않았으면 표시
                 if (ghBanner && !localStorage.getItem('ghBannerDismissed')) {
                     ghBanner.style.display = 'flex';
