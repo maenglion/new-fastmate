@@ -8,45 +8,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="/firebase-init.js?v=2026.04.11-v10"></script>
+  <script src="/firebase-init.js?v=2026.07.20"></script>
   <style>
-    :root {
-      --primary-color: #1c8e3e;
-      --bg-color: #f0f2f5;
-      --card-bg: #ffffff;
-      --text-color: #333;
-      --text-light: #777;
-    }
+    :root { --primary-color: #1c8e3e; --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #333; --text-light: #777; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background: var(--bg-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 40px 30px;
-      text-align: center;
-      max-width: 360px;
-      width: 100%;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg-color); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .card { background: var(--card-bg); border-radius: 16px; padding: 40px 30px; text-align: center; max-width: 360px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
     .icon { font-size: 3rem; margin-bottom: 16px; }
     h2 { font-size: 1.2rem; color: var(--text-color); margin-bottom: 8px; }
     p { font-size: 0.9rem; color: var(--text-light); line-height: 1.5; }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 4px solid #e0e0e0;
-      border-top-color: var(--primary-color);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
-    }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .error { color: #e74c3c; }
   </style>
@@ -60,240 +31,179 @@
 
 <script>
 (function() {
-  const GOOGLE_CLIENT_ID = '879518503068-b7jm0ibaevuubsprtgdnem05ss86cj98.apps.googleusercontent.com';
-
   function setStatus(icon, title, msg, isError) {
-    document.getElementById('spinner').style.display = 'none';
     const card = document.getElementById('statusCard');
-    card.innerHTML = `
-      <div class="icon">${icon}</div>
-      <h2 class="${isError ? 'error' : ''}">${title}</h2>
-      <p>${msg}</p>
-    `;
+    card.innerHTML = `<div class="icon">${icon}</div><h2 class="${isError?'error':''}">${title}</h2><p>${msg}</p>`;
   }
 
-  // URL에서 authorization code 추출
-  const params = new URLSearchParams(window.location.search);
-  const code  = params.get('code');
-  const error = params.get('error');
-  const state = params.get('state');
+  // ── 1. hash fragment에서 access_token 추출 (implicit flow) ──
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const accessToken = hashParams.get('access_token');
+  const expiresIn   = parseInt(hashParams.get('expires_in') || '3600', 10);
+  const hashError   = hashParams.get('error');
 
-  if (error) {
+  // ── 2. query string에서 error 확인 ──
+  const qParams = new URLSearchParams(window.location.search);
+  const qError  = qParams.get('error');
+
+  if (hashError || qError) {
     setStatus('❌', '연동 취소됨', '사용자가 연동을 취소했습니다.<br>마이페이지로 돌아갑니다.', true);
     setTimeout(() => window.location.href = '/mypage.html', 2000);
     return;
   }
 
-  if (!code) {
-    setStatus('❌', '오류 발생', '인증 코드를 받지 못했습니다.', true);
+  if (!accessToken) {
+    // hash에 토큰이 없으면 — 페이지 로드 타이밍 문제일 수 있으므로 잠시 후 재시도
+    setTimeout(() => {
+      const retryHash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const retryToken = retryHash.get('access_token');
+      if (!retryToken) {
+        setStatus('❌', '토큰 없음', '인증 정보를 받지 못했습니다.<br>다시 시도해주세요.', true);
+        setTimeout(() => window.location.href = '/mypage.html', 3000);
+      } else {
+        proceedWithToken(retryToken, parseInt(retryHash.get('expires_in') || '3600', 10));
+      }
+    }, 500);
     return;
   }
 
-  // Firebase auth 준비 대기 후 토큰 교환
-  function waitForAuth(cb) {
-    if (window.auth) {
-      window.auth.onAuthStateChanged(user => {
-        if (user) cb(user);
-        else {
-          setStatus('❌', '로그인 필요', '로그인 후 다시 시도해주세요.', true);
-          setTimeout(() => window.location.href = '/login.html', 2000);
-        }
-      });
-    } else {
-      setTimeout(() => waitForAuth(cb), 200);
-    }
-  }
+  proceedWithToken(accessToken, expiresIn);
 
-  waitForAuth(async (user) => {
-    try {
-      // authorization code → token exchange
-      // Google Health API는 PKCE + server-side token exchange가 필요하지만
-      // 현재 서버리스 구조이므로 implicit grant(token) 방식으로 전환
-      // 이 콜백은 token 방식에서 access_token을 hash fragment로 받는 경우를 처리
-      // code 방식은 Cloud Functions를 통해 교환
-      const db = window.db || firebase.firestore();
-
-      // access_token이 hash fragment에 있는 경우 (implicit flow)
-      const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
-      const accessToken = hashParams.get('access_token');
-      const expiresIn   = parseInt(hashParams.get('expires_in') || '3600', 10);
-
-      if (accessToken) {
-        await saveTokenAndSync(user, db, accessToken, expiresIn);
-        return;
+  function proceedWithToken(token, expSec) {
+    // Firebase auth 준비 대기
+    function waitForAuth(cb) {
+      if (window.auth) {
+        window.auth.onAuthStateChanged(user => {
+          if (user) cb(user);
+          else {
+            setStatus('❌', '로그인 필요', '로그인 후 다시 시도해주세요.', true);
+            setTimeout(() => window.location.href = '/login.html', 2000);
+          }
+        });
+      } else {
+        setTimeout(() => waitForAuth(cb), 200);
       }
+    }
 
-      // authorization code가 있는 경우 → Cloud Function으로 교환
-      if (code) {
-        await exchangeCodeViaFunction(user, db, code, state);
-        return;
+    waitForAuth(async (user) => {
+      try {
+        const db = window.db || firebase.firestore();
+        const expiresAt = Date.now() + expSec * 1000;
+
+        // Firestore에 토큰 저장
+        await db.collection('users').doc(user.uid)
+          .collection('integrations').doc('googleHealth')
+          .set({
+            accessToken: token,
+            expiresAt,
+            connectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'connected'
+          }, { merge: true });
+
+        setStatus('✅', '연동 완료!', '데이터를 가져오는 중입니다...', false);
+
+        // 데이터 동기화
+        await syncGoogleHealthData(user, db, token);
+
+        setStatus('✅', '연동 완료!', '운동 기록, 걸음수, 칼로리를 가져왔습니다.<br>마이페이지로 이동합니다.', false);
+        setTimeout(() => window.location.href = '/mypage.html', 2000);
+
+      } catch (e) {
+        console.error('Google Health callback error:', e);
+        setStatus('❌', '연동 실패', `오류: ${e.message}`, true);
       }
-
-      setStatus('❌', '토큰 없음', '인증 정보를 받지 못했습니다.', true);
-
-    } catch (e) {
-      console.error('Google Health callback error:', e);
-      setStatus('❌', '연동 실패', `오류: ${e.message}`, true);
-    }
-  });
-
-  async function saveTokenAndSync(user, db, accessToken, expiresIn) {
-    const expiresAt = Date.now() + expiresIn * 1000;
-    await db.collection('users').doc(user.uid)
-      .collection('integrations').doc('googleHealth')
-      .set({
-        accessToken,
-        expiresAt,
-        connectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        status: 'connected'
-      }, { merge: true });
-
-    setStatus('✅', '연동 완료!', 'Google Health 데이터를 가져오는 중입니다...', false);
-    await syncGoogleHealthData(user, db, accessToken);
-    setStatus('✅', '연동 완료!', '운동 기록, 걸음수, 칼로리를 성공적으로 가져왔습니다.<br>마이페이지로 이동합니다.', false);
-    setTimeout(() => window.location.href = '/mypage.html', 2000);
+    });
   }
 
-  async function exchangeCodeViaFunction(user, db, code, state) {
-    // Cloud Function endpoint (firebase-init.js의 functions 인스턴스 활용)
-    const functions = window.functions || firebase.functions();
-    try {
-      const exchangeToken = functions.httpsCallable('exchangeGoogleHealthToken');
-      const result = await exchangeToken({ code, state });
-      const { access_token, expires_in } = result.data;
-      await saveTokenAndSync(user, db, access_token, expires_in || 3600);
-    } catch (e) {
-      // Cloud Function 없는 경우 → implicit flow로 재시도 안내
-      setStatus('⚠️', '서버 교환 불가', 'Cloud Function이 필요합니다.<br>설정 페이지에서 다시 연동해주세요.', true);
-      console.error('token exchange failed:', e);
-    }
-  }
-
-  // Google Health API 데이터 동기화
-  async function syncGoogleHealthData(user, db, accessToken) {
+  // ── Google Health API 데이터 동기화 ──
+  async function syncGoogleHealthData(user, db, token) {
     const uid = user.uid;
     const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 3600 * 1000);
-    const fromISO = thirtyDaysAgo.toISOString().split('.')[0] + 'Z';
+    const from  = new Date(today.getTime() - 30 * 24 * 3600 * 1000);
+    const fromISO = from.toISOString().split('.')[0] + 'Z';
     const toISO   = today.toISOString().split('.')[0] + 'Z';
+    const fromDate = fromISO.split('T')[0];
+    const toDate   = toISO.split('T')[0];
 
-    // 운동 종류 매핑 (Google Health exerciseType → Fastmate)
     const EXERCISE_MAP = {
-      'WALKING':          '걷기',
-      'RUNNING':          '달리기',
-      'YOGA':             '요가',
-      'STRENGTH_TRAINING':'근력운동',
-      'WEIGHT_TRAINING':  '근력운동',
-      'SWIMMING':         '수영',
-      'BIKING':           '자전거',
-      'CYCLING':          '자전거',
-      'HIKING':           '등산',
-      'JUMP_ROPE':        '줄넘기',
-      'PILATES':          '필라테스',
-      'DANCING':          '댄스',
-      'CIRCUIT_TRAINING': '서킷트레이닝',
-      'STAIR_CLIMBING':   '계단',
-      'BALLET':           '발레',
-      'TENNIS':           '테니스',
-      'AEROBIC_WORKOUT':  '기타',
+      'WALKING':'걷기','RUNNING':'달리기','YOGA':'요가',
+      'STRENGTH_TRAINING':'근력운동','WEIGHT_TRAINING':'근력운동',
+      'SWIMMING':'수영','BIKING':'자전거','CYCLING':'자전거',
+      'HIKING':'등산','JUMP_ROPE':'줄넘기','PILATES':'필라테스',
+      'DANCING':'댄스','CIRCUIT_TRAINING':'서킷트레이닝',
+      'STAIR_CLIMBING':'계단','BALLET':'발레','TENNIS':'테니스'
     };
+    const H = { 'Authorization': `Bearer ${token}` };
 
-    const headers = { 'Authorization': `Bearer ${accessToken}` };
-
-    // 1. 운동 기록 가져오기
+    // 1. 운동 기록
     try {
-      const exFilter = `exercise.interval.start_time >= "${fromISO}" AND exercise.interval.start_time < "${toISO}"`;
-      const exUrl = `https://health.googleapis.com/v4/users/me/dataTypes/exercise/dataPoints?filter=${encodeURIComponent(exFilter)}&pageSize=100`;
-      const exRes = await fetch(exUrl, { headers });
-      if (exRes.ok) {
-        const exData = await exRes.json();
-        const points = exData.dataPoints || [];
-        const batch = db.batch();
-        let count = 0;
-        for (const pt of points) {
-          const ex = pt.exercise || {};
-          const startTime = new Date(ex.interval?.startTime || pt.startTime);
-          const rawType   = ex.exerciseType || 'OTHER';
-          const type      = EXERCISE_MAP[rawType] || '기타';
-          const activeSec = parseInt((ex.activeDuration || '0s').replace('s',''), 10);
-          const duration  = Math.round(activeSec / 60) || 1;
-          const calories  = Math.round(ex.metricsSummary?.caloriesKcal || 0);
-          // 중복 방지: docId = uid_startTime
-          const docId = `gh_${startTime.getTime()}`;
-          const ref = db.collection('users').doc(uid)
-            .collection('measurements').doc('exercise')
-            .collection('items').doc(docId);
-          batch.set(ref, {
-            date: startTime,
-            type,
-            duration,
-            calories,
-            source: 'googleHealth',
-            rawType,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-          count++;
-          if (count % 400 === 0) { await batch.commit(); }
+      const r = await fetch(
+        `https://health.googleapis.com/v4/users/me/dataTypes/exercise/dataPoints?filter=${encodeURIComponent(`exercise.interval.start_time >= "${fromISO}" AND exercise.interval.start_time < "${toISO}"`)}&pageSize=100`,
+        { headers: H }
+      );
+      if (r.ok) {
+        const { dataPoints = [] } = await r.json();
+        if (dataPoints.length) {
+          const batch = db.batch();
+          for (const pt of dataPoints) {
+            const ex = pt.exercise || {};
+            const st = new Date(ex.interval?.startTime || pt.startTime);
+            const type = EXERCISE_MAP[ex.exerciseType] || '기타';
+            const dur  = Math.round(parseInt((ex.activeDuration||'0s').replace('s',''),10)/60)||1;
+            const cal  = Math.round(ex.metricsSummary?.caloriesKcal||0);
+            batch.set(
+              db.collection('users').doc(uid).collection('measurements').doc('exercise').collection('items').doc(`gh_${st.getTime()}`),
+              { date:st, type, duration:dur, calories:cal, source:'googleHealth', rawType:ex.exerciseType||'', createdAt:firebase.firestore.FieldValue.serverTimestamp() },
+              { merge:true }
+            );
+          }
+          await batch.commit();
         }
-        if (count % 400 !== 0) await batch.commit();
       }
-    } catch (e) { console.warn('exercise sync failed:', e); }
+    } catch(e) { console.warn('exercise sync:', e); }
 
-    // 2. 하루 걸음수 가져오기 (dailyRollUp)
+    // 2. 걸음수
     try {
-      const stFilter = `steps.date >= "${fromISO.split('T')[0]}" AND steps.date <= "${toISO.split('T')[0]}"`;
-      const stUrl = `https://health.googleapis.com/v4/users/me/dataTypes/steps/dataPoints:dailyRollUp?filter=${encodeURIComponent(stFilter)}`;
-      const stRes = await fetch(stUrl, { headers });
-      if (stRes.ok) {
-        const stData = await stRes.json();
-        const points = stData.dataPoints || [];
-        const batch = db.batch();
-        for (const pt of points) {
-          const dateStr = pt.steps?.date || pt.date;
-          if (!dateStr) continue;
-          const docId = `steps_${dateStr}`;
-          const ref = db.collection('users').doc(uid)
-            .collection('dailyStats').doc(docId);
-          batch.set(ref, {
-            date: dateStr,
-            steps: pt.steps?.countSum || 0,
-            source: 'googleHealth',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
+      const r = await fetch(
+        `https://health.googleapis.com/v4/users/me/dataTypes/steps/dataPoints:dailyRollUp?filter=${encodeURIComponent(`steps.date >= "${fromDate}" AND steps.date <= "${toDate}"`)}`,
+        { headers: H }
+      );
+      if (r.ok) {
+        const { dataPoints = [] } = await r.json();
+        if (dataPoints.length) {
+          const batch = db.batch();
+          for (const pt of dataPoints) {
+            const d = pt.steps?.date || pt.date; if (!d) continue;
+            batch.set(db.collection('users').doc(uid).collection('dailyStats').doc(`steps_${d}`),
+              { date:d, steps:pt.steps?.countSum||0, source:'googleHealth', updatedAt:firebase.firestore.FieldValue.serverTimestamp() },
+              { merge:true });
+          }
+          await batch.commit();
         }
-        await batch.commit();
       }
-    } catch (e) { console.warn('steps sync failed:', e); }
+    } catch(e) { console.warn('steps sync:', e); }
 
-    // 3. 하루 총 칼로리 가져오기 (dailyRollUp)
+    // 3. 일일 칼로리
     try {
-      const calFilter = `active_energy_burned.date >= "${fromISO.split('T')[0]}" AND active_energy_burned.date <= "${toISO.split('T')[0]}"`;
-      const calUrl = `https://health.googleapis.com/v4/users/me/dataTypes/active-energy-burned/dataPoints:dailyRollUp?filter=${encodeURIComponent(calFilter)}`;
-      const calRes = await fetch(calUrl, { headers });
-      if (calRes.ok) {
-        const calData = await calRes.json();
-        const points = calData.dataPoints || [];
-        const batch = db.batch();
-        for (const pt of points) {
-          const dateStr = pt.active_energy_burned?.date || pt.date;
-          if (!dateStr) continue;
-          const docId = `steps_${dateStr}`;
-          const ref = db.collection('users').doc(uid)
-            .collection('dailyStats').doc(docId);
-          batch.set(ref, {
-            date: dateStr,
-            dailyCalories: Math.round(pt.active_energy_burned?.kilocaloriesSum || 0),
-            source: 'googleHealth',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
+      const r = await fetch(
+        `https://health.googleapis.com/v4/users/me/dataTypes/active-energy-burned/dataPoints:dailyRollUp?filter=${encodeURIComponent(`active_energy_burned.date >= "${fromDate}" AND active_energy_burned.date <= "${toDate}"`)}`,
+        { headers: H }
+      );
+      if (r.ok) {
+        const { dataPoints = [] } = await r.json();
+        if (dataPoints.length) {
+          const batch = db.batch();
+          for (const pt of dataPoints) {
+            const d = pt.active_energy_burned?.date || pt.date; if (!d) continue;
+            batch.set(db.collection('users').doc(uid).collection('dailyStats').doc(`steps_${d}`),
+              { date:d, dailyCalories:Math.round(pt.active_energy_burned?.kilocaloriesSum||0), source:'googleHealth', updatedAt:firebase.firestore.FieldValue.serverTimestamp() },
+              { merge:true });
+          }
+          await batch.commit();
         }
-        await batch.commit();
       }
-    } catch (e) { console.warn('calories sync failed:', e); }
+    } catch(e) { console.warn('calories sync:', e); }
   }
-
-  // window에 노출 (mypage에서도 재동기화 가능하도록)
-  window.syncGoogleHealthData = syncGoogleHealthData;
 })();
 </script>
 </body>

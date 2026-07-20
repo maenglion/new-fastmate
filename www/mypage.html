@@ -758,6 +758,16 @@
         </div>
     </div>
 </div>
+
+<!-- Google Health 미연동 배너 -->
+<div id="ghBanner" style="display:none; background:#f0f8f2; border:1.5px solid #1c8e3e; border-radius:12px; padding:12px 16px; margin-bottom:12px; display:flex; align-items:center; gap:12px; cursor:pointer;" onclick="document.getElementById('settingsBtn').click()">
+  <span style="font-size:1.4rem;">💚</span>
+  <div style="flex:1;">
+    <div style="font-size:0.9rem; font-weight:600; color:#1c8e3e;">Fitbit Inspire 3 연동 가능</div>
+    <div style="font-size:0.8rem; color:#555; margin-top:2px;">운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다. <u>설정에서 연동하기 →</u></div>
+  </div>
+  <button id="ghBannerClose" style="background:none; border:none; font-size:1.1rem; color:#aaa; cursor:pointer; padding:0;" onclick="event.stopPropagation(); this.parentElement.style.display='none'; localStorage.setItem('ghBannerDismissed','1');">✕</button>
+</div>
  
       
         <div class="card">
@@ -1619,6 +1629,7 @@
             const statusText     = document.getElementById('ghStatusText');
 
             const isConnected = data && data.status === 'connected' && data.accessToken;
+            const ghBanner = document.getElementById('ghBanner');
             if (isConnected) {
                 connectBtn.style.display    = 'none';
                 syncBtn.style.display       = 'inline-block';
@@ -1627,12 +1638,17 @@
                 const connAt = data.connectedAt?.toDate ? data.connectedAt.toDate() : new Date(data.connectedAt || 0);
                 connectedDate.textContent = `(${connAt.toLocaleDateString('ko-KR')} 연동)`;
                 statusText.textContent = '운동 기록, 걸음수, 칼로리가 자동 동기화됩니다.';
+                if (ghBanner) ghBanner.style.display = 'none';
             } else {
                 connectBtn.style.display    = 'inline-block';
                 syncBtn.style.display       = 'none';
                 disconnectBtn.style.display = 'none';
                 connectedInfo.style.display = 'none';
                 statusText.textContent = 'Fitbit Inspire 3 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.';
+                // 배너: 사용자가 닫지 않았으면 표시
+                if (ghBanner && !localStorage.getItem('ghBannerDismissed')) {
+                    ghBanner.style.display = 'flex';
+                }
             }
         }
 
