@@ -971,3 +971,33 @@ body {
     }
 }
 
+
+/* ===================================================
+   갤럭시 Z 폴드 / 태블릿 펼친 화면 대응 (900px 이상)
+   컨테이너를 전체 너비로 확장하여 좌우 여백 제거
+   =================================================== */
+@media screen and (min-width: 900px) {
+    body {
+        justify-content: stretch;
+        align-items: flex-start;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    .container {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 12px;
+    }
+    /* user-chip: scale 축소 해제하여 터치 영역 확보 */
+    .user-chip {
+        transform: scale(1);
+        transform-origin: top right;
+        top: 20px;
+        right: 20px;
+        z-index: 100;
+    }
+    /* 링 타이머 크기 상한 */
+    .ring-wrap {
+        max-width: 340px;
+    }
+}
