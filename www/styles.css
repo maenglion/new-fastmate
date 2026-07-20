@@ -28,6 +28,8 @@ body {
     box-sizing: border-box;
     padding-top: calc(30px + env(safe-area-inset-top));
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
    .container {
