@@ -215,14 +215,15 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
 
 
   <footer class="app-footer">
-            <a href="#" id="privacyPolicyLink">개인정보처리방침</a>
+            <a href="./privacy.html">개인정보처리방침</a>
+            <span class="footer-sep">|</span>
+            <a href="./privacy.html">이용약관</a>
             <p>© 2025 2e-studio. All rights reserved.</p>
             <p class="faq-link">
               <a href="https://www.notion.so/maenglionworld/FASTMATE-FAQ-256bcdc037cd80de887dfb24a7cae5a1?source=copy_link" target="_blank" rel="noopener noreferrer">
                 이용이 어려우신가요? (FAQ)
               </a>
             </p>
-        
         </footer>
 
 <!-- ============================================
@@ -1488,10 +1489,7 @@ async function refreshFastingState() {
       showToast('운동 기록이 저장되었습니다.');
     });
 
-    privacyPolicyLink?.addEventListener('click', (e) => {
-      e.preventDefault();
-      showToast('개인정보처리방침 페이지로 이동합니다. (개발 중)');
-    });
+    // privacyPolicyLink: privacy.html로 직접 이동 (이벤트 핸들러 불필요)
   }
 
     // --- 공통 모달 닫기 로직 ---

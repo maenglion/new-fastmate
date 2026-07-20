@@ -284,6 +284,11 @@ body {
         .app-footer a:hover {
             text-decoration: underline;
         }
+        .footer-sep {
+            color: var(--text-light);
+            margin: 0 6px;
+            font-size: 0.8rem;
+        }
 
         #toast {
             visibility: hidden;
