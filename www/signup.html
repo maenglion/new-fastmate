@@ -267,6 +267,11 @@
                     <label for="privacyPolicy">개인정보처리방침 (필수)</label>
                     <a href="#" data-modal="privacyModal">내용 보기</a>
                 </div>
+                <div class="term-item" style="margin-top:8px; padding:10px 0; border-top:1px solid #eee;">
+                    <input type="checkbox" id="agreeGoogleHealth">
+                    <label for="agreeGoogleHealth" style="font-size:0.9rem;">Google Health 연동 및 민감정보(운동기록 등) 수집 동의 (선택)</label>
+                    <small style="display:block; margin-top:4px; color:#888; font-size:0.8rem;">Fitbit Inspire 3 등 웨어러블 데이터 연동 시 필요합니다. 동의하지 않아도 기본 서비스 이용에 제한없습니다.</small>
+                </div>
             </div>
             <div class="button-group">
                 <button class="btn btn-secondary" id="backToStep3">이전</button>
@@ -625,11 +630,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
+      // Google Health 동의 여부 저장
+      const agreeGH = document.getElementById('agreeGoogleHealth')?.checked || false;
+
       // 프로필 저장 및 완료 플래그
       await ensureUserProfile({
         email: user.email || email || null,
         nickname,
-        onboarding: { reasons: goals, completed: true }
+        onboarding: { reasons: goals, completed: true },
+        consentGoogleHealth: agreeGH,
+        consentGoogleHealthAt: agreeGH ? firebase.firestore.FieldValue.serverTimestamp() : null
       });
 
       // fastmate가 다시 signup으로 튕기지 않도록 락 해제

@@ -592,6 +592,21 @@
     color: white;
 }
 
+.settings-btn-secondary {
+    padding: 10px 16px;
+    background: none;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.settings-btn-secondary:hover {
+    background: var(--primary-light);
+}
+
 .push-options {
     margin-top: 15px;
 }
@@ -873,6 +888,20 @@
                     <button id="savePushSettings" class="settings-btn-primary settings-btn-disabled" style="margin-top:15px;" disabled>
                         설정 저장
                     </button>
+                </div>
+            </div>
+
+            <!-- Google Health 연동 섹션 -->
+            <div class="settings-section" style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:20px;">
+                <h4>💚 Google Health 연동</h4>
+                <p class="settings-desc" id="ghStatusText">Fitbit Inspire 3 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.</p>
+                <div id="ghConnectedInfo" style="display:none; margin:10px 0; padding:10px 12px; background:var(--primary-light); border-radius:8px; font-size:0.85rem; color:var(--primary-color);">
+                    ✅ 연동됨 &nbsp;<span id="ghConnectedDate"></span>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+                    <button id="connectGHBtn" class="settings-btn-primary">🔗 Google Health 연동하기</button>
+                    <button id="syncGHBtn" class="settings-btn-secondary" style="display:none;">🔄 데이터 동기화</button>
+                    <button id="disconnectGHBtn" class="settings-btn-danger" style="display:none;">연동 해제</button>
                 </div>
             </div>
         </div>
@@ -1401,6 +1430,59 @@
                 });
             });
              
+            // Google Health 연동 버튼
+            document.getElementById('connectGHBtn')?.addEventListener('click', () => {
+                const GOOGLE_CLIENT_ID = '879518503068-b7jm0ibaevuubsprtgdnem05ss86cj98.apps.googleusercontent.com';
+                const REDIRECT_URI = encodeURIComponent('https://auth.fastmate.kr/google-health-callback.html');
+                const SCOPE = encodeURIComponent('https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly');
+                const STATE = Math.random().toString(36).slice(2);
+                sessionStorage.setItem('ghOAuthState', STATE);
+                const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${SCOPE}&state=${STATE}&prompt=consent&access_type=online`;
+                window.location.href = url;
+            });
+
+            document.getElementById('syncGHBtn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('syncGHBtn');
+                btn.textContent = '동기화 중...';
+                btn.disabled = true;
+                try {
+                    const user = auth.currentUser;
+                    if (!user) return;
+                    const intSnap = await db.collection('users').doc(user.uid)
+                        .collection('integrations').doc('googleHealth').get();
+                    if (!intSnap.exists) { alert('Google Health에 먼저 연동해주세요.'); return; }
+                    const { accessToken, expiresAt } = intSnap.data();
+                    if (Date.now() > expiresAt) {
+                        alert('토큰이 만료되었습니다. 다시 연동해주세요.');
+                        return;
+                    }
+                    await syncGoogleHealthData(user, db, accessToken);
+                    alert('✅ 데이터 동기화 완료!');
+                    await loadAndRenderAllData();
+                } catch(e) {
+                    console.error('sync error:', e);
+                    alert('동기화 실패: ' + e.message);
+                } finally {
+                    btn.textContent = '🔄 데이터 동기화';
+                    btn.disabled = false;
+                }
+            });
+
+            document.getElementById('disconnectGHBtn')?.addEventListener('click', async () => {
+                if (!confirm('Google Health 연동을 해제하시겠습니까?')) return;
+                try {
+                    const user = auth.currentUser;
+                    if (!user) return;
+                    await db.collection('users').doc(user.uid)
+                        .collection('integrations').doc('googleHealth')
+                        .update({ status: 'disconnected' });
+                    updateGHStatusUI(null);
+                    alert('연동이 해제되었습니다.');
+                } catch(e) {
+                    alert('해제 실패: ' + e.message);
+                }
+            });
+
             document.getElementById('savePushSettings')?.addEventListener('click', async () => {
                 const settings = {
                     fastingStart: document.getElementById('pushFastingStart')?.checked ?? true,
@@ -1517,7 +1599,110 @@
                 renderAllCharts();
                 
                 wireEventsOnce();
+
+                // Google Health 연동 상태 로드
+                try {
+                    const intSnap = await db.collection('users').doc(currentUser.uid)
+                        .collection('integrations').doc('googleHealth').get();
+                    updateGHStatusUI(intSnap.exists ? intSnap.data() : null);
+                } catch(e) { /* silent */ }
             } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
+        }
+
+        // Google Health 연동 상태 UI 업데이트
+        function updateGHStatusUI(data) {
+            const connectBtn     = document.getElementById('connectGHBtn');
+            const syncBtn        = document.getElementById('syncGHBtn');
+            const disconnectBtn  = document.getElementById('disconnectGHBtn');
+            const connectedInfo  = document.getElementById('ghConnectedInfo');
+            const connectedDate  = document.getElementById('ghConnectedDate');
+            const statusText     = document.getElementById('ghStatusText');
+
+            const isConnected = data && data.status === 'connected' && data.accessToken;
+            if (isConnected) {
+                connectBtn.style.display    = 'none';
+                syncBtn.style.display       = 'inline-block';
+                disconnectBtn.style.display = 'inline-block';
+                connectedInfo.style.display = 'block';
+                const connAt = data.connectedAt?.toDate ? data.connectedAt.toDate() : new Date(data.connectedAt || 0);
+                connectedDate.textContent = `(${connAt.toLocaleDateString('ko-KR')} 연동)`;
+                statusText.textContent = '운동 기록, 걸음수, 칼로리가 자동 동기화됩니다.';
+            } else {
+                connectBtn.style.display    = 'inline-block';
+                syncBtn.style.display       = 'none';
+                disconnectBtn.style.display = 'none';
+                connectedInfo.style.display = 'none';
+                statusText.textContent = 'Fitbit Inspire 3 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.';
+            }
+        }
+
+        // Google Health 데이터 동기화 함수
+        async function syncGoogleHealthData(user, db, accessToken) {
+            const uid = user.uid;
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 3600 * 1000);
+            const fromISO = thirtyDaysAgo.toISOString().split('.')[0] + 'Z';
+            const toISO   = today.toISOString().split('.')[0] + 'Z';
+
+            const EXERCISE_MAP = {
+                'WALKING':'걷기','RUNNING':'달리기','YOGA':'요가',
+                'STRENGTH_TRAINING':'근력운동','WEIGHT_TRAINING':'근력운동',
+                'SWIMMING':'수영','BIKING':'자전거','CYCLING':'자전거',
+                'HIKING':'등산','JUMP_ROPE':'줄넘기','PILATES':'필라테스',
+                'DANCING':'댄스','CIRCUIT_TRAINING':'서킷트레이닝',
+                'STAIR_CLIMBING':'계단','BALLET':'발레','TENNIS':'테니스'
+            };
+            const headers = { 'Authorization': `Bearer ${accessToken}` };
+
+            // 1. 운동 기록
+            try {
+                const exFilter = `exercise.interval.start_time >= "${fromISO}" AND exercise.interval.start_time < "${toISO}"`;
+                const exRes = await fetch(`https://health.googleapis.com/v4/users/me/dataTypes/exercise/dataPoints?filter=${encodeURIComponent(exFilter)}&pageSize=100`, { headers });
+                if (exRes.ok) {
+                    const { dataPoints = [] } = await exRes.json();
+                    const batch = db.batch();
+                    for (const pt of dataPoints) {
+                        const ex = pt.exercise || {};
+                        const startTime = new Date(ex.interval?.startTime || pt.startTime);
+                        const type = EXERCISE_MAP[ex.exerciseType] || '기타';
+                        const duration = Math.round(parseInt((ex.activeDuration||'0s').replace('s',''),10)/60)||1;
+                        const calories = Math.round(ex.metricsSummary?.caloriesKcal||0);
+                        const ref = db.collection('users').doc(uid).collection('measurements').doc('exercise').collection('items').doc(`gh_${startTime.getTime()}`);
+                        batch.set(ref, { date:startTime, type, duration, calories, source:'googleHealth', rawType:ex.exerciseType||'', createdAt:firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+                    }
+                    await batch.commit();
+                }
+            } catch(e) { console.warn('exercise sync:', e); }
+
+            // 2. 걸음수
+            try {
+                const stRes = await fetch(`https://health.googleapis.com/v4/users/me/dataTypes/steps/dataPoints:dailyRollUp?filter=${encodeURIComponent(`steps.date >= "${fromISO.split('T')[0]}" AND steps.date <= "${toISO.split('T')[0]}"`)}`, { headers });
+                if (stRes.ok) {
+                    const { dataPoints = [] } = await stRes.json();
+                    const batch = db.batch();
+                    for (const pt of dataPoints) {
+                        const dateStr = pt.steps?.date || pt.date;
+                        if (!dateStr) continue;
+                        batch.set(db.collection('users').doc(uid).collection('dailyStats').doc(`steps_${dateStr}`), { date:dateStr, steps:pt.steps?.countSum||0, source:'googleHealth', updatedAt:firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+                    }
+                    await batch.commit();
+                }
+            } catch(e) { console.warn('steps sync:', e); }
+
+            // 3. 일일 칼로리
+            try {
+                const calRes = await fetch(`https://health.googleapis.com/v4/users/me/dataTypes/active-energy-burned/dataPoints:dailyRollUp?filter=${encodeURIComponent(`active_energy_burned.date >= "${fromISO.split('T')[0]}" AND active_energy_burned.date <= "${toISO.split('T')[0]}"`)}`, { headers });
+                if (calRes.ok) {
+                    const { dataPoints = [] } = await calRes.json();
+                    const batch = db.batch();
+                    for (const pt of dataPoints) {
+                        const dateStr = pt.active_energy_burned?.date || pt.date;
+                        if (!dateStr) continue;
+                        batch.set(db.collection('users').doc(uid).collection('dailyStats').doc(`steps_${dateStr}`), { date:dateStr, dailyCalories:Math.round(pt.active_energy_burned?.kilocaloriesSum||0), source:'googleHealth', updatedAt:firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+                    }
+                    await batch.commit();
+                }
+            } catch(e) { console.warn('calories sync:', e); }
         }
         
         // 예약된 단식들 표시 (여러 개)
