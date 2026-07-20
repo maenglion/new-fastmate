@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Fastmate - 단식 상세 기록</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="/firebase-init.js?v=2026.04.11-v10"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --text-light: #777;
+            --border-color: #e0e0e0;
+            --primary-color: #1c8e3e;
+            --primary-hover: #156a2f;
+            --primary-light: #f0f8f2;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 16px;
+            color: var(--text-color);
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        /* 헤더 */
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: var(--text-color);
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        .back-btn:hover { background: var(--border-color); }
+        .detail-header h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            flex: 1;
+        }
+        /* 카드 */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .card h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0 0 14px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        /* 요약 카드 */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .summary-item {
+            text-align: center;
+            background: var(--bg-color);
+            border-radius: 10px;
+            padding: 12px 8px;
+        }
+        .summary-label {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+        .summary-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .summary-value.highlight { color: var(--primary-color); }
+        /* 로그 테이블 */
+        .log-section { margin-bottom: 8px; }
+        .log-section h3 {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0 0 10px 0;
+        }
+        .log-table-wrap { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        th {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            font-weight: 700;
+            padding: 8px 10px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+            white-space: nowrap;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) td { background: #fafafa; }
+        .empty-row td {
+            text-align: center;
+            color: var(--text-light);
+            padding: 20px;
+        }
+        /* 변화량 */
+        .delta-pos { color: #e74c3c; font-weight: 700; }
+        .delta-neg { color: var(--primary-color); font-weight: 700; }
+        .delta-zero { color: var(--text-light); }
+        /* 다운로드 버튼 */
+        .download-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .download-btn:hover { background: var(--primary-hover); }
+        /* 로딩 */
+        .loading-text {
+            text-align: center;
+            color: var(--text-light);
+            padding: 40px 0;
+            font-size: 0.9rem;
+        }
+        /* 이벤트 로그 */
+        .event-badge {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary-color);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .event-badge.keto { background: #e8f0fe; color: #3367d6; }
+        .event-badge.milestone { background: #fff8e1; color: #f9a825; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="detail-header">
+        <button class="back-btn" id="backBtn">&#8592;</button>
+        <h1 id="pageTitle">단식 상세 기록</h1>
+    </div>
+
+    <div id="loadingEl" class="card">
+        <p class="loading-text">데이터를 불러오는 중...</p>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div class="card" id="summaryCard" style="display:none;">
+        <h2>단식 요약</h2>
+        <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+
+    <!-- 체중 -->
+    <div class="card" id="weightCard" style="display:none;">
+        <h2>⚖️ 체중 기록</h2>
+        <div class="log-table-wrap">
+            <table id="weightTable">
+                <thead><tr><th>날짜/시간</th><th>체중 (kg)</th><th>변화량</th></tr></thead>
+                <tbody id="weightBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 혈당 -->
+    <div class="card" id="bloodSugarCard" style="display:none;">
+        <h2>🩸 혈당 기록</h2>
+        <div class="log-table-wrap">
+            <table id="bloodSugarTable">
+                <thead><tr><th>날짜/시간</th><th>혈당 (mg/dL)</th><th>변화량</th></tr></thead>
+                <tbody id="bloodSugarBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 케톤 -->
+    <div class="card" id="ketoneCard" style="display:none;">
+        <h2>🔬 케톤 기록</h2>
+        <div class="log-table-wrap">
+            <table id="ketoneTable">
+                <thead><tr><th>날짜/시간</th><th>케톤 (mmol/L)</th><th>변화량</th></tr></thead>
+                <tbody id="ketoneBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 운동 -->
+    <div class="card" id="exerciseCard" style="display:none;">
+        <h2>🏃 운동 기록</h2>
+        <div class="log-table-wrap">
+            <table id="exerciseTable">
+                <thead><tr><th>날짜</th><th>종류</th><th>시간(분)</th><th>칼로리</th></tr></thead>
+                <tbody id="exerciseBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 이벤트 로그 -->
+    <div class="card" id="eventCard" style="display:none;">
+        <h2>📋 이벤트 로그</h2>
+        <div class="log-table-wrap">
+            <table id="eventTable">
+                <thead><tr><th>시간</th><th>이벤트</th><th>내용</th></tr></thead>
+                <tbody id="eventBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 다운로드 -->
+    <div class="card" id="downloadCard" style="display:none;">
+        <button class="download-btn" id="downloadBtn">⬇ CSV 다운로드</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    // URL 파라미터 파싱
+    const params = new URLSearchParams(window.location.search);
+    const docId       = params.get('docId') || '';
+    const startTime   = new Date(params.get('startTime'));
+    const endTime     = new Date(params.get('endTime'));
+    const targetHours = parseFloat(params.get('targetHours')) || 0;
+
+    const fmt = (d) => {
+        if (!d || isNaN(d)) return '-';
+        return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    };
+    const fmtDate = (d) => {
+        if (!d || isNaN(d)) return '-';
+        return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+    };
+    const deltaClass = (v) => v > 0 ? 'delta-pos' : v < 0 ? 'delta-neg' : 'delta-zero';
+    const deltaStr   = (v) => v > 0 ? `+${v}` : `${v}`;
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+        if (document.referrer && document.referrer.includes('mypage')) {
+            history.back();
+        } else {
+            window.location.href = 'mypage.html';
+        }
+    });
+
+    // 단식 기간 계산
+    const actualHours = (endTime - startTime) / 3600000;
+    const hh = Math.floor(actualHours);
+    const mm = Math.round((actualHours - hh) * 60);
+    const pct = targetHours > 0 ? Math.round((actualHours / targetHours) * 100) : 0;
+
+    document.getElementById('pageTitle').textContent =
+        `${fmt(startTime)} 단식`;
+
+    // Firestore 쿼리 헬퍼
+    async function fetchRange(db, uid, collPath, dateField) {
+        try {
+            const snap = await db.collection('users').doc(uid)
+                .collection(collPath)
+                .orderBy(dateField, 'asc')
+                .get();
+            const all = snap.docs.map(doc => {
+                const d = doc.data();
+                return { id: doc.id, ...d, [dateField]: d[dateField]?.toDate?.() || new Date(d[dateField]) };
+            });
+            // 단식 기간 ±2시간 버퍼로 필터
+            const from = new Date(startTime.getTime() - 2 * 3600000);
+            const to   = new Date(endTime.getTime()   + 2 * 3600000);
+            return all.filter(item => {
+                const t = item[dateField];
+                return t >= from && t <= to;
+            });
+        } catch(e) {
+            console.error(collPath, e);
+            return [];
+        }
+    }
+
+    // 테이블 렌더링 (변화량 포함)
+    function renderMeasureTable(tbodyId, rows, dateField, valueField, unit) {
+        const tbody = document.getElementById(tbodyId);
+        if (!rows.length) {
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="3">이 기간에 기록 없음</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map((row, i) => {
+            const prev = i > 0 ? rows[i-1][valueField] : null;
+            const curr = row[valueField];
+            let deltaCell = '<td class="delta-zero">-</td>';
+            if (prev !== null && curr !== null) {
+                const delta = Math.round((curr - prev) * 100) / 100;
+                deltaCell = `<td class="${deltaClass(delta)}">${deltaStr(delta)} ${unit}</td>`;
+            }
+            return `<tr><td>${fmt(row[dateField])}</td><td>${curr ?? '-'} ${unit}</td>${deltaCell}</tr>`;
+        }).join('');
+    }
+
+    function renderExerciseTable(rows) {
+        const tbody = document.getElementById('exerciseBody');
+        if (!rows.length) {
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="4">이 기간에 기록 없음</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(row =>
+            `<tr><td>${fmtDate(row.date)}</td><td>${row.type || '-'}</td><td>${row.duration ?? '-'}</td><td>${row.calories ?? '-'}</td></tr>`
+        ).join('');
+    }
+
+    // 이벤트 로그 (케토식 준비 완료, 마일스톤 등)
+    function buildEventLog(weightRows, bloodSugarRows, ketoneRows) {
+        const events = [];
+        // 단식 시작
+        events.push({ time: startTime, badge: 'milestone', label: '단식 시작', note: `목표 ${targetHours}h` });
+        // 케톤 3 이상 첫 도달
+        const ketoThreshold = ketoneRows.find(r => (r.value ?? 0) >= 3.0);
+        if (ketoThreshold) events.push({ time: ketoThreshold.date, badge: 'keto', label: '케톤 3.0+ 도달', note: `${ketoThreshold.value} mmol/L` });
+        // 24h 마일스톤
+        const m24 = new Date(startTime.getTime() + 24 * 3600000);
+        if (m24 <= endTime) events.push({ time: m24, badge: 'milestone', label: '24시간 달성', note: '오토파지 활성 구간 진입' });
+        // 48h 마일스톤
+        const m48 = new Date(startTime.getTime() + 48 * 3600000);
+        if (m48 <= endTime) events.push({ time: m48, badge: 'milestone', label: '48시간 달성', note: '오토파지 피크 구간' });
+        // 단식 종료
+        events.push({ time: endTime, badge: 'milestone', label: '단식 종료', note: `실제 ${hh}h ${mm}m (${pct}%)` });
+
+        events.sort((a, b) => a.time - b.time);
+        return events;
+    }
+
+    function renderEventLog(events) {
+        const tbody = document.getElementById('eventBody');
+        tbody.innerHTML = events.map(ev =>
+            `<tr><td>${fmt(ev.time)}</td><td><span class="event-badge ${ev.badge}">${ev.label}</span></td><td>${ev.note}</td></tr>`
+        ).join('');
+    }
+
+    // CSV 생성
+    function buildCSV(weightRows, bloodSugarRows, ketoneRows, exerciseRows, events) {
+        const lines = [];
+        lines.push(`# 단식 기록 - ${fmt(startTime)} ~ ${fmt(endTime)}`);
+        lines.push(`# 목표: ${targetHours}h | 실제: ${hh}h ${mm}m | 달성률: ${pct}%`);
+        lines.push('');
+
+        lines.push('=== 체중 ===');
+        lines.push('날짜시간,체중(kg),변화량(kg)');
+        weightRows.forEach((r, i) => {
+            const prev = i > 0 ? weightRows[i-1].value : null;
+            const delta = prev !== null ? Math.round((r.value - prev) * 100) / 100 : '';
+            lines.push(`${fmt(r.date)},${r.value ?? ''},${delta}`);
+        });
+        lines.push('');
+
+        lines.push('=== 혈당 ===');
+        lines.push('날짜시간,혈당(mg/dL),변화량');
+        bloodSugarRows.forEach((r, i) => {
+            const prev = i > 0 ? bloodSugarRows[i-1].value : null;
+            const delta = prev !== null ? Math.round((r.value - prev) * 100) / 100 : '';
+            lines.push(`${fmt(r.date)},${r.value ?? ''},${delta}`);
+        });
+        lines.push('');
+
+        lines.push('=== 케톤 ===');
+        lines.push('날짜시간,케톤(mmol/L),변화량');
+        ketoneRows.forEach((r, i) => {
+            const prev = i > 0 ? ketoneRows[i-1].value : null;
+            const delta = prev !== null ? Math.round((r.value - prev) * 100) / 100 : '';
+            lines.push(`${fmt(r.date)},${r.value ?? ''},${delta}`);
+        });
+        lines.push('');
+
+        lines.push('=== 운동 ===');
+        lines.push('날짜,종류,시간(분),칼로리');
+        exerciseRows.forEach(r => {
+            lines.push(`${fmtDate(r.date)},${r.type ?? ''},${r.duration ?? ''},${r.calories ?? ''}`);
+        });
+        lines.push('');
+
+        lines.push('=== 이벤트 로그 ===');
+        lines.push('시간,이벤트,내용');
+        events.forEach(ev => lines.push(`${fmt(ev.time)},${ev.label},${ev.note}`));
+
+        return lines.join('\n');
+    }
+
+    function downloadCSV(csv, filename) {
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // 메인 로직
+    async function init() {
+        const db = window.db;
+        const currentUser = window.auth?.currentUser;
+
+        if (!db || !currentUser) {
+            document.getElementById('loadingEl').innerHTML =
+                '<p class="loading-text">로그인이 필요합니다. <a href="/login.html">로그인</a></p>';
+            return;
+        }
+
+        const uid = currentUser.uid;
+
+        // 병렬 쿼리
+        const [weightRows, bloodSugarRows, ketoneRows, exerciseRows] = await Promise.all([
+            fetchRange(db, uid, 'measurements/weight/items', 'date'),
+            fetchRange(db, uid, 'measurements/bloodSugar/items', 'date'),
+            fetchRange(db, uid, 'measurements/ketone/items', 'date'),
+            fetchRange(db, uid, 'measurements/exercise/items', 'date')
+        ]);
+
+        // 로딩 숨기기
+        document.getElementById('loadingEl').style.display = 'none';
+
+        // 요약 카드
+        const summaryCard = document.getElementById('summaryCard');
+        summaryCard.style.display = 'block';
+        document.getElementById('summaryGrid').innerHTML = `
+            <div class="summary-item">
+                <div class="summary-label">단식 시간</div>
+                <div class="summary-value highlight">${hh}h ${mm}m</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">목표 대비</div>
+                <div class="summary-value highlight">${pct}%</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">기간</div>
+                <div class="summary-value" style="font-size:0.78rem;">${fmt(startTime)}<br>~ ${fmt(endTime)}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">체중 기록</div>
+                <div class="summary-value">${weightRows.length}건</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">케톤 기록</div>
+                <div class="summary-value">${ketoneRows.length}건</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">운동 기록</div>
+                <div class="summary-value">${exerciseRows.length}건</div>
+            </div>
+        `;
+
+        // 체중
+        document.getElementById('weightCard').style.display = 'block';
+        renderMeasureTable('weightBody', weightRows, 'date', 'value', 'kg');
+
+        // 혈당
+        document.getElementById('bloodSugarCard').style.display = 'block';
+        renderMeasureTable('bloodSugarBody', bloodSugarRows, 'date', 'value', 'mg/dL');
+
+        // 케톤
+        document.getElementById('ketoneCard').style.display = 'block';
+        renderMeasureTable('ketoneBody', ketoneRows, 'date', 'value', 'mmol/L');
+
+        // 운동
+        document.getElementById('exerciseCard').style.display = 'block';
+        renderExerciseTable(exerciseRows);
+
+        // 이벤트 로그
+        const events = buildEventLog(weightRows, bloodSugarRows, ketoneRows);
+        document.getElementById('eventCard').style.display = 'block';
+        renderEventLog(events);
+
+        // 다운로드
+        document.getElementById('downloadCard').style.display = 'block';
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const csv = buildCSV(weightRows, bloodSugarRows, ketoneRows, exerciseRows, events);
+            const dateStr = `${startTime.getFullYear()}${String(startTime.getMonth()+1).padStart(2,'0')}${String(startTime.getDate()).padStart(2,'0')}`;
+            downloadCSV(csv, `fastmate_${dateStr}_${hh}h.csv`);
+        });
+    }
+
+    // auth 준비 대기 후 실행 (firebase-init.js의 runWithUser 사용)
+    function startWithAuth() {
+        if (window.runWithUser) {
+            window.runWithUser(user => {
+                // runWithUser는 user가 있을 때만 fn 호출
+                init();
+            });
+            // 미로그인 리다이렉트
+            window.requireAuth?.('/login.html');
+        } else {
+            // firebase-init.js 아직 로드 중 - 폴백
+            setTimeout(startWithAuth, 200);
+        }
+    }
+    startWithAuth();
+})();
+</script>
+</body>
+</html>

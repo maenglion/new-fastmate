@@ -200,75 +200,14 @@
             gap: 10px;
         }
 
-/* 알림 히스토리 스타일 */
-.notification-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.notification-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.notification-item:last-child {
-    border-bottom: none;
-}
-
-.notification-icon {
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.notification-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.notification-title {
-    font-size: 0.9rem;
-    color: var(--text-color);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.notification-time {
-    font-size: 0.75rem;
-    color: var(--text-light);
-    margin-top: 2px;
-}
-
-.notification-more-btn {
-    width: 100%;
-    padding: 10px;
-    background: none;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-light);
-    font-size: 0.85rem;
+/* 단식 기록 클릭 스타일 */
+.history-item.clickable {
     cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.2s;
+    transition: background 0.15s;
 }
-
-.notification-more-btn:hover {
-    background: var(--primary-light);
-    color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-.empty-notification {
-    color: var(--text-light);
-    font-size: 0.9rem;
-    text-align: center;
-    padding: 20px 0;
-    margin: 0;
+.history-item.clickable:hover {
+    background: var(--primary-light, #f0f9f4);
+    border-radius: 8px;
 }
       
 .goal-tag {
@@ -803,15 +742,6 @@
             <p id="pfEmail">-</p>
         </div>
     </div>
-    <div class="profile-details">
-        <h3>알림 히스토리</h3>
-        <div id="notificationList" class="notification-list">
-            <p class="empty-notification">알림이 없습니다.</p>
-        </div>
-        <button id="notificationMoreBtn" class="notification-more-btn" style="display:none;">
-            더보기
-        </button>
-    </div>
 </div>
  
       
@@ -1128,7 +1058,7 @@
         function renderFastingHistory() {
             renderHistory(fastingHistoryList, fastingPaginationControls, allData.fasting, fastingCurrentPage, (item) => {
                 const li = document.createElement('li');
-                li.className = 'history-item';
+                li.className = 'history-item clickable';
                 li.dataset.docId = item.id;
 
                 // 케토식 준비 중단 레코드 별도 렌더링
@@ -1149,6 +1079,10 @@
                 if (percentage > 100) percentageClass = 'percentage-over-100';
                 else if (percentage >= 70) percentageClass = 'percentage-high';
                 else if (percentage <= 30) percentageClass = 'percentage-low';
+                // 상세 페이지 이동용 data 속성
+                if (item.startTime) li.dataset.startTime = item.startTime.toISOString();
+                if (item.endTime)   li.dataset.endTime   = item.endTime.toISOString();
+                if (item.targetHours) li.dataset.targetHours = item.targetHours;
                 li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분</div><div class="period">${format(item.startTime)}~${format(item.endTime)}</div></div><div class="history-actions"><div class="history-percentage ${percentageClass}">${percentage}%</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
                 return li;
             }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
@@ -1374,10 +1308,23 @@
             });
             
             fastingHistoryList.addEventListener('click', (e) => {
+                const li = e.target.closest('.history-item');
+                if (!li) return;
+                // 삭제 버튼
                 if (e.target.classList.contains('delete-btn')) {
-                    const li = e.target.closest('.history-item');
                     if (li.dataset.docId) deleteFastingRecord(li.dataset.docId);
+                    return;
                 }
+                // 케토식 준비 중단 레코드는 상세 페이지 없음
+                if (!li.dataset.startTime || !li.dataset.endTime) return;
+                // 상세 페이지로 이동
+                const params = new URLSearchParams({
+                    docId:       li.dataset.docId || '',
+                    startTime:   li.dataset.startTime,
+                    endTime:     li.dataset.endTime,
+                    targetHours: li.dataset.targetHours || ''
+                });
+                window.location.href = `fasting-detail.html?${params.toString()}`;
             });
             
             // ✅ [핵심 수정] 탭 전환 이벤트 - 차트 리사이즈 추가
@@ -1403,11 +1350,7 @@
             
             dateRangeSelector.addEventListener('change', renderAllCharts);
             
-            // 알림 더보기 버튼
-            document.getElementById('notificationMoreBtn')?.addEventListener('click', () => {
-                notificationsExpanded = !notificationsExpanded;
-                renderNotifications();
-            });
+
             
             // ============================================
             // 설정 모달 이벤트
@@ -1565,8 +1508,7 @@
                 
                 allData = { profile, fasting, exercise, weight, bloodSugar, ketone };
 
-                renderProfileCard();
-                loadNotifications();
+                                renderProfileCard();
                 renderScheduledFastings(profile?.scheduledFastings || []);
                 renderFastingHistory();
                 renderExerciseHistory();
