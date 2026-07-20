@@ -759,8 +759,8 @@
     </div>
 </div>
 
-<!-- Google Health 미연동 배너 -->
-<div id="ghBanner" style="display:none; background:#f0f8f2; border:1.5px solid #1c8e3e; border-radius:12px; padding:12px 16px; margin-bottom:12px; display:flex; align-items:center; gap:12px; cursor:pointer;" onclick="document.getElementById('settingsBtn').click()">
+<!-- Google Health 미연동 배너 (검수 준비 중 - 숨김) -->
+<div id="ghBanner" style="display:none;" onclick="document.getElementById('settingsBtn').click()">
   <span style="font-size:1.4rem;">💚</span>
   <div style="flex:1;">
     <div style="font-size:0.9rem; font-weight:600; color:#1c8e3e;">Google Health 연동 가능</div>
@@ -827,7 +827,9 @@
         <a href="./privacy.html">개인정보처리방침</a>
         <span class="footer-sep">|</span>
         <a href="./privacy.html">이용약관</a>
-        <p>© 2025 2e-studio. All rights reserved.</p>
+        <p>© 2026 소울스펙트럼 주식회사 | 대표자: 맹난영 | 사업자등록번호: 651-81-03691</p>
+        <p style="font-size:0.75rem;">업종: 정보통신업, 소프트웨어개발 | 주소: 인천광역시 연수구 테크노파크로111번길 5, 8층 801-에스7호</p>
+        <p style="font-size:0.75rem;">이메일: nanyoung@soulspectrum.kr | 전화: 010-7940-5553</p>
     </footer>
 
 <!-- ============================================
@@ -909,10 +911,11 @@
                     ✅ 연동됨 &nbsp;<span id="ghConnectedDate"></span>
                 </div>
                 <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
-                    <button id="connectGHBtn" class="settings-btn-primary">🔗 Google Health 연동하기</button>
+                    <button id="connectGHBtn" class="settings-btn-primary" disabled style="opacity:0.5; cursor:not-allowed;">🔗 Google Health 연동 (검수 준비 중)</button>
                     <button id="syncGHBtn" class="settings-btn-secondary" style="display:none;">🔄 데이터 동기화</button>
                     <button id="disconnectGHBtn" class="settings-btn-danger" style="display:none;">연동 해제</button>
                 </div>
+                <p style="font-size:0.78rem; color:var(--text-light); margin-top:8px;">Google API 검수 완료 후 활성화 예정입니다.</p>
             </div>
         </div>
     </div>
@@ -1645,10 +1648,10 @@
                 disconnectBtn.style.display = 'none';
                 connectedInfo.style.display = 'none';
                 statusText.textContent = 'Fitbit, Garmin 등 Google Health 연동 기기의 운동 기록, 걸음수, 칼로리를 자동으로 가져옵니다.';
-                // 배너: 사용자가 닫지 않았으면 표시
-                if (ghBanner && !localStorage.getItem('ghBannerDismissed')) {
-                    ghBanner.style.display = 'flex';
-                }
+                // 배너: Google API 검수 완료 전까지 숨김
+                // if (ghBanner && !localStorage.getItem('ghBannerDismissed')) {
+                //     ghBanner.style.display = 'flex';
+                // }
             }
         }
 
