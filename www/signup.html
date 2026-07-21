@@ -259,18 +259,18 @@
             <div class="terms-container">
                 <div class="term-item">
                     <input type="checkbox" id="termsOfService">
-                    <label for="termsOfService">서비스 이용약관 (필수)</label>
-                    <a href="#" data-modal="termsModal">내용 보기</a>
+                    <label for="termsOfService">[필수] 서비스 이용약관 동의</label>
+                    <a href="./terms.html" target="_blank">내용 보기</a>
                 </div>
                 <div class="term-item">
                     <input type="checkbox" id="privacyPolicy">
-                    <label for="privacyPolicy">개인정보처리방침 (필수)</label>
-                    <a href="#" data-modal="privacyModal">내용 보기</a>
+                    <label for="privacyPolicy">[필수] 개인정보 수집 및 이용 동의</label>
+                    <a href="./privacy.html" target="_blank">내용 보기</a>
                 </div>
                 <div class="term-item" style="margin-top:8px; padding:10px 0; border-top:1px solid #eee;">
-                    <input type="checkbox" id="agreeGoogleHealth">
-                    <label for="agreeGoogleHealth" style="font-size:0.9rem;">Google Health 연동 및 민감정보(운동기록 등) 수집 동의 (선택)</label>
-                    <small style="display:block; margin-top:4px; color:#888; font-size:0.8rem;">Fitbit Inspire 3 등 웨어러블 데이터 연동 시 필요합니다. 동의하지 않아도 기본 서비스 이용에 제한없습니다.</small>
+                    <input type="checkbox" id="sensitiveDataConsent">
+                    <label for="sensitiveDataConsent" style="font-size:0.9rem;">[필수] 민감정보(건강정보) 수집 및 이용 동의</label>
+                    <small style="display:block; margin-top:4px; color:#888; font-size:0.8rem;">체중, 혈당, 케톤, 단식 기록, 운동 기록 등 건강 관련 민감정보를 수집·처리합니다. 수집된 데이터는 익명화하여 통계 분석에 활용될 수 있습니다. 동의하지 않으시면 서비스 이용이 제한됩니다.</small>
                 </div>
             </div>
             <div class="button-group">
@@ -496,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tagCloud = document.getElementById('tagCloud');
   const termsCheckbox = document.getElementById('termsOfService');
   const privacyCheckbox = document.getElementById('privacyPolicy');
+  const sensitiveCheckbox = document.getElementById('sensitiveDataConsent');
 
   // ===== [수정] fastmate에서 왔는지 확인 =====
   const urlParams = new URL(location.href).searchParams;
@@ -606,8 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (finishSignupBtn.disabled) return;
     finishSignupBtn.disabled = true;
     try {
-      if (!termsCheckbox?.checked || !privacyCheckbox?.checked) {
-        alert('필수 약관에 모두 동의해주세요.'); return;
+      if (!termsCheckbox?.checked || !privacyCheckbox?.checked || !sensitiveCheckbox?.checked) {
+        alert('필수 약관 3가지에 모두 동의해주세요.'); return;
       }
       const email = (emailInput?.value || '').trim();
       const pw = passwordInput?.value || '';
@@ -633,16 +634,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Google Health 동의 여부 저장
-      const agreeGH = document.getElementById('agreeGoogleHealth')?.checked || false;
+      // 동의 정보 저장
+      const consentSensitive = sensitiveCheckbox?.checked || false;
 
       // 프로필 저장 및 완료 플래그
       await ensureUserProfile({
         email: user.email || email || null,
         nickname,
         onboarding: { reasons: goals, completed: true },
-        consentGoogleHealth: agreeGH,
-        consentGoogleHealthAt: agreeGH ? firebase.firestore.FieldValue.serverTimestamp() : null
+        consentSensitiveData: consentSensitive,
+        consentSensitiveDataAt: consentSensitive ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        consentTerms: true,
+        consentTermsAt: firebase.firestore.FieldValue.serverTimestamp(),
+        consentPrivacy: true,
+        consentPrivacyAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
       // fastmate가 다시 signup으로 튕기지 않도록 락 해제
@@ -703,9 +708,14 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <footer style="text-align:center; padding: 20px 0 30px; font-size:0.8rem; color:#777;">
-  <p style="margin:5px 0;">© 2026 소울스펙트럼 주식회사 | 대표자: 맹난영 | 사업자등록번호: 651-81-03691</p>
-  <p style="margin:3px 0;">업종: 정보통신업, 소프트웨어개발 | 주소: 인천광역시 연수구 테크노파크로111번길 5, 8층 801-에스7호</p>
-  <p style="margin:3px 0;">이메일: nanyoung@soulspectrum.kr | 전화: 010-7940-5553</p>
+  <a href="./privacy.html" style="color:#777; text-decoration:none;">개인정보처리방침</a>
+  <span style="margin:0 6px;">|</span>
+  <a href="./terms.html" style="color:#777; text-decoration:none;">이용약관</a>
+  <p style="margin:5px 0;">© (주)소울스펙트럼 | 651-81-03691</p>
+  <p style="margin:3px 0;">인천광역시 연수구 테크노파크로111번길 5, 8층 801-에스7호</p>
+  <p style="margin:3px 0;">대표자,개인정보보호책임자: 맹난영</p>
+  <p style="margin:3px 0;">nanyoung@soulspectrum.kr | 전화: 010-7940-5553</p>
+  <a href="http://pf.kakao.com/_GCYfX/chat" target="_blank" style="color:#777; text-decoration:none;">카카오톡 채널: @soulspectrum</a>
 </footer>
 
 </body>
