@@ -767,6 +767,15 @@
     </div>
 </div>
 
+<!-- 민감정보 재동의 배너 -->
+<div id="sensitiveConsentBanner" style="display:none; margin:12px 0; padding:14px 16px; background:#fff8e1; border:1.5px solid #f9a825; border-radius:12px; font-size:0.88rem; color:#555;">
+  <div style="font-weight:700; color:#e65100; margin-bottom:6px;">&#9888; 민감정보(건강정보) 수집 동의가 필요합니다</div>
+  <div style="margin-bottom:10px; line-height:1.5;">체중, 혈당, 케톤, 단식 기록 등 건강 관련 민감정보 수집에 대한 별도 동의가 필요합니다. 동의 없이도 현재 기록은 유지되지만, 앱 정책 변경에 따라 서비스 이용이 제한될 수 있습니다.</div>
+  <div style="display:flex; gap:8px; justify-content:flex-end;">
+    <button id="sensitiveConsentDismiss" style="background:none; border:1px solid #ccc; border-radius:8px; padding:6px 14px; font-size:0.85rem; cursor:pointer; color:#777;">나중에</button>
+    <button id="sensitiveConsentAgree" style="background:#1c8e3e; border:none; border-radius:8px; padding:6px 14px; font-size:0.85rem; cursor:pointer; color:#fff; font-weight:700;">동의하기</button>
+  </div>
+</div>
 <!-- Google Health 미연동 배너 (검수 준비 중 - 숨김) -->
 <div id="ghBanner" style="display:none;" onclick="document.getElementById('settingsBtn').click()">
   <span style="font-size:1.4rem;">💚</span>
@@ -1619,10 +1628,10 @@
                 renderScheduledFastings(profile?.scheduledFastings || []);
                 renderFastingHistory();
                 renderExerciseHistory();
-                renderAllCharts();
-                
+                                renderAllCharts();
                 wireEventsOnce();
-
+                // 민감정보 재동의 배너 체크
+                checkSensitiveConsentBanner(profile);
                 // Google Health 연동 상태 로드
                 try {
                     const intSnap = await db.collection('users').doc(currentUser.uid)
@@ -1632,6 +1641,33 @@
             } catch (error) { console.error("마이페이지 데이터 로딩 중 오류:", error); }
         }
 
+        // 민감정보 재동의 배너 체크
+        function checkSensitiveConsentBanner(profile) {
+            const banner = document.getElementById('sensitiveConsentBanner');
+            if (!banner || !currentUser) return;
+            // 이미 동의한 경우 또는 나중에 닫기를 누른 경우 숨김
+            if (profile?.consentSensitiveData === true) return;
+            if (localStorage.getItem('sensitiveConsentDismissed') === '1') return;
+            banner.style.display = 'block';
+            document.getElementById('sensitiveConsentDismiss')?.addEventListener('click', () => {
+                banner.style.display = 'none';
+                localStorage.setItem('sensitiveConsentDismissed', '1');
+            });
+            document.getElementById('sensitiveConsentAgree')?.addEventListener('click', async () => {
+                try {
+                    await db.collection('users').doc(currentUser.uid).update({
+                        consentSensitiveData: true,
+                        consentSensitiveDataAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    banner.style.display = 'none';
+                    localStorage.removeItem('sensitiveConsentDismissed');
+                    alert('민감정보 수집 동의가 완료되었습니다.');
+                } catch(e) {
+                    console.error('동의 저장 실패:', e);
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                }
+            });
+        }
         // Google Health 연동 상태 UI 업데이트
         function updateGHStatusUI(data) {
             const connectBtn     = document.getElementById('connectGHBtn');
