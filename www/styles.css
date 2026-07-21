@@ -961,29 +961,23 @@ option.is-running {
 
 
 /* ===================================================
-   갤럭시 Z 폴드 / 태블릿 펼친 화면 대응 (900px 이상)
-   컨테이너를 전체 너비로 확장하여 좌우 여백 제거
+   갤럭시 Z 폴드 / 태블릿 넓은 화면 대응 (600px 이상)
+   최대폭 600px 고정, 나머지는 배경색으로 처리
    =================================================== */
-@media screen and (min-width: 900px) {
+@media screen and (min-width: 600px) {
     body {
-        padding-left: 20px;
-        padding-right: 20px;
+        padding-left: 0;
+        padding-right: 0;
     }
     .container {
-        max-width: 100%;
+        max-width: 600px;
         width: 100%;
+        margin: 0 auto;
         border-radius: 12px;
     }
-    /* user-chip: scale 축소 해제하여 터치 영역 확보 */
+    /* user-chip: 터치 영역 확보 */
     .user-chip {
         transform: scale(1);
-        transform-origin: top right;
-        top: 20px;
-        right: 20px;
         z-index: 100;
-    }
-    /* 링 타이머 크기 상한 */
-    .ring-wrap {
-        max-width: 340px;
     }
 }
