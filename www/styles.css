@@ -681,16 +681,7 @@ option.is-running {
 
 
 /** 기존 styles.css 내용 **/
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f4f7;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    text-align: center;
-}
+/* body 중복 선언 제거 (flex/height:100vh 가 위아래 스크롤 막는 원인) */
 
 .intro-container, .login-container, .signup-container {
     background-color: #fff;
