@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 const CACHE_VERSION = 'v10';
 const CACHE_NAME = 'fastmate-2026.07.21-v11';
+=======
+const CACHE_VERSION = 'v11';
+const CACHE_NAME = 'fastmate-2026.07.21-v11';
+>>>>>>> f7ac5e210a04c9fc3fe08cc3bae2977c288e2376
 self.addEventListener('install', e => {
   self.skipWaiting(); 
 });
