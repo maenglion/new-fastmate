@@ -132,7 +132,7 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
 
 <!-- 오토파지 모드: 케토식 준비 배너 -->
 <div id="keto-prep-banner" style="display:none;" class="keto-prep-banner">
-  <div class="keto-prep-icon">🔬</div>
+  <div class="keto-prep-icon"><img src="./icon-light-autophage.svg" class="autophage-icon-light" alt="오토파지"><img src="./icon-dark-autophage.svg" class="autophage-icon-dark" alt="오토파지"></div>
   <div class="keto-prep-info">
     <div class="keto-prep-title">케토식 준비 중</div>
     <div id="keto-prep-remaining" class="keto-prep-time">72:00:00 남음</div>
@@ -142,7 +142,7 @@ if (sessionStorage.getItem('oauthBusy') === '1') {
 </div>
 <!-- 오토파지 모드: 단식 시작 안내 배너 -->
 <div id="keto-ready-banner" style="display:none;" class="keto-ready-banner">
-  <div class="keto-ready-icon">✅</div>
+  <div class="keto-ready-icon"><img src="./icon-light-autophage.svg" class="autophage-icon-light" alt="오토파지"><img src="./icon-dark-autophage.svg" class="autophage-icon-dark" alt="오토파지"></div>
   <div class="keto-ready-info">
     <div class="keto-ready-title">케토 준비 완료!</div>
     <div class="keto-ready-desc">단식을 시작하면 오토파지 진입이 빠르게 활성화됩니다.</div>
@@ -633,7 +633,17 @@ function tickOnce() {
     
     function resetSelectOptions() {
         fastingState = 'idle';
+        // 마지막 사용 플랜 복원 (없으면 16시간 기본값)
+        const savedPlan = localStorage.getItem('lastFastingPlan');
+        if (savedPlan && modelSelect) {
+            targetHours = parseInt(savedPlan, 10);
+            modelSelect.value = savedPlan;
+        } else if (modelSelect) {
+            targetHours = 16;
+            modelSelect.value = '16';
+        }
         updateSelectOptions();
+        updateTimeDisplays();
     }
 
 function updateTimeDisplays() {
@@ -753,6 +763,7 @@ function updateTimeDisplays() {
                         targetHours: targetHours
                     }
                 }, { merge: true });
+                localStorage.setItem('lastFastingPlan', String(targetHours));
                 showToast(`${targetHours}시간 단식을 시작합니다!`);
                 updateTimeDisplays();
                 updateUIState();
@@ -1246,6 +1257,7 @@ async function refreshFastingState() {
             }
         } else if (fastingState !== 'running') {
             targetHours = newTarget;
+            localStorage.setItem('lastFastingPlan', String(newTarget));
             updateTimeDisplays();
         }
     }

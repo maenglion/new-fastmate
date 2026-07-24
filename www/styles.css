@@ -166,15 +166,18 @@ body {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
-            border: 1px solid #2d5a8e;
+            background: #333;
+            border: 1px solid #555;
             border-radius: 12px;
             padding: 14px 16px;
             margin: 0 auto 16px auto;
             max-width: 90%;
             color: #e8f4fd;
         }
-        .keto-prep-icon, .keto-ready-icon { font-size: 1.6rem; flex-shrink: 0; }
+        .keto-prep-icon, .keto-ready-icon { flex-shrink: 0; }
+        /* 오토파지 아이콘 라이트/다크 전환 */
+        .autophage-icon-light { display: inline-block; width: 36px; height: 36px; }
+        .autophage-icon-dark  { display: none;         width: 36px; height: 36px; }
         .keto-prep-info, .keto-ready-info { flex: 1; min-width: 0; }
         .keto-prep-title, .keto-ready-title { font-size: 0.85rem; font-weight: 700; color: #7ec8e3; margin-bottom: 2px; }
         .keto-prep-time { font-size: 1.1rem; font-weight: 700; color: #ffffff; font-variant-numeric: tabular-nums; }
@@ -676,6 +679,19 @@ option.is-running {
 
   .date-selector .date-btn { color: var(--text-light); }
   .date-selector .date-btn.active { color: var(--primary-color); }
+
+  /* 케토식 준비 배너 다크모드 */
+  .keto-prep-banner, .keto-ready-banner {
+    background: #1c8e3e;
+    border-color: #2aad52;
+    color: #ffffff;
+  }
+  .keto-prep-title, .keto-ready-title { color: #ffd400; }
+  .keto-prep-desc, .keto-ready-desc { color: rgba(255,255,255,0.75); }
+  .keto-prep-time { color: #ffffff; }
+  /* 다크모드에서 아이콘 전환 */
+  .autophage-icon-light { display: none; }
+  .autophage-icon-dark  { display: inline-block; }
 }
 
 
