@@ -913,6 +913,16 @@ function updateTimeDisplays() {
         actualDurationHours: (finalEndDate - selectedStartTime) / 3600000,
         challengeId: activeChallengeId || null
     };
+    // 케토식 3일 완료 후 연결된 단식이면 ketoPrep 정보 포함
+    if (ketoPrepStartTime) {
+        const ketoPrepEndTime = selectedStartTime; // 케토식 종료 = 단식 시작 시점
+        record.ketoPrep = {
+            startTime: ketoPrepStartTime,
+            endTime: ketoPrepEndTime,
+            durationHours: Math.round((ketoPrepEndTime - ketoPrepStartTime) / 3600000 * 10) / 10,
+            completed: true
+        };
+    }
 
     if (currentUser) {
         try {

@@ -1130,7 +1130,7 @@
                     const start = item.startTime instanceof Date ? item.startTime : (item.startTime?.toDate ? item.startTime.toDate() : new Date(item.startTime));
                     const end   = item.endTime   instanceof Date ? item.endTime   : (item.endTime?.toDate   ? item.endTime.toDate()   : new Date(item.endTime));
                     const elapsed = start && end ? Math.round((end - start) / 3600000 * 10) / 10 : 0;
-                    li.innerHTML = `<div class="history-info"><div class="duration">🔬 케토식 준비 중단</div><div class="period">${format(start)} ~ ${format(end)} (${elapsed}h)</div></div><div class="history-actions"><div class="history-percentage percentage-low">중단</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
+                    li.innerHTML = `<div class="history-info"><div class="duration">✔️ 케토식 준비 중단</div><div class="period">${format(start)} ~ ${format(end)} (${elapsed}h)</div></div><div class="history-actions"><div class="history-percentage percentage-low">중단</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
                     return li;
                 }
 
@@ -1142,11 +1142,19 @@
                 if (percentage > 100) percentageClass = 'percentage-over-100';
                 else if (percentage >= 70) percentageClass = 'percentage-high';
                 else if (percentage <= 30) percentageClass = 'percentage-low';
+                // 케토식 완료 연결 단식 여부
+                const hasKeto = item.ketoPrep?.completed === true;
+                const ketoBadge = hasKeto ? `<span style="font-size:0.75rem; color:var(--primary-color); margin-left:6px;">✔️ 케토식 3일</span>` : '';
                 // 상세 페이지 이동용 data 속성
                 if (item.startTime) li.dataset.startTime = item.startTime.toISOString();
                 if (item.endTime)   li.dataset.endTime   = item.endTime.toISOString();
                 if (item.targetHours) li.dataset.targetHours = item.targetHours;
-                li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분</div><div class="period">${format(item.startTime)}~${format(item.endTime)}</div></div><div class="history-actions"><div class="history-percentage ${percentageClass}">${percentage}%</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
+                if (hasKeto) {
+                    li.dataset.ketoPrepStart = item.ketoPrep.startTime?.toDate ? item.ketoPrep.startTime.toDate().toISOString() : new Date(item.ketoPrep.startTime).toISOString();
+                    li.dataset.ketoPrepEnd   = item.ketoPrep.endTime?.toDate   ? item.ketoPrep.endTime.toDate().toISOString()   : new Date(item.ketoPrep.endTime).toISOString();
+                    li.dataset.ketoPrepHours = item.ketoPrep.durationHours;
+                }
+                li.innerHTML = `<div class="history-info"><div class="duration">${hours}시간 ${minutes}분${ketoBadge}</div><div class="period">${format(item.startTime)}~${format(item.endTime)}</div></div><div class="history-actions"><div class="history-percentage ${percentageClass}">${percentage}%</div><button class="delete-btn" title="기록 삭제">×</button></div>`;
                 return li;
             }, (newPage) => { fastingCurrentPage = newPage; renderFastingHistory(); });
         }
@@ -1387,6 +1395,9 @@
                     endTime:     li.dataset.endTime,
                     targetHours: li.dataset.targetHours || ''
                 });
+                if (li.dataset.ketoPrepStart) params.set('ketoPrepStart', li.dataset.ketoPrepStart);
+                if (li.dataset.ketoPrepEnd)   params.set('ketoPrepEnd',   li.dataset.ketoPrepEnd);
+                if (li.dataset.ketoPrepHours) params.set('ketoPrepHours', li.dataset.ketoPrepHours);
                 window.location.href = `fasting-detail.html?${params.toString()}`;
             });
             

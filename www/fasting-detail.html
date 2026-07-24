@@ -268,6 +268,10 @@
     const startTime   = new Date(params.get('startTime'));
     const endTime     = new Date(params.get('endTime'));
     const targetHours = parseFloat(params.get('targetHours')) || 0;
+    // 케토식 3일 완료 정보
+    const ketoPrepStart = params.get('ketoPrepStart') ? new Date(params.get('ketoPrepStart')) : null;
+    const ketoPrepEnd   = params.get('ketoPrepEnd')   ? new Date(params.get('ketoPrepEnd'))   : null;
+    const ketoPrepHours = parseFloat(params.get('ketoPrepHours')) || 0;
 
     const fmt = (d) => {
         if (!d || isNaN(d)) return '-';
@@ -462,6 +466,16 @@
         // 로딩 숨기기
         document.getElementById('loadingEl').style.display = 'none';
 
+        // 케토식 3일 완성 배너 (해당 단식에 케토식이 연결된 경우)
+        if (ketoPrepStart && ketoPrepEnd && !isNaN(ketoPrepStart)) {
+            const ketoBanner = document.createElement('div');
+            ketoBanner.className = 'card';
+            ketoBanner.style.cssText = 'border:1.5px solid var(--primary-color); padding:14px 16px; margin-bottom:0;';
+            const kpHH = Math.floor(ketoPrepHours);
+            const kpMM = Math.round((ketoPrepHours - kpHH) * 60);
+            ketoBanner.innerHTML = `<div style="font-size:0.88rem; color:var(--text-color);"><strong style="color:var(--primary-color);">\u2714\ufe0f \ucf00\ud1a0\uc2dd 3\uc77c \uc644\uc131</strong> &nbsp; ${fmt(ketoPrepStart)} ~ ${fmt(ketoPrepEnd)} &nbsp; <span style="color:var(--primary-color); font-weight:700;">${kpHH}h ${kpMM}m</span></div>`;
+            document.getElementById('summaryCard').insertAdjacentElement('beforebegin', ketoBanner);
+        }
         // 요약 카드
         const summaryCard = document.getElementById('summaryCard');
         summaryCard.style.display = 'block';
